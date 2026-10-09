@@ -1,0 +1,15 @@
+# Secretos: nunca al repositorio
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.demo
+
+# Capturas y archivos temporales de las pruebas
+.playwright-mcp/
+**/node_modules/
+**/dist/
+
+# Logs y herramientas locales
+*.log
+.pagokit/
