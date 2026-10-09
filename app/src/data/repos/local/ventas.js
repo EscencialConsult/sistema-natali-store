@@ -22,7 +22,7 @@ const esquemaVenta = z.object({
     .string()
     .trim()
     .default('')
-    .refine((s) => s === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s), 'El correo del cliente no es válido.'),
+    .refine((s) => s === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s), 'El correo está mal escrito (debe ser como nombre@gmail.com). Si el cliente no tiene correo, dejá el campo vacío.'),
   cliente_direccion: z.string().trim().default(''),
   metodo_entrega: z.enum(Object.keys(METODOS_ENTREGA)).nullable().default(null),
   items: z

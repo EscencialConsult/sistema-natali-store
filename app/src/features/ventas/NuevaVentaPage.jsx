@@ -199,7 +199,7 @@ export default function NuevaVentaPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input etiqueta="Nombre" value={estado.cliente_nombre} onChange={(e) => despachar({ tipo: 'campo', campo: 'cliente_nombre', valor: e.target.value })} autoComplete="off" />
               <Input etiqueta="Teléfono (para enviarle la nota)" inputMode="tel" value={estado.cliente_telefono} onChange={(e) => despachar({ tipo: 'campo', campo: 'cliente_telefono', valor: e.target.value })} autoComplete="off" />
-              <Input etiqueta="Correo electrónico" type="email" inputMode="email" autoCapitalize="none" value={estado.cliente_email} onChange={(e) => despachar({ tipo: 'campo', campo: 'cliente_email', valor: e.target.value })} autoComplete="off" />
+              <Input etiqueta="Correo electrónico (opcional)" type="email" inputMode="email" autoCapitalize="none" value={estado.cliente_email} onChange={(e) => despachar({ tipo: 'campo', campo: 'cliente_email', valor: e.target.value })} autoComplete="off" />
               <Input etiqueta="Dirección" value={estado.cliente_direccion} onChange={(e) => despachar({ tipo: 'campo', campo: 'cliente_direccion', valor: e.target.value })} autoComplete="off" />
             </div>
           </section>

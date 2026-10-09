@@ -12,8 +12,9 @@ const tasa = (n) => String(n).replace('.', ',')
 // Nota de venta A5. Es solo presentación: recibe la venta ya guardada (con copia de nombres) y la configuración.
 // Teléfonos del pie: vendedores y encargada de tienda, tomados de los perfiles (Ajustes).
 export default function NotaVenta({ venta, cfg, equipo }) {
-  const vendedores = equipo.filter((p) => p.rol === 'vendedor' && p.telefono)
-  const tienda = equipo.filter((p) => p.rol === 'enc_tienda' && p.telefono)
+  const vendedores = equipo.filter((p) => p.rol === 'vendedor')
+  const tienda = equipo.filter((p) => p.rol === 'enc_tienda')
+  const contacto = (p) => <li key={p.id}>{p.nombre}{p.telefono && `: ${p.telefono}`}</li>
   const logo = urlDeImagen(cfg.logo)
   const nombre = cfg.negocio?.nombre ?? 'Modas Naty'
   const url = cfg.url_catalogo
@@ -114,14 +115,18 @@ export default function NotaVenta({ venta, cfg, equipo }) {
           <tr>
             <td>
               <div className="nota-pie">
-                <div>
-                  <h2>Vendedores</h2>
-                  <ul>{vendedores.map((p) => <li key={p.id}>{p.nombre}: {p.telefono}</li>)}</ul>
-                </div>
-                <div>
-                  <h2>Encargada de tienda</h2>
-                  <ul>{tienda.map((p) => <li key={p.id}>{p.nombre}: {p.telefono}</li>)}</ul>
-                </div>
+                {vendedores.length > 0 && (
+                  <div>
+                    <h2>Vendedores</h2>
+                    <ul>{vendedores.map(contacto)}</ul>
+                  </div>
+                )}
+                {tienda.length > 0 && (
+                  <div>
+                    <h2>Encargada de tienda</h2>
+                    <ul>{tienda.map(contacto)}</ul>
+                  </div>
+                )}
                 <p className="nota-gracias">¡Gracias por tu compra!</p>
               </div>
             </td>

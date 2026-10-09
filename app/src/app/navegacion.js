@@ -6,7 +6,7 @@ import { puede } from '../lib/permisos.js'
 // accion: permiso(s) necesario(s); alcanza con tener uno.
 export const PANTALLAS = [
   { ruta: '/inicio', etiqueta: 'Inicio', icono: LayoutDashboard, accion: ['dashboard.ver_global', 'ventas.ver_propias'] },
-  { ruta: '/catalogo', etiqueta: 'Buscar', icono: Search, accion: 'catalogo.ver' },
+  { ruta: '/catalogo', etiqueta: 'Catálogo', icono: Search, accion: 'catalogo.ver' },
   { ruta: '/venta', etiqueta: 'Venta', icono: ReceiptText, accion: 'venta.crear' },
   { ruta: '/ventas', etiqueta: 'Ventas', icono: ScrollText, accion: ['ventas.ver_propias', 'ventas.ver_todas'] },
   { ruta: '/stock', etiqueta: 'Inventario', icono: Package, accion: 'stock.ver' },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ORIGEN } from '../../data/base.js'
 import { db } from '../../data/db.js'
 import { obtenerSupabase } from '../../data/supabase.js'
 import { liveQuery } from 'dexie'
@@ -86,7 +87,7 @@ export default function AuthProviderRemoto({ children }) {
     // En un celular compartido no debe quedar la información de la persona anterior.
     await db.delete()
     await db.open()
-    await db.config.put({ clave: 'origen', valor: 'supabase' })
+    await db.config.put({ clave: 'origen', valor: ORIGEN })
     setUsuario(null)
     return { ok: true }
   }, [])
