@@ -17,7 +17,7 @@ export default function ColoresEditor({ colores, onChange, error }) {
       {colores.length === 0 && <p className="text-sm text-texto-suave">Todavía no hay colores.</p>}
       <ul className="flex flex-col gap-2">
         {colores.map((c, i) => (
-          <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-control border border-borde bg-superficie p-2">
+          <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-tarjeta border border-borde/70 bg-superficie p-2 shadow-tarjeta">
             <input type="color" aria-label={`Muestra de ${c.nombre || 'color'}`} value={c.hex} onChange={(e) => cambiar(i, { hex: e.target.value })} className="size-11 shrink-0 cursor-pointer rounded-control border border-borde-fuerte bg-transparent p-1" />
             <input
               aria-label="Nombre del color"

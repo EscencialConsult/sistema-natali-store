@@ -60,7 +60,7 @@ function PasoExcel() {
   const validos = cuenta('crear') + cuenta('actualizar')
 
   return (
-    <section aria-labelledby="p1" className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie p-4">
+    <section aria-labelledby="p1" className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie shadow-tarjeta p-4">
       <h2 id="p1" className="text-lg">1. Productos desde Excel</h2>
       <p className="text-sm text-texto-suave">Columnas: código, nombre, categoría, precio por docena en US$ y colores separados por coma. Si el código ya existe se actualiza (los colores existentes se conservan); si no, se crea.</p>
       <div className="flex flex-wrap gap-2">
@@ -136,7 +136,7 @@ function PasoFotos() {
   }
 
   return (
-    <section aria-labelledby="p2" className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie p-4">
+    <section aria-labelledby="p2" className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie shadow-tarjeta p-4">
       <h2 id="p2" className="text-lg">2. Fotos en lote</h2>
       <p className="text-sm text-texto-suave">Nombrá cada archivo con el código del producto: <strong>MN-005_1.jpg</strong>, <strong>MN-005_2.jpg</strong>… (el número define el orden; la primera es la principal). Las fotos reemplazan a las que ya tenga el producto, que debe existir.</p>
       <Button icono={ImagePlus} cargando={trabajando} className="self-start" onClick={() => input.current?.click()}>Elegir fotos</Button>
@@ -158,7 +158,7 @@ export default function ImportarPage() {
       <Link to="/catalogo/admin" className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-texto-suave">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden /> Volver a productos
       </Link>
-      <h1 className="text-2xl md:text-3xl">Carga masiva</h1>
+      <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">Carga masiva</h1>
       <PasoExcel />
       <PasoFotos />
     </div>

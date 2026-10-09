@@ -6,8 +6,12 @@ Referencia visual: `Docs/referencias/diseno/README.md` (Divas House: editorial, 
 ## Reglas
 
 - **Foto protagonista**: en catálogo y ficha la imagen manda; el texto la acompaña. Sin marcos decorativos.
-- **Un solo acento**: la tinta (`tinta`, casi negro) es el único color de acción. Verde/ámbar/rojo/azul son solo estados (éxito, alerta, error, info), nunca decoración. Excepción: verde WhatsApp para la acción de WhatsApp.
-- **Sin sombras decorativas**: la jerarquía sale de bordes finos (`borde`) y espacio. Única sombra permitida: paneles flotantes (Sheet, Modal, menú desplegable) para separarlos del fondo.
+- **Un solo acento**: la tinta (`tinta`, ciruela #8A3A63; tonos `tinte` para selección suave) es el único color de acción. Verde/ámbar/rojo/azul son solo estados (éxito, alerta, error, info), nunca decoración. Excepción: verde WhatsApp para la acción de WhatsApp.
+- **Sombras suaves y cálidas**: tarjetas con `shadow-tarjeta`, al pasar el mouse `shadow-elevada`, paneles flotantes `shadow-flotante`. Fondo crema, tarjetas blancas.
+- **Sin scroll horizontal**: grillas siempre con `grid-cols-1` de base; pestañas a ancho completo en celular; categorías como selector en celular.
+- **Hojas inferiores (celular)**: bloquean el scroll del fondo y se cierran deslizando hacia abajo desde la barrita o la cabecera.
+- **Conexión visible**: sin señal, la barra superior se tiñe y aparece una franja explicando que se puede seguir vendiendo.
+- **Excel**: todo listado se exporta con `ExportarExcel` (modal de filtros) + `lib/excel.js` (formato común).
 - **Celular primero**: se diseña a 390px; escritorio es una ampliación. Sin scroll horizontal.
 - **Toque cómodo**: todo control tocable mide al menos 44×44px.
 - **Estado nunca solo por color**: stock, conexión y sincronización llevan texto o icono además del color.
@@ -48,8 +52,8 @@ Reglas: solo `opacity` y `transform`; transiciones (no keyframes) para que se pu
 Paleta **provisoria**: se ajusta cuando llegue el logo de la clienta (bloqueo B2).
 
 ## Radios
-`control` 8px (botones, inputs) · `tarjeta` 4px (tarjetas de producto, fiel a la referencia) · `pildora` (chips, badges).
+`control` 12px (botones, inputs) · `tarjeta` 16px · `panel` 20px (modales) · `pildora` (chips, badges).
 
 ## Componentes (`src/components/ui/`)
-Button, Input, Select, BuscadorLista, Modal, Sheet, Badge, Chip, EmptyState, ErrorState, Skeleton, Toast, Tabs.
+Button, Input, Select, BuscadorLista, CampoBusqueda, Modal, Sheet, Badge, Chip, EmptyState, ErrorState, Skeleton, Toast, Tabs, Tarjeta, Encabezado, Dato, Avatar. Recetas de clases en `ui/estilos.js` (CAMPO, TARJETA, FILA).
 Nunca `<select>` nativo: `Select` para listas cortas, `BuscadorLista` para largas.

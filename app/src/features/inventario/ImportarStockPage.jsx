@@ -60,8 +60,8 @@ export default function ImportarStockPage() {
       <Link to="/stock" className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-texto-suave">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden /> Volver al inventario
       </Link>
-      <h1 className="text-2xl md:text-3xl">Cargar stock desde Excel</h1>
-      <section className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie p-4">
+      <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">Cargar stock desde Excel</h1>
+      <section className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie shadow-tarjeta p-4">
         <p className="text-sm text-texto-suave">Descargá la planilla con el stock actual, corregí la columna <strong>unidades</strong> con lo que hay de verdad (conteo real) y subila. El sistema registra la diferencia como un ajuste, con su historial.</p>
         <div className="flex flex-wrap gap-2">
           <Button variante="secundario" icono={Download} onClick={bajar}>Descargar planilla con el stock actual</Button>

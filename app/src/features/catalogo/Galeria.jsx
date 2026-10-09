@@ -23,7 +23,7 @@ export default function Galeria({ fotos, nombre }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={carril} onScroll={alDeslizar} className="flex snap-x snap-mandatory overflow-x-auto rounded-tarjeta border border-borde [scrollbar-width:none]">
+      <div ref={carril} onScroll={alDeslizar} className="flex snap-x snap-mandatory overflow-x-auto rounded-tarjeta bg-superficie-2 ring-1 ring-borde/70 [scrollbar-width:none]">
         {fotos.map((f, i) => (
           <button key={f.id ?? i} type="button" onClick={() => setZoom(true)} aria-label={`Ampliar foto ${i + 1} de ${fotos.length}`} className="w-full shrink-0 snap-center">
             <Foto foto={f} alt={`${nombre}, foto ${i + 1}`} prioridad={i === 0} className="aspect-[3/4] w-full object-contain" />
@@ -31,7 +31,7 @@ export default function Galeria({ fotos, nombre }) {
         ))}
       </div>
       {fotos.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex flex-wrap gap-2.5 p-1">
           {fotos.map((f, i) => (
             <button
               key={f.id ?? i}
@@ -39,7 +39,7 @@ export default function Galeria({ fotos, nombre }) {
               onClick={() => ir(i)}
               aria-label={`Ver foto ${i + 1}`}
               aria-current={i === actual}
-              className={cn('size-14 shrink-0 overflow-hidden rounded-tarjeta border-2', i === actual ? 'border-tinta' : 'border-transparent')}
+              className={cn('size-16 shrink-0 overflow-hidden rounded-control ring-2 ring-offset-2 ring-offset-superficie transition-[box-shadow,opacity]', i === actual ? 'ring-tinta' : 'opacity-70 ring-transparent hover:opacity-100')}
             >
               <Foto foto={f} className="size-full" />
             </button>

@@ -107,7 +107,7 @@ export default function NotaPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl md:text-3xl">Nota {v.numero}</h1>
+        <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">Nota {v.numero}</h1>
         <Badge tono={tono}>{textoSync}</Badge>
       </div>
 

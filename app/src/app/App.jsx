@@ -7,6 +7,7 @@ import SyncRunner from '../data/sync/SyncRunner.jsx'
 import ActualizacionPWA from './ActualizacionPWA.jsx'
 import AppRoutes from './AppRoutes.jsx'
 import Arranque from './Arranque.jsx'
+import { FaviconDinamico } from '../components/Logo.jsx'
 import PrimeraCarga from './PrimeraCarga.jsx'
 
 // La sesión real (Supabase) solo se descarga cuando hay servidor configurado.
@@ -19,6 +20,7 @@ export default function App() {
       <ToastProvider>
         <ActualizacionPWA />
         <Arranque>
+          <FaviconDinamico />
           <Suspense fallback={null}>
             <AuthProvider>
               <PrimeraCarga>

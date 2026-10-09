@@ -4,6 +4,7 @@ import { cargarSeedSiVacio } from '../../data/seed/cargar.js'
 import { productos, ventas } from '../../data/repos/index.js'
 import { totalesPorMoneda } from '../../lib/moneda.js'
 import { crearExcelVentas } from './exportarVentas.js'
+import { PRIMERA_FILA_DATOS } from '../../lib/excel.js'
 
 beforeAll(async () => {
   await cargarSeedSiVacio()
@@ -23,15 +24,16 @@ describe('exportar ventas a Excel', () => {
 
     const hVentas = wb.getWorksheet('Ventas')
     const hDetalle = wb.getWorksheet('Detalle')
-    expect(hVentas.rowCount - 1).toBe(lista.length)
-    expect(hDetalle.rowCount - 1).toBe(lista.reduce((t, v) => t + v.items.length, 0))
+    expect(hVentas.rowCount - PRIMERA_FILA_DATOS + 1).toBe(lista.length)
+    expect(hDetalle.rowCount - PRIMERA_FILA_DATOS + 1).toBe(lista.reduce((t, v) => t + v.items.length, 0))
+    expect(hVentas.getCell(PRIMERA_FILA_DATOS - 1, 1).fill.fgColor.argb).toBe('FF8A3A63')
 
     const totalesExcel = {}
     hVentas.eachRow((row, n) => {
-      if (n === 1) return
-      expect(typeof row.getCell(8).value).toBe('number')
-      const moneda = row.getCell(5).value === 'Bs' ? 'bs' : 'usd'
-      totalesExcel[moneda] = Math.round(((totalesExcel[moneda] ?? 0) + row.getCell(8).value) * 100) / 100
+      if (n < PRIMERA_FILA_DATOS) return
+      expect(typeof row.getCell(7).value).toBe('number')
+      const moneda = row.getCell(6).value === 'Bs' ? 'bs' : 'usd'
+      totalesExcel[moneda] = Math.round(((totalesExcel[moneda] ?? 0) + row.getCell(7).value) * 100) / 100
     })
     for (const t of totalesPorMoneda(lista)) expect(totalesExcel[t.moneda]).toBe(t.total_cent / 100)
   })

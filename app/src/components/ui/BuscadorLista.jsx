@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '../../lib/cn.js'
+import { CAMPO } from './estilos.js'
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
@@ -25,14 +26,14 @@ export default function BuscadorLista({ etiqueta, opciones, onElegir, placeholde
           onChange={(e) => setTexto(e.target.value)}
           placeholder={placeholder}
           autoComplete="off"
-          className="min-h-11 w-full rounded-control border border-borde-fuerte bg-superficie pl-10 pr-3 text-base"
+          className={cn(CAMPO, 'border-borde-campo pl-10')}
         />
       </div>
-      <ul role="listbox" className="max-h-64 overflow-auto rounded-control border border-borde bg-superficie">
+      <ul role="listbox" className="max-h-64 overflow-auto rounded-control border border-borde bg-superficie p-1">
         {filtradas.length === 0 && <li className="px-3 py-3 text-sm text-texto-suave">{vacio}</li>}
         {filtradas.map((o) => (
           <li key={o.valor} role="option" aria-selected={false}>
-            <button type="button" onClick={() => onElegir(o)} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 text-left text-base hover:bg-superficie-2">
+            <button type="button" onClick={() => onElegir(o)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[0.6rem] px-3 text-left text-base hover:bg-superficie-2">
               <span>{o.etiqueta}</span>
               {o.detalle && <span className="text-sm text-texto-suave">{o.detalle}</span>}
             </button>

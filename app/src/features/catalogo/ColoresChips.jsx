@@ -13,14 +13,14 @@ export default function ColoresChips({ colores, stock, umbral = 24, seleccionado
         const activo = seleccionado === c.id
         const Contenido = (
           <>
-            <span aria-hidden className="size-6 shrink-0 rounded-full border border-borde-fuerte" style={{ background: c.hex }} />
+            <span aria-hidden className="size-7 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)]" style={{ background: c.hex }} />
             <span className="flex flex-col text-left leading-tight">
               <span className="text-sm font-medium">{c.nombre}</span>
               {est && <span className={cn('text-xs', TONO[est.clave])}>{est.texto}</span>}
             </span>
           </>
         )
-        const base = 'flex min-h-11 items-center gap-2 rounded-control border px-3 py-1.5'
+        const base = 'flex min-h-12 items-center gap-2.5 rounded-control border py-1.5 pl-2 pr-3.5 transition-[border-color,box-shadow,background-color] duration-150'
         return (
           <li key={c.id}>
             {onSelect ? (
@@ -28,12 +28,12 @@ export default function ColoresChips({ colores, stock, umbral = 24, seleccionado
                 type="button"
                 aria-pressed={activo}
                 onClick={() => onSelect(c.id)}
-                className={cn(base, activo ? 'border-tinta bg-superficie-2' : 'border-borde-fuerte bg-superficie hover:bg-superficie-2')}
+                className={cn(base, activo ? 'border-tinta bg-tinte ring-2 ring-tinta/20' : 'border-borde-fuerte bg-superficie hover:border-texto-tenue')}
               >
                 {Contenido}
               </button>
             ) : (
-              <div className={cn(base, 'border-borde bg-superficie')}>{Contenido}</div>
+              <div className={cn(base, 'border-borde bg-superficie-2/60')}>{Contenido}</div>
             )}
           </li>
         )

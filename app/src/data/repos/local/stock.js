@@ -6,7 +6,8 @@ import { db } from '../../db.js'
 import { nuevoId } from '../../../lib/id.js'
 import { encolar } from '../../sync/cola.js'
 
-const TIPOS = ['entrada', 'salida', 'venta', 'anulacion', 'ajuste']
+// saldo: resumen de historial creado por la limpieza de almacenamiento (no lo carga nadie a mano).
+const TIPOS = ['entrada', 'salida', 'venta', 'anulacion', 'ajuste', 'saldo']
 
 // Se puede llamar dentro de una transacción ya abierta (la venta lo hace).
 export async function insertarMovimiento({ producto_id, color_id, tipo, delta, motivo = '', usuario_id = null, venta_id = null }) {

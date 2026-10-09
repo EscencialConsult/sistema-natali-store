@@ -1,5 +1,8 @@
 // Cálculos de una venta en curso. Todo en centavos enteros; el precio de lista está en USD por docena.
+import { subtotal } from '../../lib/docenas.js'
 import { convertirDesdeUsd } from '../../lib/moneda.js'
+
+export { CANTIDAD_MAXIMA, esCantidadValida, normalizarCantidad, PASO_DOCENA, subtotal, textoCantidad } from '../../lib/docenas.js'
 
 export const UNIDADES_POR_DOCENA = 12
 
@@ -17,7 +20,6 @@ export function precioDocena({ precioUsdCent, moneda, tc, manualCent = null }) {
   return convertirDesdeUsd(precioUsdCent, moneda, tc)
 }
 
-export const subtotal = (cantidad, precioCent) => cantidad * precioCent
 
 export function totalDeLineas(lineas) {
   return lineas.reduce((t, l) => t + subtotal(l.cantidad, l.precioCent), 0)

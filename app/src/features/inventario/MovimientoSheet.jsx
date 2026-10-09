@@ -12,7 +12,7 @@ const TIPOS = [
   { valor: 'salida', etiqueta: 'Salida (merma / pérdida)' },
   { valor: 'ajuste', etiqueta: 'Ajuste (conteo real)' },
 ]
-const ETIQUETA_TIPO = { entrada: 'Entrada', salida: 'Salida', venta: 'Venta', anulacion: 'Anulación', ajuste: 'Ajuste' }
+const ETIQUETA_TIPO = { entrada: 'Entrada', salida: 'Salida', venta: 'Venta', anulacion: 'Anulación', ajuste: 'Ajuste', saldo: 'Saldo de cierre' }
 
 function Contenido({ productoId }) {
   const { usuario } = useAuth()

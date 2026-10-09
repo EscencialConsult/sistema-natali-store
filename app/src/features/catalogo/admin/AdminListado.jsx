@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, FileSpreadsheet, PackagePlus, PackageSearch, Pencil } from 'lucide-react'
+import { ChevronLeft, PackagePlus, PackageSearch, Pencil, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, EmptyState, ErrorState, Input, Skeleton, Tabs } from '../../../components/ui/index.js'
+import ExportarExcel from '../../../components/ExportarExcel.jsx'
 import { useCategorias, useProductos } from '../../../data/hooks.js'
+import { productos } from '../../../data/repos/index.js'
+import { contiene, etiquetaDe, nombreArchivo } from '../../../lib/excel.js'
 import { formatear } from '../../../lib/moneda.js'
 import Foto from '../Foto.jsx'
+
+const OPC_ESTADO = [{ valor: '', etiqueta: 'Todos' }, { valor: 'activos', etiqueta: 'Activos' }, { valor: 'baja', etiqueta: 'Dados de baja' }]
 
 export default function AdminListado() {
   const [tab, setTab] = useState('activos')
@@ -15,15 +20,58 @@ export default function AdminListado() {
   const nombreCat = useMemo(() => new Map((cats.datos ?? []).map((c) => [c.id, c.nombre])), [cats.datos])
   const lista = (prods.datos ?? []).filter((p) => (tab === 'activos' ? p.activo : !p.activo))
 
+  const opcCategoria = [{ valor: '', etiqueta: 'Todas' }, ...(cats.datos ?? []).map((c) => ({ valor: c.id, etiqueta: c.nombre }))]
+  const camposExportar = [
+    { tipo: 'select', clave: 'categoria_id', etiqueta: 'Categoría', opciones: opcCategoria },
+    { tipo: 'select', clave: 'estado', etiqueta: 'Estado', opciones: OPC_ESTADO },
+    { tipo: 'texto', clave: 'texto', etiqueta: 'Producto', placeholder: 'Código o nombre' },
+  ]
+  const generarExcel = async (x) => {
+    const filas = (await productos.listar({ soloActivos: false }))
+      .filter((p) => (!x.categoria_id || p.categoria_id === x.categoria_id) && (!x.estado || (x.estado === 'activos') === p.activo) && contiene(x.texto, p.codigo, p.nombre))
+      .map((p) => ({
+        codigo: p.codigo,
+        nombre: p.nombre,
+        categoria: nombreCat.get(p.categoria_id) ?? '',
+        precio: p.precio_docena_usd_cent / 100,
+        colores: p.colores.map((c) => c.nombre).join(', '),
+        fotos: p.fotos.length,
+        nuevo: p.nuevo ? 'Sí' : '',
+        estado: p.activo ? 'Activo' : 'De baja',
+      }))
+    return {
+      nombre: nombreArchivo('productos'),
+      libro: {
+        titulo: 'Modas Naty · Productos',
+        filtros: [['Categoría', etiquetaDe(opcCategoria, x.categoria_id)], ['Estado', etiquetaDe(OPC_ESTADO, x.estado)], ['Producto', x.texto.trim()]],
+        hojas: [{
+          nombre: 'Productos',
+          columnas: [
+            { titulo: 'Código', clave: 'codigo', ancho: 10 },
+            { titulo: 'Producto', clave: 'nombre', ancho: 32 },
+            { titulo: 'Categoría', clave: 'categoria', ancho: 18 },
+            { titulo: 'Precio docena (USD)', clave: 'precio', tipo: 'dinero', ancho: 18 },
+            { titulo: 'Colores', clave: 'colores', ancho: 40 },
+            { titulo: 'Fotos', clave: 'fotos', tipo: 'entero', ancho: 8 },
+            { titulo: 'Nuevo', clave: 'nuevo', ancho: 8 },
+            { titulo: 'Estado', clave: 'estado', ancho: 10, tono: (f) => (f.estado === 'De baja' ? 'error' : null) },
+          ],
+          filas,
+        }],
+      },
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <Link to="/catalogo" className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-texto-suave">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden /> Volver al catálogo
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl md:text-3xl">Administrar productos</h1>
+        <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">Administrar productos</h1>
         <div className="flex flex-wrap gap-2">
-          <Link to="/catalogo/admin/importar"><Button variante="secundario" icono={FileSpreadsheet}>Carga masiva</Button></Link>
+          <ExportarExcel titulo="Exportar productos a Excel" campos={camposExportar} generar={generarExcel} />
+          <Link to="/catalogo/admin/importar"><Button variante="secundario" icono={Upload}>Carga masiva</Button></Link>
           <Link to="/catalogo/admin/nuevo"><Button icono={PackagePlus}>Nuevo producto</Button></Link>
         </div>
       </div>
@@ -47,10 +95,10 @@ export default function AdminListado() {
       <ul className="flex flex-col gap-2">
         {lista.map((p) => (
           <li key={p.id}>
-            <Link to={`/catalogo/admin/${p.id}`} className="flex min-h-[4.5rem] items-center gap-3 rounded-control border border-borde bg-superficie p-2 hover:bg-superficie-2">
-              <Foto foto={p.fotos[0]} alt="" className="size-16 shrink-0 rounded-tarjeta" />
+            <Link to={`/catalogo/admin/${p.id}`} className="flex min-h-[4.5rem] items-center gap-3 rounded-tarjeta border border-borde/70 bg-superficie p-2 shadow-tarjeta hover:bg-superficie-2">
+              <Foto foto={p.fotos[0]} alt="" className="size-16 shrink-0 rounded-control" />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-semibold tabular-nums">{p.codigo}</span>
+                <span className="text-xs font-semibold tabular-nums text-tinta">{p.codigo}</span>
                 <span className="truncate text-base">{p.nombre}</span>
                 <span className="text-sm text-texto-suave">{nombreCat.get(p.categoria_id) ?? 'Sin categoría'} · {p.colores.length} colores · {p.fotos.length} fotos</span>
               </span>

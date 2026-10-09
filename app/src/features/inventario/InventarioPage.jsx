@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react'
-import { FileSpreadsheet, PackageSearch, Search } from 'lucide-react'
+import { PackageSearch, PackageX, Shirt, TrendingDown, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, Chip, EmptyState, ErrorState, Skeleton } from '../../components/ui/index.js'
-import { useConfig, useProductos, useStockResumen } from '../../data/hooks.js'
+import { Badge, Button, CampoBusqueda, Chip, Dato, Encabezado, EmptyState, ErrorState, Skeleton } from '../../components/ui/index.js'
+import ExportarExcel from '../../components/ExportarExcel.jsx'
+import { useCategorias, useConfig, useProductos, useStockResumen } from '../../data/hooks.js'
+import { etiquetaDe, nombreArchivo } from '../../lib/excel.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import Foto from '../catalogo/Foto.jsx'
+import { libroInventario } from './exportarInventario.js'
 import MovimientoSheet from './MovimientoSheet.jsx'
 
 const TANDA = 40
+const OPC_ESTADO_STOCK = [{ valor: '', etiqueta: 'Todos' }, { valor: 'agotado', etiqueta: 'Agotados' }, { valor: 'bajo', etiqueta: 'Stock bajo' }, { valor: 'ok', etiqueta: 'Normal' }]
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 export default function InventarioPage() {
@@ -21,7 +25,26 @@ export default function InventarioPage() {
   const stock = useStockResumen()
   const cfg = useConfig()
 
+  const cats = useCategorias()
   const umbral = cfg.datos?.stock_bajo_unidades ?? 24
+
+  const opcCategoria = [{ valor: '', etiqueta: 'Todas' }, ...(cats.datos ?? []).map((c) => ({ valor: c.id, etiqueta: c.nombre }))]
+  const camposExportar = [
+    { tipo: 'select', clave: 'categoria_id', etiqueta: 'Categoría', opciones: opcCategoria },
+    { tipo: 'select', clave: 'estado', etiqueta: 'Estado del stock', opciones: OPC_ESTADO_STOCK },
+    { tipo: 'texto', clave: 'texto', etiqueta: 'Producto', placeholder: 'Código o nombre' },
+  ]
+  const generarExcel = async (x) => ({
+    libro: libroInventario({
+      productos: prods.datos,
+      stock: stock.datos,
+      categorias: cats.datos ?? [],
+      umbral,
+      filtros: x,
+      filtrosTexto: [['Categoría', etiquetaDe(opcCategoria, x.categoria_id)], ['Estado', etiquetaDe(OPC_ESTADO_STOCK, x.estado)], ['Producto', x.texto.trim()]],
+    }),
+    nombre: nombreArchivo('inventario'),
+  })
   const filas = useMemo(() => {
     if (!prods.datos || !stock.datos) return []
     return prods.datos.map((p) => {
@@ -45,29 +68,31 @@ export default function InventarioPage() {
   const error = prods.error || stock.error || cfg.error
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl md:text-3xl">Inventario</h1>
-        {puede(usuario.rol, 'stock.mover') && <Link to="/stock/importar"><Button variante="secundario" icono={FileSpreadsheet}>Cargar desde Excel</Button></Link>}
-      </div>
+    <div className="flex flex-col gap-6">
+      <Encabezado
+        titulo="Inventario"
+        descripcion="Prendas por modelo y color. Tocá un producto para cargar entradas o ajustes."
+        acciones={
+          <>
+            <ExportarExcel titulo="Exportar inventario a Excel" campos={camposExportar} generar={generarExcel} deshabilitado={!prods.datos || !stock.datos} />
+            {puede(usuario.rol, 'stock.mover') && <Link to="/stock/importar"><Button variante="secundario" icono={Upload}>Cargar desde Excel</Button></Link>}
+          </>
+        }
+      />
 
       {cargando && <Skeleton className="h-64" />}
       {error && <ErrorState mensaje="No pudimos cargar el inventario." onReintentar={() => { prods.reintentar(); stock.reintentar(); cfg.reintentar() }} />}
 
       {!cargando && !error && (
         <>
-          <section aria-label="Resumen" className="grid grid-cols-3 gap-3">
-            <div className="rounded-control border border-borde bg-superficie p-3"><p className="text-xs text-texto-suave">Prendas</p><p className="text-xl font-semibold tabular-nums">{resumen.prendas}</p></div>
-            <div className="rounded-control border border-borde bg-superficie p-3"><p className="text-xs text-texto-suave">Stock bajo</p><p className="text-xl font-semibold tabular-nums text-alerta">{resumen.bajos}</p></div>
-            <div className="rounded-control border border-borde bg-superficie p-3"><p className="text-xs text-texto-suave">Agotados</p><p className="text-xl font-semibold tabular-nums text-error">{resumen.agotados}</p></div>
+          <section aria-label="Resumen" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Dato etiqueta="Prendas" valor={resumen.prendas} icono={Shirt} />
+            <Dato etiqueta="Stock bajo" valor={resumen.bajos} icono={TrendingDown} tono="alerta" claseValor="text-alerta" />
+            <Dato etiqueta="Agotados" valor={resumen.agotados} icono={PackageX} tono="error" claseValor="text-error" />
           </section>
           <p className="-mt-2 text-xs text-texto-suave">Stock bajo y agotados cuentan colores (no productos). Bajo = {umbral} prendas o menos.</p>
 
-          <div role="search" className="relative">
-            <label htmlFor="buscar-stock" className="sr-only">Buscar producto</label>
-            <Search size={20} strokeWidth={1.75} aria-hidden className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-texto-tenue" />
-            <input id="buscar-stock" type="search" autoComplete="off" value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(TANDA) }} placeholder="Código o nombre" className="min-h-12 w-full rounded-control border border-borde-fuerte bg-superficie pl-12 pr-3 text-base" />
-          </div>
+          <CampoBusqueda id="buscar-stock" etiqueta="Buscar producto" valor={texto} onCambiar={(t) => { setTexto(t); setVisibles(TANDA) }} placeholder="Código o nombre" />
           <div className="flex flex-wrap gap-2">
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todos</Chip>
             <Chip activo={filtro === 'bajos'} onClick={() => setFiltro('bajos')}>Con stock bajo</Chip>
@@ -77,20 +102,20 @@ export default function InventarioPage() {
           {lista.length === 0 ? (
             <EmptyState icono={PackageSearch} titulo="No hay productos para mostrar" texto="Probá con otro filtro o búsqueda." />
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {lista.slice(0, visibles).map(({ p, total, agotados, bajos }) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => setAbierto(p.id)} className="flex min-h-[4.5rem] w-full items-center gap-3 rounded-control border border-borde bg-superficie p-2 text-left hover:bg-superficie-2">
-                    <Foto foto={p.fotos[0]} alt="" className="size-14 shrink-0 rounded-tarjeta" />
+                  <button type="button" onClick={() => setAbierto(p.id)} className="flex min-h-[4.5rem] w-full items-center gap-3 rounded-tarjeta border border-borde/70 bg-superficie p-2 shadow-tarjeta text-left hover:bg-superficie-2">
+                    <Foto foto={p.fotos[0]} alt="" className="size-14 shrink-0 rounded-control" />
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-sm font-semibold tabular-nums">{p.codigo}</span>
+                      <span className="text-xs font-semibold tabular-nums text-tinta">{p.codigo}</span>
                       <span className="truncate text-base">{p.nombre}</span>
                       <span className="flex flex-wrap gap-1.5 pt-0.5">
                         {agotados > 0 && <Badge tono="error">{agotados} agotado{agotados > 1 && 's'}</Badge>}
                         {bajos > 0 && <Badge tono="alerta">{bajos} con stock bajo</Badge>}
                       </span>
                     </span>
-                    <span className="text-right"><span className="block text-lg font-semibold tabular-nums">{total}</span><span className="text-xs text-texto-suave">prendas</span></span>
+                    <span className="text-right"><span className="block font-titulo text-xl font-semibold tabular-nums">{total}</span><span className="text-xs text-texto-suave">prendas</span></span>
                   </button>
                 </li>
               ))}

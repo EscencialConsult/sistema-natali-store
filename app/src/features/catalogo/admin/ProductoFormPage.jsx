@@ -114,9 +114,9 @@ function Formulario({ producto, listaCategorias }) {
       <Link to="/catalogo/admin" className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-texto-suave">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden /> Volver a productos
       </Link>
-      <h1 className="text-2xl md:text-3xl">{esNuevo ? 'Nuevo producto' : `Editar ${producto.codigo}`}</h1>
+      <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">{esNuevo ? 'Nuevo producto' : `Editar ${producto.codigo}`}</h1>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input etiqueta="Código" value={f.codigo} onChange={set('codigo')} error={errores.codigo} placeholder="MN-139" autoCapitalize="characters" />
         <Input etiqueta="Precio por docena (US$)" inputMode="decimal" value={f.precio} onChange={set('precio')} error={errores.precio} placeholder="120,00" />
         <Input etiqueta="Nombre" className="md:col-span-2" value={f.nombre} onChange={set('nombre')} error={errores.nombre} />
@@ -133,7 +133,7 @@ function Formulario({ producto, listaCategorias }) {
         </div>
         <div className="flex flex-col gap-1.5 md:col-span-2">
           <label htmlFor="desc" className="text-sm font-medium">Descripción (opcional)</label>
-          <textarea id="desc" rows={3} value={f.descripcion} onChange={set('descripcion')} className="w-full rounded-control border border-borde-fuerte bg-superficie px-3 py-2 text-base" />
+          <textarea id="desc" rows={3} value={f.descripcion} onChange={set('descripcion')} className="w-full rounded-control border border-borde-campo bg-campo px-3.5 py-2.5 text-base focus:border-tinta focus:outline-none focus:ring-4 focus:ring-tinta/12" />
         </div>
         <label className="flex min-h-11 items-center gap-3 text-base"><input type="checkbox" checked={f.nuevo} onChange={set('nuevo')} className="size-5 accent-tinta" /> Marcar como “Nuevo”</label>
         <label className="flex min-h-11 items-center gap-3 text-base"><input type="checkbox" checked={f.activo} onChange={set('activo')} className="size-5 accent-tinta" /> Visible en el catálogo</label>

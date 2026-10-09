@@ -1,5 +1,7 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { urlDeImagen } from '../../lib/blobUrl.js'
+import { textoCantidad } from '../../lib/docenas.js'
+import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { fechaLarga } from '../../lib/fechas.js'
 import { formatear, META_MONEDA } from '../../lib/moneda.js'
 import './nota.css'
@@ -51,8 +53,12 @@ export default function NotaVenta({ venta, cfg, equipo }) {
 
               <dl className="nota-datos">
                 <div><dt>Cliente: </dt><dd>{venta.cliente_nombre || '—'}</dd></div>
+                {venta.cliente_telefono && <div><dt>Teléfono: </dt><dd>{venta.cliente_telefono}</dd></div>}
+                {venta.cliente_email && <div><dt>Correo: </dt><dd>{venta.cliente_email}</dd></div>}
+                {venta.cliente_direccion && <div><dt>Dirección: </dt><dd>{venta.cliente_direccion}</dd></div>}
                 <div><dt>Vendedor/a: </dt><dd>{venta.vendedor_nombre || '—'}</dd></div>
                 <div><dt>Pago: </dt><dd>{PAGO[venta.metodo_pago]}</dd></div>
+                {venta.metodo_entrega && <div><dt>Entrega: </dt><dd>{METODOS_ENTREGA[venta.metodo_entrega]}</dd></div>}
                 <div>
                   <dt>Moneda: </dt>
                   <dd>
@@ -81,7 +87,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                         {i.nombre}
                         <span className="color">{i.color_nombre}</span>
                       </td>
-                      <td className="num">{i.cantidad}{i.unidad === 'unidad' ? ' u.' : ''}</td>
+                      <td className="num">{textoCantidad(i.cantidad)}{i.unidad === 'unidad' ? ' u.' : ''}</td>
                       <td className="num">{formatear(i.precio_cent, venta.moneda)}</td>
                       <td className="num">{formatear(i.subtotal_cent, venta.moneda)}</td>
                     </tr>
@@ -92,7 +98,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
               <div className="nota-total">
                 <div>
                   <span>TOTAL</span>
-                  <small>{docenas} {docenas === 1 ? 'docena' : 'docenas'} · {prendas} prendas</small>
+                  <small>{textoCantidad(docenas)} {docenas === 1 ? 'docena' : 'docenas'} · {prendas} prendas</small>
                 </div>
                 <strong>{formatear(venta.total_cent, venta.moneda)}</strong>
               </div>

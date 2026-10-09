@@ -41,18 +41,18 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
     <article className={cn('grid gap-5', compacta ? 'sm:grid-cols-[minmax(0,14rem)_1fr]' : 'md:grid-cols-2')}>
       <Galeria fotos={p.fotos} nombre={p.nombre} />
       <div className="flex flex-col gap-4">
-        <header className="flex flex-col gap-1.5">
+        <header className="flex flex-col gap-2 border-b border-borde pb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-control bg-tinta px-2.5 py-1 font-titulo text-lg font-semibold tabular-nums text-sobre-tinta">{p.codigo}</span>
-            {p.nuevo && <Badge tono="info">Nuevo</Badge>}
+            <span className="rounded-pildora bg-tinte px-3 py-1 font-titulo text-base font-semibold tabular-nums text-sobre-tinte">{p.codigo}</span>
+            {p.nuevo && <Badge tono="tinta">Nuevo</Badge>}
             {sinStock && <Badge tono="error">Sin stock</Badge>}
           </div>
-          <h2 className="text-2xl md:text-3xl">{p.nombre}</h2>
+          <h2 className="text-2xl leading-tight md:text-3xl">{p.nombre}</h2>
           {mostrarPrecio && <Precio usdCent={p.precio_docena_usd_cent} equivalentes={!publico} className="text-lg" />}
         </header>
 
         <section aria-label="Colores disponibles" className="flex flex-col gap-2">
-          <h3 className="text-base">Colores</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-texto-suave">Colores</h3>
           <ColoresChips colores={p.colores} stock={publico ? null : (stock.datos ?? {})} umbral={umbral} />
         </section>
 

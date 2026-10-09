@@ -1,32 +1,18 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowRight, Plus, ScrollText, Search } from 'lucide-react'
+import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, PackageCheck, Plus, ReceiptText, ScrollText, Search, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, EmptyState, ErrorState, Skeleton } from '../../components/ui/index.js'
+import { Avatar, Badge, Button, Dato, EmptyState, ErrorState, Skeleton, Tarjeta } from '../../components/ui/index.js'
 import { useConfig, usePerfiles, useProductos, useStockResumen, useVentas } from '../../data/hooks.js'
 import { fechaCorta } from '../../lib/fechas.js'
 import { formatear, META_MONEDA, totalesPorMoneda } from '../../lib/moneda.js'
 import { rangoDe } from '../../lib/periodos.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
+import FiltroMoneda from '../../components/FiltroMoneda.jsx'
 import DescargaOffline from './DescargaOffline.jsx'
 
 const fechaHoy = new Intl.DateTimeFormat('es-BO', { weekday: 'long', day: 'numeric', month: 'long' })
-
-function Tarjeta({ titulo, children, enlace }) {
-  return (
-    <section className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg">{titulo}</h2>
-        {enlace && (
-          <Link to={enlace.a} className="inline-flex min-h-11 items-center gap-1 text-sm font-medium underline">
-            {enlace.texto} <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
-          </Link>
-        )}
-      </div>
-      {children}
-    </section>
-  )
-}
+const ICONO_MONEDA = { usd: DollarSign, ars: Coins, bs: Banknote }
 
 // Inicio: lo del día de un vistazo. Quien ve todo (admin, encargadas) ve el negocio; el resto, solo lo suyo.
 export default function DashboardPage() {
@@ -36,7 +22,8 @@ export default function DashboardPage() {
   const rango = useMemo(() => rangoDe('hoy', ahora), [ahora])
   const propio = global ? undefined : usuario.id
   const hoy = useVentas({ estado: 'activa', desde: rango.desde, hasta: rango.hasta, vendedor_id: propio })
-  const ultimas = useVentas({ vendedor_id: propio })
+  const [monedaUltimas, setMonedaUltimas] = useState('')
+  const ultimas = useVentas({ vendedor_id: propio, moneda: monedaUltimas || undefined })
   const equipo = usePerfiles({ soloActivos: false })
   const prods = useProductos()
   const stock = useStockResumen()
@@ -74,94 +61,130 @@ export default function DashboardPage() {
   }, [verStock, prods.datos, stock.datos, cfg.datos])
 
   const totales = hoy.datos ? totalesPorMoneda(hoy.datos) : []
+  const maxVentas = Math.max(1, ...porVendedor.map((f) => f.ventas.length))
   const reintentar = () => [hoy, ultimas, equipo, prods, stock, cfg].forEach((c) => c.reintentar())
 
   return (
-    <div className="flex flex-col gap-5">
-      <header>
-        <p className="text-sm text-texto-suave first-letter:uppercase">{fechaHoy.format(ahora)}</p>
-        <h1 className="text-2xl md:text-3xl">Hola, {usuario.nombre.split(' ')[0]}</h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <section className="relative overflow-hidden rounded-panel bg-pie p-5 text-sobre-tinta shadow-elevada sm:p-7">
+        <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-tinta/60 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-28 right-1/3 size-56 rounded-full bg-tinta/25 blur-3xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm text-sobre-tinta/70 first-letter:uppercase">{fechaHoy.format(ahora)}</p>
+            <h1 className="mt-1 text-3xl md:text-4xl">Hola, {usuario.nombre.split(' ')[0]}</h1>
+            <p className="mt-1 text-sobre-tinta/75">{global ? 'Así viene el negocio hoy.' : 'Así vienen tus ventas hoy.'}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {puede(usuario.rol, 'venta.crear') && (
+              <Link to="/venta"><Button variante="claro" icono={Plus}>Nueva venta</Button></Link>
+            )}
+            {puede(usuario.rol, 'catalogo.ver') && (
+              <Link to="/catalogo"><Button variante="contorno_claro" icono={Search}>Buscar modelo</Button></Link>
+            )}
+          </div>
+        </div>
+      </section>
 
-      <div className="flex flex-wrap gap-2">
-        {puede(usuario.rol, 'venta.crear') && <Link to="/venta"><Button icono={Plus}>Nueva venta</Button></Link>}
-        {puede(usuario.rol, 'catalogo.ver') && <Link to="/catalogo"><Button variante="secundario" icono={Search}>Buscar modelo</Button></Link>}
-      </div>
-
-      {cargando && <div className="flex flex-col gap-3" role="status" aria-label="Cargando"><Skeleton className="h-28" /><Skeleton className="h-40" /></div>}
+      {cargando && (
+        <div className="flex flex-col gap-4" role="status" aria-label="Cargando">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28" />)}</div>
+          <Skeleton className="h-64" />
+        </div>
+      )}
       {fallo && <ErrorState mensaje="No pudimos cargar el inicio." onReintentar={reintentar} />}
 
       {!cargando && !fallo && (
         <>
-          <Tarjeta titulo={global ? 'Ventas de hoy' : 'Tus ventas de hoy'} enlace={puede(usuario.rol, 'ventas.ver_propias') || global ? { a: '/ventas', texto: 'Ver todas' } : null}>
-            {hoy.datos.length === 0 ? (
-              <p className="text-sm text-texto-suave">Todavía no hay ventas hoy. {puede(usuario.rol, 'venta.crear') && 'Cuando hagas una, aparece acá.'}</p>
-            ) : (
-              <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-                <div>
-                  <p className="text-xs text-texto-suave">Ventas</p>
-                  <p className="text-3xl font-semibold tabular-nums">{hoy.datos.length}</p>
-                </div>
-                {totales.map((t) => (
-                  <div key={t.moneda}>
-                    <p className="text-xs text-texto-suave">En {META_MONEDA[t.moneda].nombre}</p>
-                    <p className="text-3xl font-semibold tabular-nums">{formatear(t.total_cent, t.moneda)}</p>
-                  </div>
-                ))}
+          <section aria-label={global ? 'Ventas de hoy' : 'Tus ventas de hoy'} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Dato etiqueta={global ? 'Ventas de hoy' : 'Tus ventas hoy'} valor={hoy.datos.length} icono={ReceiptText} detalle={hoy.datos.length === 0 ? 'Todavía ninguna' : undefined} />
+            {totales.map((t) => (
+              <Dato key={t.moneda} etiqueta={`En ${META_MONEDA[t.moneda].nombre}`} valor={formatear(t.total_cent, t.moneda)} icono={ICONO_MONEDA[t.moneda]} />
+            ))}
+            {totales.length === 0 && (
+              <div className="col-span-1 flex items-center rounded-tarjeta border border-dashed border-borde-fuerte p-4 text-sm text-texto-suave lg:col-span-3">
+                {puede(usuario.rol, 'venta.crear') ? 'Cuando hagas la primera venta del día, los totales aparecen acá.' : 'Todavía no hay ventas hoy.'}
               </div>
             )}
-          </Tarjeta>
+          </section>
+          {totales.length > 1 && <p className="-mt-3 text-xs text-texto-suave">Cada moneda se suma por separado: no se mezclan.</p>}
 
-          {global && porVendedor.length > 0 && (
-            <Tarjeta titulo="Por vendedor, hoy">
-              <ul className="flex flex-col divide-y divide-borde">
-                {porVendedor.map((f) => (
-                  <li key={f.id} className="flex flex-col gap-0.5 py-2.5">
-                    <span className="flex items-baseline justify-between gap-3">
-                      <span className="font-medium">{f.nombre}</span>
-                      <span className="text-sm text-texto-suave tabular-nums">{f.ventas.length} {f.ventas.length === 1 ? 'venta' : 'ventas'}</span>
-                    </span>
-                    <span className="text-sm tabular-nums text-texto-suave">{f.totales.map((t) => formatear(t.total_cent, t.moneda)).join(' · ')}</span>
-                  </li>
-                ))}
-              </ul>
-            </Tarjeta>
-          )}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
+            <div className="flex flex-col gap-6">
+              <Tarjeta titulo="Últimas ventas" icono={ScrollText} enlace={{ a: '/ventas', texto: 'Ver todas' }} cuerpo="px-2 pb-2 sm:px-3 sm:pb-3">
+                <FiltroMoneda valor={monedaUltimas} onChange={setMonedaUltimas} className="px-2 pb-2 sm:px-2" />
+                {ultimas.datos.length === 0 ? (
+                  <EmptyState icono={ScrollText} titulo={monedaUltimas ? `No hay ventas en ${META_MONEDA[monedaUltimas].nombre}` : 'Todavía no hay ventas'} texto={monedaUltimas ? 'Probá con otra moneda.' : 'La primera venta que hagas va a aparecer acá.'} />
+                ) : (
+                  <ul className="flex flex-col">
+                    {ultimas.datos.slice(0, 6).map((v) => (
+                      <li key={v.id}>
+                        <Link to={`/ventas/${v.id}`} className="group flex min-h-16 items-center gap-3 rounded-control px-2 py-2 transition-colors hover:bg-superficie-2 sm:px-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-superficie-2 text-texto-suave group-hover:bg-superficie">
+                            <ReceiptText size={18} strokeWidth={1.75} aria-hidden />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium tabular-nums">{v.numero}</span>
+                            <span className="block truncate text-sm text-texto-suave">{v.cliente_nombre || 'Sin nombre de cliente'} · {fechaCorta(v.creada_en)}</span>
+                          </span>
+                          <span className="flex shrink-0 flex-col items-end gap-0.5">
+                            <span className={v.estado === 'anulada' ? 'whitespace-nowrap tabular-nums text-texto-tenue line-through' : 'whitespace-nowrap font-semibold tabular-nums'}>{formatear(v.total_cent, v.moneda)}</span>
+                            {v.estado === 'anulada' && <Badge tono="error">Anulada</Badge>}
+                          </span>
+                          <ChevronRight size={18} strokeWidth={1.75} aria-hidden className="hidden shrink-0 text-texto-tenue sm:block" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Tarjeta>
+            </div>
 
-          {alertas && (
-            <Tarjeta titulo="Stock" enlace={{ a: '/stock', texto: 'Ir al inventario' }}>
-              {alertas.agotados + alertas.bajos === 0 ? (
-                <p className="text-sm text-texto-suave">Todo el stock está en niveles normales.</p>
-              ) : (
-                <p className="flex flex-wrap items-center gap-2 text-sm">
-                  <AlertTriangle size={18} strokeWidth={1.75} aria-hidden className="text-alerta" />
-                  {alertas.agotados > 0 && <Badge tono="error">{alertas.agotados} colores agotados</Badge>}
-                  {alertas.bajos > 0 && <Badge tono="alerta">{alertas.bajos} con stock bajo</Badge>}
-                </p>
+            <div className="flex flex-col gap-6">
+              {global && porVendedor.length > 0 && (
+                <Tarjeta titulo="Equipo, hoy" icono={Users}>
+                  <ul className="flex flex-col gap-4">
+                    {porVendedor.map((f) => (
+                      <li key={f.id} className="flex items-center gap-3">
+                        <Avatar nombre={f.nombre} className="size-9 text-xs" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="truncate text-sm font-medium">{f.nombre}</span>
+                            <span className="shrink-0 text-xs text-texto-suave tabular-nums">{f.ventas.length} {f.ventas.length === 1 ? 'venta' : 'ventas'}</span>
+                          </div>
+                          <div aria-hidden className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-superficie-2">
+                            <div className="h-full rounded-full bg-tinta" style={{ width: `${(f.ventas.length / maxVentas) * 100}%` }} />
+                          </div>
+                          <p className="mt-1 truncate text-xs tabular-nums text-texto-suave">{f.totales.map((t) => formatear(t.total_cent, t.moneda)).join(' · ')}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </Tarjeta>
               )}
-            </Tarjeta>
-          )}
 
-          <Tarjeta titulo="Últimas ventas" enlace={ultimas.datos.length ? { a: '/ventas', texto: 'Historial' } : null}>
-            {ultimas.datos.length === 0 ? (
-              <EmptyState icono={ScrollText} titulo="Todavía no hay ventas" texto="La primera venta que hagas va a aparecer acá." />
-            ) : (
-              <ul className="flex flex-col divide-y divide-borde">
-                {ultimas.datos.slice(0, 5).map((v) => (
-                  <li key={v.id}>
-                    <Link to={`/ventas/${v.id}`} className="flex min-h-14 items-center justify-between gap-3 py-2">
-                      <span className="min-w-0">
-                        <span className="block font-medium tabular-nums">{v.numero}</span>
-                        <span className="block truncate text-sm text-texto-suave">{v.cliente_nombre || 'Sin nombre de cliente'} · {fechaCorta(v.creada_en)}</span>
-                      </span>
-                      <span className={v.estado === 'anulada' ? 'shrink-0 whitespace-nowrap tabular-nums text-texto-tenue line-through' : 'shrink-0 whitespace-nowrap font-semibold tabular-nums'}>{formatear(v.total_cent, v.moneda)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Tarjeta>
-          <DescargaOffline />
+              {alertas && (
+                <Tarjeta titulo="Stock" icono={alertas.agotados + alertas.bajos === 0 ? PackageCheck : AlertTriangle} enlace={{ a: '/stock', texto: 'Inventario' }}>
+                  {alertas.agotados + alertas.bajos === 0 ? (
+                    <p className="text-sm text-texto-suave">Todo el stock está en niveles normales.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-control bg-error-fondo p-3">
+                        <p className="font-titulo text-2xl font-semibold tabular-nums text-error">{alertas.agotados}</p>
+                        <p className="text-xs font-medium text-error">colores agotados</p>
+                      </div>
+                      <div className="rounded-control bg-alerta-fondo p-3">
+                        <p className="font-titulo text-2xl font-semibold tabular-nums text-alerta">{alertas.bajos}</p>
+                        <p className="text-xs font-medium text-alerta">con stock bajo</p>
+                      </div>
+                    </div>
+                  )}
+                </Tarjeta>
+              )}
+
+              <DescargaOffline />
+            </div>
+          </div>
         </>
       )}
     </div>

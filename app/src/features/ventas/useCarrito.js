@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useState } from 'react'
 import { nuevoId } from '../../lib/id.js'
-import { agregarLinea } from './calculos.js'
+import { agregarLinea, normalizarCantidad } from './calculos.js'
 
-const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', metodo_pago: 'efectivo' }
+const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null }
 
 // Líneas: { key, productoId, colorId, cantidad (docenas), manualCent }. Solo ids: nombres y fotos se leen del catálogo.
 function reductor(estado, accion) {
@@ -13,7 +13,7 @@ function reductor(estado, accion) {
     case 'agregar':
       return { ...estado, lineas: agregarLinea(estado.lineas, { key: nuevoId(), manualCent: null, ...accion.linea }) }
     case 'cantidad':
-      return { ...estado, lineas: estado.lineas.map((l) => (l.key === accion.key ? { ...l, cantidad: Math.max(1, Math.min(999, accion.cantidad)) } : l)) }
+      return { ...estado, lineas: estado.lineas.map((l) => (l.key === accion.key ? { ...l, cantidad: normalizarCantidad(accion.cantidad) } : l)) }
     case 'precio_manual':
       return { ...estado, lineas: estado.lineas.map((l) => (l.key === accion.key ? { ...l, manualCent: accion.cent } : l)) }
     case 'quitar':
@@ -46,7 +46,7 @@ export function useCarrito(usuarioId) {
 
   useEffect(() => {
     try {
-      const vacio = estado.lineas.length === 0 && !estado.cliente_nombre && !estado.cliente_telefono
+      const vacio = estado.lineas.length === 0 && !estado.cliente_nombre && !estado.cliente_telefono && !estado.cliente_email && !estado.cliente_direccion
       if (vacio) localStorage.removeItem(clave(usuarioId))
       else localStorage.setItem(clave(usuarioId), JSON.stringify(estado))
     } catch {

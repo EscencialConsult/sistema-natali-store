@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const CADA_MS = 30_000
 const LENTA_MS = 2_500
@@ -22,13 +22,29 @@ async function medir() {
   }
 }
 
+const AVISO_VOLVIO_MS = 5_000
+
+// Devuelve { estado, restablecida }: restablecida = true durante unos segundos al volver de "sin conexión".
 export function useConexion() {
   const [estado, setEstado] = useState(() => (navigator.onLine === false ? 'sin_conexion' : 'conectado'))
+  const [restablecida, setRestablecida] = useState(false)
+  const previo = useRef(estado)
+  const timer = useRef(null)
 
   useEffect(() => {
     let vigente = true
-    const revisar = () => medir().then((e) => vigente && setEstado(e))
-    const caer = () => setEstado('sin_conexion')
+    const aplicar = (e) => {
+      if (!vigente) return
+      if (previo.current === 'sin_conexion' && e === 'conectado') {
+        setRestablecida(true)
+        clearTimeout(timer.current)
+        timer.current = setTimeout(() => setRestablecida(false), AVISO_VOLVIO_MS)
+      } else if (e !== 'conectado') setRestablecida(false)
+      previo.current = e
+      setEstado(e)
+    }
+    const revisar = () => medir().then(aplicar)
+    const caer = () => aplicar('sin_conexion')
     window.addEventListener('online', revisar)
     window.addEventListener('offline', caer)
     revisar()
@@ -38,8 +54,9 @@ export function useConexion() {
       window.removeEventListener('online', revisar)
       window.removeEventListener('offline', caer)
       clearInterval(t)
+      clearTimeout(timer.current)
     }
   }, [])
 
-  return estado
+  return { estado, restablecida }
 }

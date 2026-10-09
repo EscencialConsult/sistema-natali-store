@@ -1,36 +1,51 @@
-/* Tokens de diseño. Única fuente de colores, tipografías y radios (ver DESIGN.md). */
+/* Tokens de diseño. Única fuente de colores, tipografías, radios y sombras (ver DESIGN.md). */
 @theme static {
   --font-titulo: 'Outfit Variable', system-ui, sans-serif;
   --font-cuerpo: 'DM Sans Variable', system-ui, sans-serif;
 
-  --color-fondo: #f5f3f1;
+  /* Base cálida: crema de fondo, tarjetas blancas. */
+  --color-fondo: #fbf7f3;
   --color-superficie: #ffffff;
-  --color-superficie-2: #faf8f6;
-  --color-borde: #e4e0db;
-  --color-borde-fuerte: #cfc9c2;
-  --color-texto: #1d1e20;
-  --color-texto-suave: #5f6166;
-  --color-texto-tenue: #6b6e73;
-  --color-tinta: #1d1e20;
-  --color-tinta-hover: #34363a;
+  --color-superficie-2: #f6f1ec;
+  --color-campo: #ffffff;
+  --color-borde: #ece4dd;
+  --color-borde-fuerte: #d9cfc7;
+  --color-borde-campo: #b8adb5;
+  --color-texto: #2a2230;
+  --color-texto-suave: #5c5663;
+  --color-texto-tenue: #6f6875;
+
+  /* Acento único: ciruela. "tinta" = color de acción (botón primario, selección, foco). */
+  --color-tinta: #8a3a63;
+  --color-tinta-hover: #732f52;
   --color-sobre-tinta: #ffffff;
+  --color-tinte: #f6e8ef;
+  --color-tinte-2: #efd9e4;
+  --color-sobre-tinte: #6e2a4d;
   --color-pie: #2b2230;
 
   --color-exito: #166534;
-  --color-exito-fondo: #e6f4ea;
+  --color-exito-fondo: #e7f4ea;
   --color-alerta: #92400e;
-  --color-alerta-fondo: #fdf0d8;
+  --color-alerta-fondo: #fdf1dc;
   --color-error: #b42318;
-  --color-error-fondo: #fde8e6;
+  --color-error-fondo: #fdeceb;
   --color-info: #1d4e89;
-  --color-info-fondo: #e5eefa;
+  --color-info-fondo: #e8f0fb;
   --color-whatsapp: #0b7a52;
+
+  /* Sombras cálidas (tinte del texto, no negro puro). */
+  --shadow-tarjeta: 0 1px 2px rgb(42 34 48 / 0.04), 0 2px 8px -2px rgb(42 34 48 / 0.06);
+  --shadow-elevada: 0 2px 4px rgb(42 34 48 / 0.04), 0 12px 28px -8px rgb(42 34 48 / 0.14);
+  --shadow-flotante: 0 8px 16px -4px rgb(42 34 48 / 0.08), 0 24px 56px -12px rgb(42 34 48 / 0.24);
+  --shadow-boton: 0 1px 2px rgb(42 34 48 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.12);
 
   /* Movimiento (ver DESIGN.md): salida fuerte para entradas y feedback; cajón para la hoja inferior. */
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
 
-  --radius-control: 0.5rem;
-  --radius-tarjeta: 0.25rem;
+  --radius-control: 0.75rem;
+  --radius-tarjeta: 1rem;
+  --radius-panel: 1.25rem;
   --radius-pildora: 999px;
 }

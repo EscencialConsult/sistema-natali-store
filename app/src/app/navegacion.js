@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ReceiptText, ScrollText, Search, Settings, Wallet } from 'lucide-react'
+import { LayoutDashboard, Package, ReceiptText, ScrollText, Search, Settings, UserCog, Wallet } from 'lucide-react'
 
 import { puede } from '../lib/permisos.js'
 
@@ -11,6 +11,7 @@ export const PANTALLAS = [
   { ruta: '/ventas', etiqueta: 'Ventas', icono: ScrollText, accion: ['ventas.ver_propias', 'ventas.ver_todas'] },
   { ruta: '/stock', etiqueta: 'Inventario', icono: Package, accion: 'stock.ver' },
   { ruta: '/comisiones', etiqueta: 'Comisiones', icono: Wallet, accion: ['comisiones.ver_propia', 'comisiones.ver_todas'] },
+  { ruta: '/usuarios', etiqueta: 'Usuarios', icono: UserCog, accion: 'usuarios.gestionar' },
   { ruta: '/ajustes', etiqueta: 'Ajustes', icono: Settings, accion: 'ajustes.ver' },
 ]
 

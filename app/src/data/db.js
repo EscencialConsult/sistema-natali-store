@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { PERFILES_SEED } from './seed/perfiles.js'
 
 // Base local (IndexedDB). Es la fuente de lectura de toda la app: funciona sin internet.
 // Para cambiar el esquema NO se edita la versión 1: se agrega db.version(2).stores({...}).upgrade(...).
@@ -21,3 +22,17 @@ db.version(1).stores({
 db.version(2).stores({
   cola_sync: 'id, estado, creado_en, entidad, entidad_id',
 })
+
+// v4: los perfiles locales se identifican por CI (único) para ingresar. La contraseña se completa en cargar.js.
+// A los perfiles de prueba ya guardados se les asigna el CI de demostración de su seed.
+db.version(4)
+  .stores({ perfiles: 'id, rol, activo, &ci' })
+  .upgrade(async (tx) => {
+    const ciDe = new Map(PERFILES_SEED.map((p) => [p.id, p.ci]))
+    await tx
+      .table('perfiles')
+      .toCollection()
+      .modify((p) => {
+        if (!p.ci && ciDe.has(p.id)) p.ci = ciDe.get(p.id)
+      })
+  })

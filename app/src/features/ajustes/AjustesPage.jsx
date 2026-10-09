@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ImagePlus } from 'lucide-react'
-import { Button, ErrorState, Input, Skeleton, useToast } from '../../components/ui/index.js'
+import { Button, Encabezado, ErrorState, Input, Skeleton, useToast } from '../../components/ui/index.js'
 import { useConfig, usePerfiles } from '../../data/hooks.js'
 import { config, perfiles } from '../../data/repos/index.js'
 import { urlDeImagen } from '../../lib/blobUrl.js'
@@ -10,6 +10,7 @@ import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { MODO_DEMO } from '../../lib/modoDemo.js'
 import DatosDemo from './DatosDemo.jsx'
+import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
 
 const aTexto = (n) => (n == null ? '' : String(n).replace('.', ','))
 const aNumero = (t) => Number(String(t).trim().replace(',', '.'))
@@ -34,7 +35,7 @@ function Seccion({ titulo, ayuda, onGuardar, soloLectura, children }) {
     }
   }
   return (
-    <form onSubmit={guardar} noValidate className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie p-4">
+    <form onSubmit={guardar} noValidate className="flex flex-col gap-4 rounded-tarjeta border border-borde/70 bg-superficie p-4 shadow-tarjeta sm:p-5">
       <div>
         <h2 className="text-lg">{titulo}</h2>
         {ayuda && <p className="text-sm text-texto-suave">{ayuda}</p>}
@@ -111,7 +112,7 @@ function TipoCambio({ cfg, soloLectura }) {
       }}
     >
       {tc.ejemplo && <p className="rounded-control bg-alerta-fondo p-3 text-sm text-alerta">Estos valores son de ejemplo. Cargá los reales antes de vender.</p>}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input etiqueta="1 US$ = … Bs" inputMode="decimal" value={bs} onChange={(e) => setBs(e.target.value)} />
         <Input etiqueta="1 US$ = … $ (pesos argentinos)" inputMode="decimal" value={ars} onChange={(e) => setArs(e.target.value)} />
       </div>
@@ -206,15 +207,25 @@ export default function AjustesPage() {
   if (cfg.error || equipo.error) return <ErrorState mensaje="No pudimos cargar los ajustes." onReintentar={() => { cfg.reintentar(); equipo.reintentar() }} />
 
   return (
-    <div className="flex max-w-2xl flex-col gap-5">
-      <h1 className="text-2xl md:text-3xl">Ajustes</h1>
-      {soloLectura && <p className="text-sm text-texto-suave">Podés ver los ajustes, pero solo la administración puede cambiarlos.</p>}
-      <Negocio cfg={cfg.datos} soloLectura={soloLectura} />
-      <TipoCambio cfg={cfg.datos} soloLectura={soloLectura} />
-      <Catalogo cfg={cfg.datos} soloLectura={soloLectura} />
-      <Telefonos lista={equipo.datos} soloLectura={soloLectura} />
-      <Inventario cfg={cfg.datos} soloLectura={soloLectura} />
-      {MODO_DEMO && !soloLectura && <DatosDemo />}
+    <div className="flex flex-col gap-6">
+      <Encabezado
+        titulo="Ajustes"
+        descripcion={soloLectura ? 'Podés ver los ajustes, pero solo la administración puede cambiarlos.' : 'Datos del negocio, tipo de cambio, catálogo, teléfonos de la nota e inventario.'}
+      />
+      {/* Escritorio: dos columnas que se apilan solas; celular: una sola. */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+        <div className="flex flex-col gap-5">
+          <Negocio cfg={cfg.datos} soloLectura={soloLectura} />
+          <Catalogo cfg={cfg.datos} soloLectura={soloLectura} />
+          <Inventario cfg={cfg.datos} soloLectura={soloLectura} />
+        </div>
+        <div className="flex flex-col gap-5">
+          <TipoCambio cfg={cfg.datos} soloLectura={soloLectura} />
+          <Telefonos lista={equipo.datos} soloLectura={soloLectura} />
+          <TarjetaAlmacenamiento />
+          {MODO_DEMO && !soloLectura && <DatosDemo />}
+        </div>
+      </div>
     </div>
   )
 }

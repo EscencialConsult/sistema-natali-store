@@ -155,6 +155,9 @@ create table if not exists naty_ventas (
   metodo_pago naty_metodo_pago not null,
   cliente_nombre text not null default '',
   cliente_telefono text not null default '',
+  cliente_email text not null default '',
+  cliente_direccion text not null default '',
+  metodo_entrega text check (metodo_entrega in ('personal', 'tienda', 'domicilio', 'envio')),
   total_cent bigint not null check (total_cent >= 0),
   estado naty_estado_venta not null default 'activa',
   anulada_en timestamptz,
@@ -162,6 +165,11 @@ create table if not exists naty_ventas (
   creada_en timestamptz not null,
   updated_at timestamptz not null default clock_timestamp()
 );
+
+-- Datos del cliente y entrega agregados después: en una base ya creada se suman sin tocar lo existente.
+alter table naty_ventas add column if not exists cliente_email text not null default '';
+alter table naty_ventas add column if not exists cliente_direccion text not null default '';
+alter table naty_ventas add column if not exists metodo_entrega text check (metodo_entrega in ('personal', 'tienda', 'domicilio', 'envio'));
 
 -- Copia de código, nombre y color al momento de la venta: la nota no cambia si el producto se edita después.
 create table if not exists naty_venta_items (
@@ -172,12 +180,15 @@ create table if not exists naty_venta_items (
   codigo text not null,
   nombre text not null,
   color_nombre text not null,
-  cantidad integer not null check (cantidad > 0),
+  cantidad numeric(8, 1) not null check (cantidad > 0 and cantidad * 2 = trunc(cantidad * 2)),
   unidad naty_unidad_venta not null default 'docena',
   unidades integer not null check (unidades > 0),
   precio_cent bigint not null check (precio_cent >= 0),
   subtotal_cent bigint not null check (subtotal_cent >= 0)
 );
+
+-- Medias docenas: en una base ya creada la cantidad pasa de entero a numérico (0,5 en 0,5; el control lo hace naty_registrar_venta).
+alter table naty_venta_items alter column cantidad type numeric(8, 1);
 
 -- El stock no es un número guardado: es la suma de movimientos (dos dispositivos que venden lo mismo se suman bien).
 create table if not exists naty_movimientos_stock (
@@ -292,7 +303,7 @@ end $$;
 -- Registrar una venta. La app la manda desde el dispositivo (a veces horas después de hacerla, por la mala conexión):
 --  · idempotente (reenviar la misma venta no la duplica) · todo o nada (venta + ítems + descuento de stock)
 --  · el servidor revisa permiso, titularidad y que el total coincida con los ítems.
--- p = { id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono,
+-- p = { id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono, cliente_email, cliente_direccion, metodo_entrega,
 --       total_cent, creada_en, items: [ { id, producto_id, color_id, codigo, nombre, color_nombre, cantidad, unidad, unidades,
 --       precio_cent, subtotal_cent } ], movimientos: [ { id, producto_id, color_id, delta, motivo, creado_en } ] }
 create or replace function naty_registrar_venta(p jsonb) returns uuid
@@ -320,21 +331,23 @@ begin
     raise exception 'La venta no tiene productos' using errcode = '22023';
   end if;
 
-  select coalesce(sum((i ->> 'cantidad')::int * (i ->> 'precio_cent')::bigint), 0)
+  select coalesce(sum(round((i ->> 'cantidad')::numeric * (i ->> 'precio_cent')::bigint)), 0)
     into v_calculado from jsonb_array_elements(p -> 'items') i;
   if v_calculado <> (p ->> 'total_cent')::bigint then
     raise exception 'El total (%) no coincide con la suma de los productos (%)', p ->> 'total_cent', v_calculado using errcode = '22023';
   end if;
 
-  insert into naty_ventas (id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono, total_cent, creada_en)
+  insert into naty_ventas (id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono,
+                           cliente_email, cliente_direccion, metodo_entrega, total_cent, creada_en)
   values (v_id, p ->> 'numero', v_vendedor, coalesce(p ->> 'vendedor_nombre', ''), (p ->> 'moneda')::naty_moneda, (p ->> 'tipo_cambio')::numeric,
           (p ->> 'metodo_pago')::naty_metodo_pago, coalesce(p ->> 'cliente_nombre', ''), coalesce(p ->> 'cliente_telefono', ''),
+          coalesce(p ->> 'cliente_email', ''), coalesce(p ->> 'cliente_direccion', ''), nullif(p ->> 'metodo_entrega', ''),
           (p ->> 'total_cent')::bigint, (p ->> 'creada_en')::timestamptz);
 
   for v_item in select * from jsonb_array_elements(p -> 'items') loop
     insert into naty_venta_items (id, venta_id, producto_id, color_id, codigo, nombre, color_nombre, cantidad, unidad, unidades, precio_cent, subtotal_cent)
     values ((v_item ->> 'id')::uuid, v_id, (v_item ->> 'producto_id')::uuid, (v_item ->> 'color_id')::uuid, v_item ->> 'codigo', v_item ->> 'nombre',
-            v_item ->> 'color_nombre', (v_item ->> 'cantidad')::int, (v_item ->> 'unidad')::naty_unidad_venta, (v_item ->> 'unidades')::int,
+            v_item ->> 'color_nombre', (v_item ->> 'cantidad')::numeric, (v_item ->> 'unidad')::naty_unidad_venta, (v_item ->> 'unidades')::int,
             (v_item ->> 'precio_cent')::bigint, (v_item ->> 'subtotal_cent')::bigint);
   end loop;
 
@@ -431,6 +444,21 @@ begin
     values ((v_foto ->> 'id')::uuid, v_id, coalesce((v_foto ->> 'orden')::int, 0), v_foto ->> 'ruta');
   end loop;
   return v_id;
+end $$;
+
+-- Uso de almacenamiento del plan (para el aviso al superadmin): tamaño de la base y de las fotos del bucket.
+-- plpgsql: el cuerpo se valida al ejecutar (en entornos sin el esquema `storage` la creación no falla).
+-- Pendiente: cuando exista el rol superadmin en el servidor, restringirla a ese rol.
+create or replace function naty_uso_almacenamiento() returns jsonb
+language plpgsql stable security definer set search_path = public, storage as $$
+begin
+  if not naty_es_rol('admin') then
+    raise exception 'Sin permiso para ver el almacenamiento' using errcode = '42501';
+  end if;
+  return jsonb_build_object(
+    'datos_bytes', pg_database_size(current_database()),
+    'fotos_bytes', coalesce((select sum((metadata ->> 'size')::bigint) from storage.objects where bucket_id = 'naty_productos'), 0)
+  );
 end $$;
 
 -- Catálogo para clientas (sin login): solo lo que puede verse. Sin stock, sin costos, sin datos internos.
@@ -545,7 +573,7 @@ revoke all on table naty_perfiles, naty_categorias, naty_productos, naty_product
   naty_ventas, naty_venta_items, naty_movimientos_stock, naty_config from public, anon, authenticated;
 revoke all on table naty_catalogo_publico from public, anon, authenticated;
 revoke all on function naty_es_miembro(), naty_rol_actual(), naty_es_rol(naty_rol_usuario[]), naty_registrar_venta(jsonb),
-  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_configurar_usuario(text, naty_rol_usuario, text, text, text)
+  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_configurar_usuario(text, naty_rol_usuario, text, text, text), naty_uso_almacenamiento()
   from public, anon, authenticated;
 
 grant select on naty_perfiles, naty_categorias, naty_productos, naty_producto_colores, naty_producto_fotos,
@@ -554,7 +582,7 @@ grant insert on naty_movimientos_stock, naty_categorias, naty_config to authenti
 grant update on naty_categorias, naty_config, naty_perfiles to authenticated;
 grant select on naty_catalogo_publico to anon, authenticated;
 grant execute on function naty_es_miembro(), naty_rol_actual(), naty_es_rol(naty_rol_usuario[]), naty_registrar_venta(jsonb),
-  naty_anular_venta(jsonb), naty_guardar_producto(jsonb) to authenticated;
+  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_uso_almacenamiento() to authenticated;
 -- naty_configurar_usuario: solo quien administra el proyecto (SQL Editor / clave de servicio). Nunca la app.
 
 

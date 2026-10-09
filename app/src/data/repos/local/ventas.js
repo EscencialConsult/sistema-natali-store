@@ -5,6 +5,8 @@
 import { z } from 'zod'
 import { db } from '../../db.js'
 import { nuevoId } from '../../../lib/id.js'
+import { esCantidadValida, subtotal } from '../../../lib/docenas.js'
+import { METODOS_ENTREGA } from '../../../lib/entrega.js'
 import { MONEDAS } from '../../../lib/moneda.js'
 import { encolar } from '../../sync/cola.js'
 import { insertarMovimiento } from './stock.js'
@@ -16,12 +18,19 @@ const esquemaVenta = z.object({
   metodo_pago: z.enum(['efectivo', 'transferencia']),
   cliente_nombre: z.string().trim().default(''),
   cliente_telefono: z.string().trim().default(''),
+  cliente_email: z
+    .string()
+    .trim()
+    .default('')
+    .refine((s) => s === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s), 'El correo del cliente no es válido.'),
+  cliente_direccion: z.string().trim().default(''),
+  metodo_entrega: z.enum(Object.keys(METODOS_ENTREGA)).nullable().default(null),
   items: z
     .array(
       z.object({
         producto_id: z.string().min(1),
         color_id: z.string().min(1, 'Elegí un color en cada producto.'),
-        cantidad: z.number().int('La cantidad debe ser entera.').positive('La cantidad debe ser mayor a 0.'),
+        cantidad: z.number().positive('La cantidad debe ser mayor a 0.').refine(esCantidadValida, 'Solo se vende por docena o media docena.'),
         unidad: z.enum(['docena', 'unidad']).default('docena'),
         precio_cent: z.number().int().min(0),
       }),
@@ -62,7 +71,7 @@ export const ventas = {
           nombre: prod.nombre,
           color_nombre: color.nombre,
           unidades: i.cantidad * (i.unidad === 'docena' ? porDocena : 1),
-          subtotal_cent: i.cantidad * i.precio_cent,
+          subtotal_cent: subtotal(i.cantidad, i.precio_cent),
         })
       }
       const { items: _omitidos, ...cabecera } = d

@@ -52,7 +52,15 @@ export default function GrillaProductos({ onAbrir, publico = false }) {
 
   return (
     <section aria-label="Catálogo" className="flex flex-col gap-4">
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+      {/* Celular: selector (sin scroll horizontal). Tablet y escritorio: chips que bajan de línea. */}
+      <Select
+        etiqueta="Categoría"
+        opciones={[{ valor: '', etiqueta: 'Todas las categorías' }, ...(cats.datos ?? []).map((c) => ({ valor: c.id, etiqueta: c.nombre }))]}
+        valor={categoria ?? ''}
+        onChange={(v) => elegirCategoria(v || null)}
+        className="md:hidden"
+      />
+      <div className="hidden flex-wrap gap-2 md:flex">
         <Chip activo={categoria === null} onClick={() => elegirCategoria(null)}>Todos</Chip>
         {cats.datos?.map((c) => (
           <Chip key={c.id} activo={categoria === c.id} onClick={() => elegirCategoria(c.id)}>{c.nombre}</Chip>
@@ -60,12 +68,12 @@ export default function GrillaProductos({ onAbrir, publico = false }) {
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-texto-suave" aria-live="polite">{prods.datos ? `${lista.length} modelos` : ''}</p>
+        <p className="text-sm text-texto-suave" aria-live="polite">{prods.datos ? <><span className="font-semibold text-texto tabular-nums">{lista.length}</span> modelos</> : ''}</p>
         <Select ariaLabel="Ordenar modelos" opciones={ORDENES} valor={orden} onChange={elegirOrden} className="w-44" />
       </div>
 
       {prods.cargando && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4" role="status" aria-label="Cargando catálogo">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4" role="status" aria-label="Cargando catálogo">
           {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="aspect-[3/4]" />)}
         </div>
       )}
@@ -74,7 +82,7 @@ export default function GrillaProductos({ onAbrir, publico = false }) {
         <EmptyState icono={PackageSearch} titulo="No hay modelos en esta categoría" texto="Probá con otra categoría o con “Todos”." />
       )}
       {lista.length > 0 && (
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-5 md:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8">
           {lista.slice(0, visibles).map((p) => (
             <li key={p.id}>
               <ProductoCard producto={p} onAbrir={onAbrir} mostrarPrecio={mostrarPrecio} agotado={agotado(p)} />

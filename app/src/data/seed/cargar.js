@@ -1,6 +1,7 @@
 import { db } from '../db.js'
 import { idDeterministico, nuevoId } from '../../lib/id.js'
-import { iniciales, PERFILES_SEED } from './perfiles.js'
+import { hashClave, nuevaSal } from '../../lib/clave.js'
+import { CLAVE_INICIAL, iniciales, PERFILES_SEED } from './perfiles.js'
 
 // Valores base de configuración; los tipos de cambio son de EJEMPLO hasta que Natali los defina (B5).
 export const CONFIG_BASE = {
@@ -38,6 +39,8 @@ async function cargar() {
       }
     }
   })
+
+  await asegurarAccesos()
 
   if ((await db.productos.count()) === 0) {
     const { default: seed } = await import('./productos.json')
@@ -87,6 +90,22 @@ async function cargar() {
     })
   }
   return hizo
+}
+
+// Modo sin servidor: siempre tiene que haber un superadmin, y todo perfil sin contraseña recibe la inicial
+// (dispositivos cargados antes de que existieran las contraseñas). El hash se calcula fuera de la transacción.
+async function asegurarAccesos() {
+  if (!(await db.perfiles.where('rol').equals('superadmin').count())) {
+    const s = PERFILES_SEED.find((p) => p.rol === 'superadmin')
+    if (!(await db.perfiles.get(s.id)) && !(await db.perfiles.where('ci').equals(s.ci).count())) {
+      await db.perfiles.add({ ...s, iniciales: iniciales(s.nombre), activo: true })
+    }
+  }
+  const sinClave = (await db.perfiles.toArray()).filter((p) => !p.clave_hash)
+  for (const p of sinClave) {
+    const clave_sal = nuevaSal()
+    await db.perfiles.update(p.id, { clave_sal, clave_hash: await hashClave(CLAVE_INICIAL, clave_sal) })
+  }
 }
 
 // Con servidor NO hay datos de ejemplo: lo que hay en el dispositivo viene de Supabase. La primera vez que una versión con

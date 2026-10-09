@@ -5,19 +5,19 @@ import Precio from './Precio.jsx'
 // Tarjeta de la grilla: la foto manda. Foto, etiqueta "Nuevo", código, nombre y precio.
 export default function ProductoCard({ producto, onAbrir, mostrarPrecio = true, agotado = false }) {
   return (
-    <button
-      type="button"
-      onClick={() => onAbrir(producto)}
-      className="group flex flex-col gap-2 rounded-tarjeta text-left"
-    >
-      <span className="relative block overflow-hidden rounded-tarjeta border border-borde bg-superficie">
-        <Foto foto={producto.fotos[0]} alt={producto.nombre} className="aspect-[3/4] w-full" />
-        {producto.nuevo && <Badge tono="tinta" className="absolute left-0 top-0 rounded-none rounded-br-tarjeta px-2.5">Nuevo</Badge>}
-        {agotado && <Badge tono="error" className="absolute bottom-2 left-2">Sin stock</Badge>}
+    <button type="button" onClick={() => onAbrir(producto)} className="group flex w-full flex-col gap-3 rounded-tarjeta text-left">
+      <span className="relative block overflow-hidden rounded-tarjeta bg-superficie shadow-tarjeta ring-1 ring-borde/70 transition-shadow duration-200 group-hover:shadow-elevada">
+        <Foto foto={producto.fotos[0]} alt={producto.nombre} className="aspect-[3/4] w-full transition-transform duration-500 ease-salida motion-safe:group-hover:scale-[1.04]" />
+        <span className="absolute inset-x-2.5 top-2.5 flex flex-wrap gap-1.5">
+          {producto.nuevo && <Badge tono="tinta" className="shadow-boton">Nuevo</Badge>}
+          {agotado && <Badge tono="error" className="bg-superficie">Sin stock</Badge>}
+        </span>
+        <span className="absolute bottom-2.5 left-2.5 rounded-pildora bg-superficie/90 px-2 py-0.5 text-xs font-semibold tabular-nums text-texto shadow-tarjeta backdrop-blur-sm">
+          {producto.codigo}
+        </span>
       </span>
       <span className="flex flex-col gap-0.5 px-0.5">
-        <span className="text-xs font-medium tabular-nums text-texto-suave">{producto.codigo}</span>
-        <span className="text-base font-medium leading-snug group-hover:underline">{producto.nombre}</span>
+        <span className="line-clamp-2 text-[0.9375rem] font-medium leading-snug group-hover:text-tinta">{producto.nombre}</span>
         {mostrarPrecio && <Precio usdCent={producto.precio_docena_usd_cent} className="text-sm" />}
       </span>
     </button>

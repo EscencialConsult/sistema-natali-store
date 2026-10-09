@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Search, SearchX, Settings2, X } from 'lucide-react'
+import { History, SearchX, Settings2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Button, Chip, EmptyState, ErrorState, Sheet, Skeleton } from '../../components/ui/index.js'
+import { Button, CampoBusqueda, Chip, Encabezado, EmptyState, ErrorState, Sheet, Skeleton, TARJETA } from '../../components/ui/index.js'
 import { useBusquedaCodigo } from '../../data/hooks.js'
 import { puntajeCodigo } from '../../lib/codigo.js'
 import { puede } from '../../lib/permisos.js'
@@ -30,46 +30,36 @@ export default function BuscadorPage() {
   const otros = exacto ? lista.slice(1) : lista
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-2xl md:text-3xl">Buscar modelo</h1>
-        {puede(usuario.rol, 'catalogo.editar') && (
+    <div className="flex flex-col gap-6">
+      <Encabezado
+        titulo="Catálogo"
+        descripcion="Escribí el código del modelo para ver fotos, colores y stock al instante."
+        acciones={puede(usuario.rol, 'catalogo.editar') && (
           <Link to="/catalogo/admin">
             <Button variante="secundario" icono={Settings2}>Administrar</Button>
           </Link>
         )}
-      </div>
+      />
 
-      <form role="search" onSubmit={(e) => { e.preventDefault(); if (lista[0]) abrir(lista[0]) }} className="relative">
-        <label htmlFor="codigo" className="sr-only">Código del modelo</label>
-        <Search size={22} strokeWidth={1.75} aria-hidden className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-texto-tenue" />
-        <input
+      <form onSubmit={(e) => { e.preventDefault(); if (lista[0]) abrir(lista[0]) }} className="flex flex-col gap-3">
+        <CampoBusqueda
           id="codigo"
-          type="search"
+          etiqueta="Código del modelo"
+          grande
           enterKeyHint="search"
-          autoComplete="off"
           autoCapitalize="characters"
           autoFocus
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          valor={texto}
+          onCambiar={setTexto}
           placeholder="Código (ej. MN-005 o 5)"
-          className="min-h-14 w-full rounded-control border border-borde-fuerte bg-superficie pl-12 pr-12 text-lg [&::-webkit-search-cancel-button]:hidden"
         />
-        {texto && (
-          <button type="button" aria-label="Borrar búsqueda" onClick={() => setTexto('')} className="absolute right-1 top-1/2 flex size-12 -translate-y-1/2 items-center justify-center text-texto-suave">
-            <X size={20} strokeWidth={1.75} aria-hidden />
-          </button>
+        {!q && recientes.length > 0 && (
+          <section aria-label="Últimos modelos vistos" className="flex flex-wrap items-center gap-2">
+            <h2 className="flex items-center gap-1.5 text-sm text-texto-suave"><History size={16} strokeWidth={1.75} aria-hidden /> Recientes:</h2>
+            {recientes.map((c) => <Chip key={c} onClick={() => setTexto(c)} className="min-h-9 px-3 tabular-nums">{c}</Chip>)}
+          </section>
         )}
       </form>
-
-      {!q && recientes.length > 0 && (
-        <section aria-label="Últimos modelos vistos" className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-texto-suave">Últimos que viste</h2>
-          <div className="flex flex-wrap gap-2">
-            {recientes.map((c) => <Chip key={c} onClick={() => setTexto(c)}>{c}</Chip>)}
-          </div>
-        </section>
-      )}
 
       {!q && <GrillaProductos onAbrir={abrir} />}
 
@@ -85,7 +75,7 @@ export default function BuscadorPage() {
       )}
 
       {exacto && (
-        <section aria-label="Mejor coincidencia" className="rounded-tarjeta border border-borde bg-superficie p-4">
+        <section aria-label="Mejor coincidencia" className={`${TARJETA} p-4 sm:p-6`}>
           <ProductoFicha productoId={exacto.id} compacta />
         </section>
       )}
@@ -93,7 +83,7 @@ export default function BuscadorPage() {
       {otros.length > 0 && (
         <section aria-label="Resultados" className="flex flex-col gap-2">
           <h2 className="text-sm font-medium text-texto-suave">{exacto ? 'Otros parecidos' : `${otros.length} resultados`}</h2>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {otros.map((p) => <li key={p.id}><FilaResultado producto={p} onAbrir={abrir} /></li>)}
           </ul>
         </section>

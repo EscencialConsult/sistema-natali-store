@@ -22,11 +22,11 @@ export default function ActualizacionPWA() {
 
   if (!hayVersionNueva) return null
   return (
-    <div role="alert" className="fixed inset-x-3 bottom-20 z-50 flex items-center justify-between gap-3 rounded-control bg-tinta p-3 text-sobre-tinta md:inset-x-auto md:bottom-6 md:right-6 md:w-96">
+    <div role="alert" className="fixed inset-x-3 bottom-20 z-50 flex items-center justify-between gap-3 rounded-tarjeta bg-pie p-3 pl-4 text-sobre-tinta shadow-flotante md:inset-x-auto md:bottom-6 md:right-6 md:w-96">
       <p className="text-sm">Hay una versión nueva de la app.</p>
       <div className="flex shrink-0 gap-1">
-        <Button variante="fantasma" className="text-sobre-tinta hover:bg-tinta-hover" onClick={() => setHayVersionNueva(false)}>Después</Button>
-        <Button variante="secundario" icono={RefreshCw} onClick={() => updateServiceWorker(true)}>Actualizar</Button>
+        <Button variante="contorno_claro" onClick={() => setHayVersionNueva(false)}>Después</Button>
+        <Button variante="claro" icono={RefreshCw} onClick={() => updateServiceWorker(true)}>Actualizar</Button>
       </div>
     </div>
   )

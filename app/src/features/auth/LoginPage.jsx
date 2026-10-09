@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
-import Logo from '../../components/Logo.jsx'
-import { Button, ErrorState, Input, Skeleton } from '../../components/ui/index.js'
-import { usePerfiles } from '../../data/hooks.js'
-import { ROLES } from '../../lib/permisos.js'
+import { Eye, EyeOff } from 'lucide-react'
+import { Button, Input } from '../../components/ui/index.js'
+import { MODO_DEMO } from '../../lib/modoDemo.js'
+import { CLAVE_INICIAL } from '../../data/seed/perfiles.js'
 import { useAuth } from './AuthContext.js'
+import MarcoIngreso from './MarcoIngreso.jsx'
 
+// Ingreso sin servidor: CI y contraseña guardados (con hash) en el dispositivo.
 export default function LoginPage() {
   const { iniciarSesion } = useAuth()
-  const { datos, cargando, error, reintentar } = usePerfiles()
-  const [elegido, setElegido] = useState(null)
-  const [pin, setPin] = useState('')
-  const [fallo, setFallo] = useState('')
+  const [ci, setCi] = useState('')
+  const [clave, setClave] = useState('')
+  const [ver, setVer] = useState(false)
+  const [error, setError] = useState('')
   const [entrando, setEntrando] = useState(false)
   useEffect(() => {
     document.title = 'Ingresar · Modas Naty'
@@ -19,73 +20,40 @@ export default function LoginPage() {
 
   const entrar = async (e) => {
     e.preventDefault()
+    setError('')
     setEntrando(true)
-    setFallo('')
     try {
-      await iniciarSesion({ perfilId: elegido.id, pin })
+      await iniciarSesion({ ci, clave })
     } catch (err) {
-      setFallo(err.message)
-      setPin('')
+      setError(err.message)
+      setClave('')
       setEntrando(false)
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-8 px-4 py-10">
-      <header className="flex flex-col items-center gap-2 text-center">
-        <Logo className="text-3xl" />
-        <p className="text-sm text-texto-suave">Notas de venta y catálogo</p>
-      </header>
-
-      {!elegido ? (
-        <section aria-labelledby="quien" className="flex flex-col gap-3">
-          <h1 id="quien" className="text-xl">¿Quién sos?</h1>
-          {cargando && Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-14" />)}
-          {error && <ErrorState mensaje="No pudimos cargar los usuarios." onReintentar={reintentar} />}
-          {datos?.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setElegido(p)}
-              className="flex min-h-14 flex-col items-start justify-center rounded-control border border-borde bg-superficie px-4 text-left hover:bg-superficie-2"
-            >
-              <span className="text-base font-medium">{p.nombre}</span>
-              <span className="text-sm text-texto-suave">{ROLES[p.rol]}</span>
-            </button>
-          ))}
-        </section>
-      ) : (
-        <form onSubmit={entrar} className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              setElegido(null)
-              setPin('')
-              setFallo('')
-            }}
-            className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-texto-suave"
-          >
-            <ChevronLeft size={18} strokeWidth={1.75} aria-hidden /> Cambiar usuario
+    <MarcoIngreso>
+      <form onSubmit={entrar} noValidate className="flex flex-col gap-5">
+        <div>
+          <h1 className="text-2xl md:text-3xl">Ingresar</h1>
+          <p className="mt-1 text-texto-suave">Usá tu CI y la contraseña que te dio la administración.</p>
+        </div>
+        <Input etiqueta="CI (carnet de identidad)" autoComplete="username" autoCapitalize="characters" spellCheck={false} autoFocus value={ci} onChange={(e) => setCi(e.target.value)} placeholder="Ej. 1234567" />
+        <div className="relative">
+          <Input etiqueta="Contraseña" type={ver ? 'text' : 'password'} autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} error={error} className="[&_input]:pr-12" />
+          <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={ver} className="absolute right-1 top-[1.625rem] flex size-11 items-center justify-center rounded-control text-texto-suave hover:text-texto">
+            {ver ? <EyeOff size={18} strokeWidth={1.75} aria-hidden /> : <Eye size={18} strokeWidth={1.75} aria-hidden />}
           </button>
-          <div>
-            <h1 className="text-xl">{elegido.nombre}</h1>
-            <p className="text-sm text-texto-suave">{ROLES[elegido.rol]}</p>
-          </div>
-          <Input
-            etiqueta="PIN"
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            maxLength={4}
-            autoFocus
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            error={fallo}
-          />
-          <Button type="submit" ancho cargando={entrando} deshabilitado={pin.length < 4}>Entrar</Button>
-          <p className="text-center text-xs text-texto-tenue">Acceso de prueba: el sistema real usa correo y contraseña.</p>
-        </form>
-      )}
-    </main>
+        </div>
+        <Button type="submit" tamano="lg" ancho cargando={entrando} deshabilitado={!ci.trim() || !clave}>Entrar</Button>
+        {MODO_DEMO ? (
+          <p className="rounded-control bg-tinte p-3 text-center text-xs text-sobre-tinte">
+            Demo: CI <strong>1000000</strong> (superadmin) · 1000001 Natali · 1000002 Ariel… · contraseña <strong>{CLAVE_INICIAL}</strong>
+          </p>
+        ) : (
+          <p className="text-center text-xs text-texto-tenue">¿Olvidaste tu contraseña? Pedísela a la administración.</p>
+        )}
+      </form>
+    </MarcoIngreso>
   )
 }

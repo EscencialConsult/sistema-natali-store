@@ -21,6 +21,7 @@ const InventarioPage = lazy(() => import('../features/inventario/InventarioPage.
 const ImportarStockPage = lazy(() => import('../features/inventario/ImportarStockPage.jsx'))
 const ComisionesPage = lazy(() => import('../features/comisiones/ComisionesPage.jsx'))
 const AjustesPage = lazy(() => import('../features/ajustes/AjustesPage.jsx'))
+const UsuariosPage = lazy(() => import('../features/usuarios/UsuariosPage.jsx'))
 const AdminListado = lazy(() => import('../features/catalogo/admin/AdminListado.jsx'))
 const ProductoFormPage = lazy(() => import('../features/catalogo/admin/ProductoFormPage.jsx'))
 const ImportarPage = lazy(() => import('../features/catalogo/admin/ImportarPage.jsx'))
@@ -37,6 +38,7 @@ const PAGINAS = {
   '/stock': InventarioPage,
   '/comisiones': ComisionesPage,
   '/ajustes': AjustesPage,
+  '/usuarios': UsuariosPage,
 }
 
 function Pendiente({ pantalla }) {

@@ -15,7 +15,7 @@ describe('seed', () => {
     await cargarSeedSiVacio()
     await Promise.all([cargarSeedSiVacio(), cargarSeedSiVacio()])
     expect(await db.productos.count()).toBe(138)
-    expect(await db.perfiles.count()).toBe(7)
+    expect(await db.perfiles.count()).toBe(8)
   })
   it('todos los productos tienen foto y al menos 3 colores', async () => {
     const todos = await productos.listar()

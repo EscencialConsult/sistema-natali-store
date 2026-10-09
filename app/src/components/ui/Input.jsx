@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { cn } from '../../lib/cn.js'
+import { CAMPO } from './estilos.js'
 
 export default function Input({ etiqueta, error, ayuda, className, ref, ...resto }) {
   const id = useId()
@@ -16,10 +17,7 @@ export default function Input({ etiqueta, error, ayuda, className, ref, ...resto
         ref={ref}
         aria-invalid={error ? true : undefined}
         aria-describedby={descId}
-        className={cn(
-          'min-h-11 w-full rounded-control border bg-superficie px-3 text-base text-texto placeholder:text-texto-tenue',
-          error ? 'border-error' : 'border-borde-fuerte',
-        )}
+        className={cn(CAMPO, error ? 'border-error focus:border-error focus:ring-error/12' : 'border-borde-campo')}
         {...resto}
       />
       {(error || ayuda) && (

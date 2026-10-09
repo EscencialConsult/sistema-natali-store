@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { liveQuery } from 'dexie'
 import { perfiles } from '../../data/repos/index.js'
 import { AuthContext } from './AuthContext.js'
 
 const CLAVE = 'naty.sesion'
-// Login de PRUEBA (mock): se elige un usuario y un PIN. Se elimina con Supabase Auth (etapa 8).
-const PIN_PRUEBA = import.meta.env.VITE_PIN_PRUEBA || '0000'
+// Ingreso LOCAL (sin servidor): CI + contraseña verificados contra el hash guardado en el dispositivo.
+// Con Supabase se usa AuthProviderRemoto.
 
 const leer = () => {
   try {
@@ -23,33 +24,43 @@ const guardar = (id) => {
 }
 
 export default function AuthProvider({ children }) {
+  const [sesionId, setSesionId] = useState(leer)
   const [usuario, setUsuario] = useState(null)
-  const [cargando, setCargando] = useState(true)
+  const [cargando, setCargando] = useState(!!sesionId)
 
+  // El perfil de la sesión se observa en vivo: si la superadmin le cambia el rol o lo da de baja,
+  // el menú y los permisos se actualizan al instante (y una baja cierra la sesión).
   useEffect(() => {
-    let vigente = true
-    const id = leer()
-    const restaurar = id ? perfiles.obtener(id) : Promise.resolve(null)
-    restaurar
-      .then((p) => vigente && setUsuario(p?.activo ? p : null))
-      .catch(() => vigente && setUsuario(null))
-      .finally(() => vigente && setCargando(false))
-    return () => {
-      vigente = false
-    }
-  }, [])
+    if (!sesionId) return
+    const sub = liveQuery(() => perfiles.obtener(sesionId)).subscribe({
+      next: (p) => {
+        if (p?.activo) setUsuario((u) => (u && JSON.stringify(u) === JSON.stringify(p) ? u : p))
+        else {
+          guardar(null)
+          setSesionId(null)
+          setUsuario(null)
+        }
+        setCargando(false)
+      },
+      error: () => {
+        setUsuario(null)
+        setCargando(false)
+      },
+    })
+    return () => sub.unsubscribe()
+  }, [sesionId])
 
-  const iniciarSesion = useCallback(async ({ perfilId, pin }) => {
-    const perfil = await perfiles.obtener(perfilId)
-    if (!perfil?.activo) throw new Error('Ese usuario no está disponible.')
-    if (pin !== PIN_PRUEBA) throw new Error('PIN incorrecto.')
+  const iniciarSesion = useCallback(async ({ ci, clave }) => {
+    const perfil = await perfiles.verificarCredenciales(ci, clave)
     guardar(perfil.id)
     setUsuario(perfil)
+    setSesionId(perfil.id)
     return perfil
   }, [])
 
   const cerrarSesion = useCallback(async () => {
     guardar(null)
+    setSesionId(null)
     setUsuario(null)
     return { ok: true }
   }, [])
