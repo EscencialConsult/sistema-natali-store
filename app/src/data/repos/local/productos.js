@@ -16,7 +16,7 @@ export const esquemaProducto = z.object({
   precio_docena_usd_cent: z.number().int('El precio debe estar en centavos enteros.').min(0, 'El precio no puede ser negativo.'),
   activo: z.boolean().default(true),
   nuevo: z.boolean().default(false),
-  // Una foto es una ruta (seed/servidor) o un blob subido desde el dispositivo.
+  // Una foto es una ruta (dirección en Supabase Storage) o un blob recién elegido en el dispositivo (se sube al sincronizar).
   fotos: z.array(z.object({ ruta: z.string().default(''), blob: z.any().optional() })).default([]),
   colores: z.array(z.object({ id: z.string().optional(), nombre: z.string().trim().min(1, 'Cada color necesita nombre.'), hex: z.string().default('#cccccc') })).default([]),
 })
@@ -126,6 +126,14 @@ export const productos = {
   async reactivar(id) {
     await db.transaction('rw', db.productos, db.cola_sync, async () => {
       await db.productos.update(id, { activo: true })
+      await encolar({ operacion: 'guardar', entidad: 'producto', entidad_id: id })
+    })
+  },
+
+  // Acción rápida del listado: poner o quitar la etiqueta "Nuevo" sin abrir el formulario.
+  async marcarNuevo(id, nuevo) {
+    await db.transaction('rw', db.productos, db.cola_sync, async () => {
+      await db.productos.update(id, { nuevo: !!nuevo })
       await encolar({ operacion: 'guardar', entidad: 'producto', entidad_id: id })
     })
   },

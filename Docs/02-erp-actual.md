@@ -1,6 +1,6 @@
 # ERP actual (demo)
 
-- Archivo: `../HTML-DEMO.html` (~144 KB, un solo HTML con JS embebido)
+- Archivo: `HTML-DEMO.html` (~144 KB, un solo HTML con JS embebido). **Borrado del repo el 2026-10-09** (ya reemplazado por `app/`); queda en el historial de git (commit `f103110`) y online.
 - Online: https://plataformventas.netlify.app/
 - Título: "Modas Naty · Notas de venta"
 - Persistencia actual: **localStorage / sin backend** (no se detectó Supabase/Firebase). Hay estados de conexión ("Conectado / Conexión lenta / Sin conexión") y estado de venta "Sincronizada / Pendiente" → ya hay una idea de cola offline.

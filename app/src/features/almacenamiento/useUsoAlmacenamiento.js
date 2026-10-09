@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { almacenamiento } from '../../data/repos/index.js'
-import { hayBackend, obtenerSupabase } from '../../data/supabase.js'
+import { obtenerSupabase } from '../../data/supabase.js'
 import { resumenUso } from '../../lib/almacenamiento.js'
 
 const CADA_MS = 5 * 60_000
 
-// Con servidor se pregunta el uso real del plan (naty_uso_almacenamiento); sin servidor se mide este dispositivo.
+// Uso real del plan, medido por el servidor (naty_uso_almacenamiento: tamaño de la base y de las fotos).
 async function medir() {
-  if (!hayBackend) return almacenamiento.medir()
   const { data, error } = await (await obtenerSupabase()).rpc('naty_uso_almacenamiento')
   if (error) throw error
   return { datos_bytes: Number(data.datos_bytes), fotos_bytes: Number(data.fotos_bytes) }

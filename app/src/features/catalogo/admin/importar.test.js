@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { cargarSeedSiVacio } from '../../../data/seed/cargar.js'
+import { CANTIDAD_PRODUCTOS, cargarFixture } from '../../../test/fixture.js'
 import { productos } from '../../../data/repos/index.js'
 import { agruparFotos, crearPlantilla, ejecutar, leerExcel, planificar } from './importar.js'
 
@@ -8,22 +8,22 @@ const mapa = (lista) => new Map(lista.map((p) => [p.codigo, p]))
 const aFilas = (lista) => lista.map((f, i) => ({ fila: i + 2, ...f }))
 
 beforeAll(async () => {
-  await cargarSeedSiVacio()
+  await cargarFixture()
 })
 
 describe('plantilla y lectura de Excel', () => {
-  it('exporta los 138 del seed, los lee de vuelta y todos quedan como "actualizar", sin duplicar', async () => {
+  it('exporta todos los productos, los lee de vuelta y todos quedan como "actualizar", sin duplicar', async () => {
     const todos = await productos.listar()
     const blob = await crearPlantilla(
       todos.map((p) => ({ codigo: p.codigo, nombre: p.nombre, categoria: 'LINO', precio: p.precio_docena_usd_cent / 100, colores: p.colores.map((c) => c.nombre).join(', ') })),
     )
     const filas = await leerExcel(await blob.arrayBuffer())
-    expect(filas).toHaveLength(138)
+    expect(filas).toHaveLength(CANTIDAD_PRODUCTOS)
     const plan = planificar(filas, mapa(todos))
     expect(plan.every((p) => p.accion === 'actualizar')).toBe(true)
     const r = await ejecutar(plan)
-    expect(r).toMatchObject({ creados: 0, actualizados: 138, errores: [] })
-    expect(await productos.listar({ soloActivos: false })).toHaveLength(138)
+    expect(r).toMatchObject({ creados: 0, actualizados: CANTIDAD_PRODUCTOS, errores: [] })
+    expect(await productos.listar({ soloActivos: false })).toHaveLength(CANTIDAD_PRODUCTOS)
   }, 120_000)
 
   it('pide la plantilla si faltan columnas', async () => {

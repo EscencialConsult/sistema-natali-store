@@ -1,12 +1,12 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { cargarSeedSiVacio } from '../../data/seed/cargar.js'
+import { cargarFixture } from '../../test/fixture.js'
 import { productos, stock } from '../../data/repos/index.js'
 import { crearPlantillaStock, ejecutarStock, leerExcelStock, planificarStock } from './importarStock.js'
 
 let lista
 beforeAll(async () => {
-  await cargarSeedSiVacio()
+  await cargarFixture()
   lista = await productos.listar()
 })
 

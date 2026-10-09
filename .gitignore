@@ -1,9 +1,24 @@
-# Secretos: nunca al repositorio
+# ── Secretos: NUNCA al repositorio ──────────────────────────────────────────────
+# Cualquier archivo de entorno (.env, .env.local, .env.servidor.local, .env.production…), salvo la plantilla vacía.
 .env
-.env.local
-.env.*.local
-!.env.example
-!.env.demo
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+# Llaves, certificados y credenciales sueltas
+*.pem
+*.key
+*.p12
+*.pfx
+**/service-account*.json
+**/*credenciales*
+**/*secret*.json
+# Supabase CLI (guarda tokens y datos del proyecto)
+**/supabase/.temp/
+**/.supabase/
+# Scripts y archivos temporales con datos de conexión
+**/tmp_*
+**/*.tmp
 
 # Capturas y archivos temporales de las pruebas
 .playwright-mcp/

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ErrorState, Skeleton } from '../components/ui/index.js'
 import { db } from '../data/db.js'
-import { hayBackend, obtenerSupabase } from '../data/supabase.js'
+import { obtenerSupabase } from '../data/supabase.js'
 import { descargar } from '../data/sync/remoto.js'
 import { useAuth } from '../features/auth/AuthContext.js'
 
@@ -13,7 +13,7 @@ export default function PrimeraCarga({ children }) {
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    if (!hayBackend || !usuario) return
+    if (!usuario) return
     let vigente = true
     ;(async () => {
       if ((await db.productos.count()) > 0) return vigente && setEstado('listo')
@@ -26,7 +26,7 @@ export default function PrimeraCarga({ children }) {
     }
   }, [usuario, intento])
 
-  if (!hayBackend || !usuario || estado === 'listo') return children
+  if (!usuario || estado === 'listo') return children
   if (estado === 'error') {
     return (
       <ErrorState

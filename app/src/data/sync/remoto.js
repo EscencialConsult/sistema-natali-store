@@ -73,7 +73,8 @@ async function enviarConfig(sb, clave) {
   if (!fila) return
   let valor = fila.valor
   if (clave === 'logo' && valor?.blob) {
-    valor = { ruta: await subirImagen(sb, '_config/logo.jpg', valor.blob) }
+    const ext = { 'image/png': 'png', 'image/svg+xml': 'svg' }[valor.blob.type] ?? 'jpg'
+    valor = { ruta: await subirImagen(sb, `_config/logo.${ext}`, valor.blob) }
     await db.config.put({ clave, valor })
   }
   const { error } = await sb.from('naty_config').upsert({ clave, valor }, { onConflict: 'clave' })
@@ -148,7 +149,7 @@ export async function descargar(sb) {
 
   // Perfiles y categorías son pocos: se bajan completos.
   const perfiles = (await traer(sb, 'naty_perfiles')).filter((p) => !bloqueados.has(`perfil:${p.id}`))
-  await db.perfiles.bulkPut(perfiles.map((p) => pick(p, ['id', 'nombre', 'iniciales', 'rol', 'telefono', 'activo'])))
+  await db.perfiles.bulkPut(perfiles.map((p) => pick(p, ['id', 'nombre', 'iniciales', 'rol', 'telefono', 'activo', 'usuario'])))
   resumen.perfiles = perfiles.length
 
   const categorias = await traer(sb, 'naty_categorias')

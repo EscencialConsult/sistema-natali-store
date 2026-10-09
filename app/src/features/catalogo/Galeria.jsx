@@ -46,7 +46,7 @@ export default function Galeria({ fotos, nombre }) {
           ))}
         </div>
       )}
-      <Modal abierto={zoom} onCerrar={() => setZoom(false)} titulo={nombre} className="w-[min(96vw,48rem)]">
+      <Modal abierto={zoom} onCerrar={() => setZoom(false)} titulo={nombre} ancho="w-[min(96vw,48rem)]">
         <Foto foto={fotos[actual]} alt={nombre} className="max-h-[70dvh] w-full object-contain" />
       </Modal>
     </div>

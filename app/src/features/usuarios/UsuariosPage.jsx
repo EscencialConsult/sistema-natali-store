@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Info, Pencil, ShieldCheck, UserPlus, Users, UserX } from 'lucide-react'
+import { Pencil, ShieldCheck, UserPlus, Users, UserX } from 'lucide-react'
 import { Avatar, Badge, Button, CampoBusqueda, Dato, Encabezado, EmptyState, ErrorState, FILA, Sheet, Skeleton, Tabs } from '../../components/ui/index.js'
 import ExportarExcel from '../../components/ExportarExcel.jsx'
 import { usePerfiles } from '../../data/hooks.js'
-import { hayBackend } from '../../data/supabase.js'
 import { etiquetaDe, nombreArchivo } from '../../lib/excel.js'
 import { ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
@@ -25,7 +24,7 @@ export default function UsuariosPage() {
     const q = norm(texto.trim())
     return todos
       .filter((p) => (tab === 'activos' ? p.activo : !p.activo))
-      .filter((p) => !q || norm(`${p.nombre} ${p.ci ?? ''} ${ROLES[p.rol] ?? ''}`).includes(q))
+      .filter((p) => !q || norm(`${p.nombre} ${p.usuario ?? ''} ${ROLES[p.rol] ?? ''}`).includes(q))
   }, [todos, tab, texto])
   const activos = todos.filter((p) => p.activo).length
 
@@ -44,14 +43,14 @@ export default function UsuariosPage() {
         nombre: 'Usuarios',
         columnas: [
           { titulo: 'Nombre', clave: 'nombre', ancho: 26 },
-          { titulo: 'CI', clave: 'ci', ancho: 14 },
+          { titulo: 'Usuario', clave: 'usuario', ancho: 16 },
           { titulo: 'Rol', clave: 'rol', ancho: 24 },
           { titulo: 'Teléfono', clave: 'telefono', ancho: 16 },
           { titulo: 'Estado', clave: 'estado', ancho: 14, tono: (f) => (f.estado === 'Activo' ? 'exito' : 'error') },
         ],
         filas: todos
           .filter((p) => (!x.rol || p.rol === x.rol) && (!x.estado || (x.estado === 'activos') === p.activo))
-          .map((p) => ({ nombre: p.nombre, ci: p.ci ?? '', rol: ROLES[p.rol] ?? p.rol, telefono: p.telefono ?? '', estado: p.activo ? 'Activo' : 'Dado de baja' })),
+          .map((p) => ({ nombre: p.nombre, usuario: p.usuario ?? '', rol: ROLES[p.rol] ?? p.rol, telefono: p.telefono ?? '', estado: p.activo ? 'Activo' : 'Dado de baja' })),
       }],
     },
   })
@@ -64,17 +63,10 @@ export default function UsuariosPage() {
         acciones={
           <>
             <ExportarExcel titulo="Exportar usuarios a Excel" campos={camposExportar} generar={generarExcel} deshabilitado={!equipo.datos} />
-            {!hayBackend && <Button icono={UserPlus} onClick={() => setEditando('nuevo')}>Nuevo usuario</Button>}
+            <Button icono={UserPlus} onClick={() => setEditando('nuevo')}>Nuevo usuario</Button>
           </>
         }
       />
-
-      {hayBackend && (
-        <p role="status" className="flex gap-3 rounded-control bg-info-fondo p-3 text-sm text-info">
-          <Info size={20} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0" />
-          <span>Con el servidor conectado, las altas y contraseñas se manejan en Supabase Auth. Esta pantalla queda de consulta hasta configurar la función de alta en el servidor.</span>
-        </p>
-      )}
 
       {equipo.cargando && <div className="flex flex-col gap-2" role="status" aria-label="Cargando">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-20" />)}</div>}
       {equipo.error && <ErrorState mensaje="No pudimos cargar los usuarios." onReintentar={equipo.reintentar} />}
@@ -89,7 +81,7 @@ export default function UsuariosPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Tabs items={[{ valor: 'activos', etiqueta: 'Activos' }, { valor: 'baja', etiqueta: 'Dados de baja' }]} valor={tab} onChange={setTab} />
-            <CampoBusqueda id="buscar-usuario" etiqueta="Buscar usuario" valor={texto} onCambiar={setTexto} placeholder="Nombre, CI o rol" className="sm:w-80" />
+            <CampoBusqueda id="buscar-usuario" etiqueta="Buscar usuario" valor={texto} onCambiar={setTexto} placeholder="Nombre, usuario o rol" className="sm:w-80" />
           </div>
 
           {lista.length === 0 ? (
@@ -98,7 +90,7 @@ export default function UsuariosPage() {
             <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {lista.map((p) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => setEditando(p)} disabled={hayBackend} className={`group ${FILA} min-h-[4.75rem] p-3 disabled:cursor-default`}>
+                  <button type="button" onClick={() => setEditando(p)} className={`group ${FILA} min-h-[4.75rem] p-3`}>
                     <Avatar nombre={p.nombre} className={p.activo ? '' : 'opacity-50'} />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="flex items-center gap-2">
@@ -106,16 +98,14 @@ export default function UsuariosPage() {
                         {p.id === usuario.id && <Badge tono="neutro">Vos</Badge>}
                       </span>
                       <span className="flex flex-wrap items-center gap-2">
-                        {p.ci ? <span className="text-sm tabular-nums text-texto-suave">CI {p.ci}</span> : <Badge tono="alerta">Sin CI: no puede ingresar</Badge>}
+                        {p.usuario ? <span className="text-sm text-texto-suave">@{p.usuario}</span> : <Badge tono="alerta">Sin usuario: no puede ingresar</Badge>}
                         <Badge tono={TONO_ROL[p.rol] ?? 'neutro'}>{ROLES[p.rol] ?? p.rol}</Badge>
                       </span>
                     </span>
-                    {!hayBackend && (
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-texto-tenue transition-colors group-hover:bg-tinte group-hover:text-tinta">
-                        <Pencil size={16} strokeWidth={1.75} aria-hidden />
-                        <span className="sr-only">Editar</span>
-                      </span>
-                    )}
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-texto-tenue transition-colors group-hover:bg-tinte group-hover:text-tinta">
+                      <Pencil size={16} strokeWidth={1.75} aria-hidden />
+                      <span className="sr-only">Editar</span>
+                    </span>
                   </button>
                 </li>
               ))}

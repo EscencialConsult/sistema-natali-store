@@ -24,4 +24,4 @@ Paleta (contrastes verificados): crema `#FBF7F3`, blanco, campo `#F3EEE9`, tinte
 - **E5** Gestión: Inicio, Ventas, Inventario, Comisiones, Ajustes, Admin, Login.
 - **E6** Cierre: capturas "despues", axe (wcag2a/aa, 21, 22aa), 92 tests + lint + build, teclado, 320 px, zoom 200 %, colores forzados, nota A5 (PDF y PNG), re-puntaje (máx. 3 pasadas; una falla AA bloquea el cierre).
 
-Restore point: `app_backup_antes-rediseno/`.
+Restore point: commit `f103110` (la carpeta `app_backup_antes-rediseno/` se borró el 2026-10-09; el código previo al rediseño está en ese commit).

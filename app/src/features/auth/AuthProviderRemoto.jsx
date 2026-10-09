@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { db } from '../../data/db.js'
 import { obtenerSupabase } from '../../data/supabase.js'
+import { liveQuery } from 'dexie'
+import { emailDeUsuario } from '../../lib/clave.js'
 import { pendientes } from '../../data/sync/cola.js'
 import { AuthContext } from './AuthContext.js'
 
-// Sesión real con Supabase Auth (correo + contraseña). Misma interfaz que el login de prueba:
-//   usuario · cargando · iniciarSesion({ email, password }) · cerrarSesion() → { ok, motivo? }
+// Sesión real con Supabase Auth. El colaborador escribe su usuario; se ingresa con el correo interno de ese usuario. Misma interfaz que el login local:
+//   usuario · cargando · iniciarSesion({ usuario, clave }) · cerrarSesion() → { ok, motivo? }
 // La sesión queda guardada en el dispositivo: sin internet se sigue adentro con el perfil guardado.
 
 async function perfilDe(sb, userId) {
@@ -13,7 +15,7 @@ async function perfilDe(sb, userId) {
   if (!perfil && navigator.onLine !== false) {
     const { data } = await sb.from('naty_perfiles').select('*').eq('id', userId).maybeSingle()
     if (data) {
-      perfil = { id: data.id, nombre: data.nombre, iniciales: data.iniciales, rol: data.rol, telefono: data.telefono, activo: data.activo }
+      perfil = { id: data.id, nombre: data.nombre, iniciales: data.iniciales, rol: data.rol, telefono: data.telefono, activo: data.activo, usuario: data.usuario }
       await db.perfiles.put(perfil)
     }
   }
@@ -52,17 +54,17 @@ export default function AuthProviderRemoto({ children }) {
     }
   }, [])
 
-  const iniciarSesion = useCallback(async ({ email, password }) => {
+  const iniciarSesion = useCallback(async ({ usuario: nombreUsuario, clave }) => {
     const sb = await obtenerSupabase()
     let resultado
     try {
-      resultado = await sb.auth.signInWithPassword({ email: email.trim(), password })
+      resultado = await sb.auth.signInWithPassword({ email: emailDeUsuario(nombreUsuario), password: clave })
     } catch {
       throw new Error('No hay conexión. Para entrar la primera vez en este dispositivo hace falta internet.')
     }
     if (resultado.error) {
       const sinRed = /fetch|network|failed/i.test(resultado.error.message)
-      throw new Error(sinRed ? 'No hay conexión. Para entrar la primera vez en este dispositivo hace falta internet.' : 'Correo o contraseña incorrectos.')
+      throw new Error(sinRed ? 'No hay conexión. Para entrar la primera vez en este dispositivo hace falta internet.' : 'Usuario o contraseña incorrectos.')
     }
     const perfil = await perfilDe(sb, resultado.data.user.id)
     if (!perfil) {
@@ -88,6 +90,21 @@ export default function AuthProviderRemoto({ children }) {
     setUsuario(null)
     return { ok: true }
   }, [])
+
+  // El perfil se observa en la base local (que la sincronización actualiza): si la superadmin le cambia el rol o lo
+  // da de baja, el menú y los permisos se actualizan sin cerrar la app.
+  const idUsuario = usuario?.id
+  useEffect(() => {
+    if (!idUsuario) return
+    const sub = liveQuery(() => db.perfiles.get(idUsuario)).subscribe({
+      next: (p) => {
+        if (!p) return
+        if (!p.activo) setUsuario(null)
+        else setUsuario((u) => (u && JSON.stringify(u) === JSON.stringify(p) ? u : p))
+      },
+    })
+    return () => sub.unsubscribe()
+  }, [idUsuario])
 
   const valor = useMemo(() => ({ usuario, cargando, iniciarSesion, cerrarSesion }), [usuario, cargando, iniciarSesion, cerrarSesion])
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

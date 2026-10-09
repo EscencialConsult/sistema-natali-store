@@ -7,6 +7,7 @@ const VARIANTES = {
   suave: 'bg-tinte text-sobre-tinte border-transparent hover:bg-tinte-2',
   fantasma: 'bg-transparent text-texto border-transparent hover:bg-superficie-2',
   peligro: 'bg-error text-sobre-tinta border-error shadow-boton hover:brightness-95',
+  peligro_suave: 'bg-transparent text-error border-transparent hover:bg-error-fondo',
   whatsapp: 'bg-whatsapp text-sobre-tinta border-whatsapp shadow-boton hover:brightness-95',
   // Sobre fondos oscuros (banner de inicio, avisos).
   claro: 'bg-superficie text-sobre-tinte border-superficie shadow-boton hover:bg-tinte hover:border-tinte',

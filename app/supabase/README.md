@@ -20,16 +20,20 @@ Todo está en **un solo archivo idempotente: [`naty_schema.sql`](naty_schema.sql
 - La clave de la app es la pública (`anon`). La `service_role` y la contraseña de Postgres **nunca** van en la app ni en el repo.
 - Detalle del modo de acceso y su excepción: [`../SUPABASE-REGLAS.md`](../SUPABASE-REGLAS.md).
 
-## Puesta en marcha
-1. **Subir el esquema:** Supabase → SQL Editor → New query → pegar `naty_schema.sql` **completo** → Run. Es re-ejecutable (correrlo de nuevo no rompe ni borra nada).
-2. **Crear las personas:** Authentication → Users → *Add user* (correo + contraseña, "Auto Confirm User"), una por persona. Después copiar `usuarios.ejemplo.sql`, poner los correos reales (ver `Docs/05-equipo-y-roles.md`) y correrlo en el SQL Editor. **Hasta ese paso nadie puede entrar a la app**: no hay perfil automático.
-3. **Conectar la app:** copiar `app/.env.example` como `app/.env.local` y completar la URL y la clave pública (Project Settings → API). Sin esas variables la app funciona en modo prueba, sin servidor.
-4. Entrar con el correo y la contraseña de cada persona. La primera vez en cada dispositivo hace falta internet (baja el catálogo); después funciona sin conexión y se sincroniza sola.
+## Puesta en marcha (proyecto propio de Supabase)
+1. **Claves** (git ignora ambos archivos):
+   - `app/.env.local` (la app): `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (clave *publishable*).
+   - `app/.env.servidor.local` (solo para configurar): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (clave *secret*), `DATABASE_URL` (Session pooler, puerto 5432, contraseña codificada para URL) y `SUPABASE_ACCESS_TOKEN` (opcional).
+2. **Esquema** (desde `app/`): `node --env-file=.env.servidor.local scripts/aplicar-schema.mjs --dry` (prueba y deshace) → lo mismo sin `--dry` (aplica) → `scripts/verificar-schema.mjs` (solo lectura).
+3. **Login**: registro libre apagado y confirmación de correo apagada (Authentication → Sign In / Providers, o por API con el access token).
+4. **Primer superadmin** (una sola vez, desde el SQL Editor o un script con `DATABASE_URL`): `select naty_crear_usuario_interno('<CI>', '<Nombre>', 'superadmin', '<contraseña>');`. El resto del equipo lo da de alta el superadmin desde la pantalla **Usuarios** de la app.
+5. **Ingreso**: cada persona entra con su **CI** y contraseña. Supabase Auth usa un correo interno `<ci>@ci.modasnaty.internal` (no recibe correos); la app lo arma sola.
+6. **Netlify**: cargar solo `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en las variables del sitio. Nunca la clave secreta.
 
-> En la instancia compartida, **Authentication es compartida por todos los proyectos**: el registro libre y las plantillas de correo afectan a todos. Por eso la seguridad de Modas Naty no depende de eso sino de que exista el perfil.
+> Estado (2026-10-09): proyecto propio en São Paulo (sa-east-1) con el esquema aplicado y verificado, login configurado y un superadmin inicial (CI provisorio 1000000).
 
 ## Probar sin tocar la nube
-- **Pruebas automáticas** (sin Docker): `iniciar-dev.bat npm test` aplica `naty_schema.sql` (dos veces) sobre un Postgres real en memoria y comprueba permisos, ventas, anulaciones, catálogo, Storage, alta de usuarios, instancia compartida y la sincronización completa de la app.
+- **Pruebas automáticas** (sin Docker): `npm test` (desde `app/`) aplica `naty_schema.sql` (dos veces) sobre un Postgres real en memoria y comprueba permisos, ventas, anulaciones, catálogo, Storage, alta de usuarios, instancia compartida y la sincronización completa de la app.
 - **Supabase local completo** (Auth + Storage + API reales): requiere Docker Desktop encendido. Baja varios GB la primera vez.
 
 ## Cosas a saber

@@ -61,7 +61,7 @@ Para no abrir la instancia compartida, el modo aplicado es **ABIERTO-AUTENTICADO
 ## Cómo se sube un cambio
 
 1. Editar `supabase/naty_schema.sql` (sección nueva **al final**, con fecha).
-2. Correr las pruebas: `iniciar-dev.bat npm test` (aplican el archivo, dos veces, sobre un Postgres real en memoria y verifican permisos y sincronización).
+2. Correr las pruebas: `npm test` (desde `app/`) (aplican el archivo, dos veces, sobre un Postgres real en memoria y verifican permisos y sincronización).
 3. Subir: Supabase → SQL Editor → New query → pegar el archivo **COMPLETO** → Run. O el runner `scripts/aplicar-schema.mjs` (manda el archivo completo en **una transacción** por el Session pooler 5432; con `--dry` hace todo y deshace). Facundo autorizó el runner para este proyecto (2026-10-08).
 
 ---

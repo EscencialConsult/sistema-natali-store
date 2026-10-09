@@ -3,6 +3,7 @@
 Verificación de cierre: `oxlint` sin avisos · `vite build` OK · 24 tests pasando · recorrido manual en 390px y 1440px (login, 7 usuarios, permisos, "Más", sin conexión).
 
 ## Cómo correr el proyecto (importante)
+> **Actualización 2026-10-09:** el proyecto ya no está en una carpeta con `#`, así que `iniciar-dev.bat` se borró. Se trabaja directo desde `app/` con `npm run dev`, `npm test`, `npm run build` y `npm run lint`.
 El `#` de la carpeta `#EMPRESAS PERSONALIZADO` **rompe Vite** (servidor de desarrollo y tests; el build sí funciona). Solución: `iniciar-dev.bat` (en la raíz del proyecto) monta la carpeta como unidad `R:` sin `#` y trabaja desde ahí.
 - Doble clic en `iniciar-dev.bat` → servidor de desarrollo (http://localhost:5173).
 - `iniciar-dev.bat npm test` · `iniciar-dev.bat npm run build` · `iniciar-dev.bat npm run lint`.

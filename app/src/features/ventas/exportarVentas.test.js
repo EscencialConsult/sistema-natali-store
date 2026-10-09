@@ -1,13 +1,13 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { cargarSeedSiVacio } from '../../data/seed/cargar.js'
+import { cargarFixture } from '../../test/fixture.js'
 import { productos, ventas } from '../../data/repos/index.js'
 import { totalesPorMoneda } from '../../lib/moneda.js'
 import { crearExcelVentas } from './exportarVentas.js'
 import { PRIMERA_FILA_DATOS } from '../../lib/excel.js'
 
 beforeAll(async () => {
-  await cargarSeedSiVacio()
+  await cargarFixture()
 })
 
 describe('exportar ventas a Excel', () => {

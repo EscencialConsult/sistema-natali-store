@@ -64,7 +64,7 @@ alter table proyectos enable row level security;
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'naty_rol_usuario') then
-    create type naty_rol_usuario as enum ('admin', 'vendedor', 'enc_tienda', 'enc_ventas', 'enc_deposito');
+    create type naty_rol_usuario as enum ('admin', 'vendedor', 'enc_tienda', 'enc_ventas', 'enc_deposito', 'superadmin');
   end if;
   if not exists (select 1 from pg_type where typname = 'naty_moneda') then
     create type naty_moneda as enum ('usd', 'ars', 'bs');
@@ -73,7 +73,7 @@ begin
     create type naty_metodo_pago as enum ('efectivo', 'transferencia');
   end if;
   if not exists (select 1 from pg_type where typname = 'naty_tipo_movimiento') then
-    create type naty_tipo_movimiento as enum ('entrada', 'salida', 'venta', 'anulacion', 'ajuste');
+    create type naty_tipo_movimiento as enum ('entrada', 'salida', 'venta', 'anulacion', 'ajuste', 'saldo');
   end if;
   if not exists (select 1 from pg_type where typname = 'naty_estado_venta') then
     create type naty_estado_venta as enum ('activa', 'anulada');
@@ -82,6 +82,10 @@ begin
     create type naty_unidad_venta as enum ('docena', 'unidad');
   end if;
 end $$;
+
+-- Valores agregados después (bases ya creadas): superadmin (gestión de usuarios y limpieza) y saldo (resumen de historial).
+alter type naty_rol_usuario add value if not exists 'superadmin';
+alter type naty_tipo_movimiento add value if not exists 'saldo';
 
 -- `updated_at` lo pone el servidor: la app descarga "lo cambiado desde la última vez" con ese campo.
 create or replace function naty_tocar_updated_at() returns trigger language plpgsql as $$
@@ -103,6 +107,19 @@ create table if not exists naty_perfiles (
   creado_en timestamptz not null default now(),
   updated_at timestamptz not null default clock_timestamp()
 );
+-- Cada colaborador ingresa con su nombre de usuario (solo el nombre, ej. "ariel"). Supabase Auth necesita un correo:
+-- se usa uno interno derivado del usuario (ver naty_email_de_usuario). Único entre los perfiles que lo tienen.
+alter table naty_perfiles add column if not exists usuario text;
+-- Bases de la versión anterior (ingreso con CI): el CI pasa a ser el usuario y la columna se quita.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'naty_perfiles' and column_name = 'ci') then
+    execute 'update naty_perfiles set usuario = lower(ci) where usuario is null and ci is not null';
+    execute 'drop index if exists naty_perfiles_ci_uq';
+    execute 'alter table naty_perfiles drop column ci';
+  end if;
+end $$;
+create unique index if not exists naty_perfiles_usuario_uq on naty_perfiles (usuario) where usuario is not null;
 
 create table if not exists naty_categorias (
   id uuid primary key,
@@ -270,7 +287,8 @@ $$;
 
 create or replace function naty_es_rol(variadic roles naty_rol_usuario[]) returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce(naty_rol_actual() = any (roles), false)
+  -- El superadmin puede todo lo que puede la administración, más lo suyo (usuarios, limpieza).
+  select coalesce(naty_rol_actual() = any (roles) or (naty_rol_actual() = 'superadmin' and 'admin' = any (roles)), false)
 $$;
 
 -- Alta/edición de una persona del equipo. La ejecuta quien administra el proyecto desde el SQL Editor (o un script con la clave
@@ -298,6 +316,157 @@ begin
     set nombre = excluded.nombre, iniciales = excluded.iniciales, rol = excluded.rol,
         telefono = coalesce(excluded.telefono, naty_perfiles.telefono), activo = true;
   return v_id;
+end $$;
+
+-- ── Gestión de usuarios (desde la app, SOLO el superadmin) ─────────────────────────────────────────────────────
+-- Supabase Auth identifica por correo; el colaborador usa su nombre de usuario (ej. "ariel").
+-- Correo interno = "<usuario>@usuarios.modasnaty.internal" (dominio reservado, no recibe correos). La app arma el mismo correo.
+-- plpgsql: los cuerpos se validan al ejecutar (en las pruebas locales no existe el esquema completo de Auth).
+-- Versión anterior (ingreso con CI): sus funciones se quitan; las de alta/edición cambian el nombre de un parámetro,
+-- y Postgres no deja renombrarlo con "create or replace": se borran y se vuelven a crear (los permisos se dan más abajo).
+drop function if exists naty_email_de_ci(text);
+drop function if exists naty_validar_ci(text);
+drop function if exists naty_crear_usuario_interno(text, text, naty_rol_usuario, text, text);
+drop function if exists naty_crear_usuario(text, text, naty_rol_usuario, text, text);
+drop function if exists naty_editar_usuario(uuid, text, text, naty_rol_usuario, text, boolean);
+
+-- Usuario normalizado: minúsculas, sin espacios ni acentos ("María" → "maria").
+create or replace function naty_normalizar_usuario(p_usuario text) returns text
+language sql immutable as $$
+  select translate(lower(regexp_replace(coalesce(p_usuario, ''), '\s', '', 'g')), 'áéíóúüñàèìòù', 'aeiouunaeiou')
+$$;
+
+create or replace function naty_email_de_usuario(p_usuario text) returns text
+language sql immutable as $$
+  select naty_normalizar_usuario(p_usuario) || '@usuarios.modasnaty.internal'
+$$;
+
+create or replace function naty_validar_usuario(p_usuario text) returns text
+language plpgsql immutable as $$
+declare v text := naty_normalizar_usuario(p_usuario);
+begin
+  if v !~ '^[a-z0-9._-]{3,30}$' then
+    raise exception 'El usuario lleva entre 3 y 30 letras o números (sin espacios ni acentos). Ej.: ariel' using errcode = '22023';
+  end if;
+  return v;
+end $$;
+
+-- Iniciales únicas (forman el número de nota): si ya existen, se agrega un número (AM, AM2, AM3…).
+create or replace function naty_iniciales_libres(p_nombre text, p_excepto uuid default null) returns text
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_base text;
+  v text;
+  n int := 2;
+begin
+  select upper(string_agg(left(w, 1), '')) into v_base
+    from (select w from regexp_split_to_table(trim(p_nombre), '\s+') w where w <> '' limit 2) x;
+  v_base := coalesce(nullif(v_base, ''), 'X');
+  v := v_base;
+  while exists (select 1 from naty_perfiles where iniciales = v and id is distinct from p_excepto) loop
+    v := left(v_base, 3) || n;
+    n := n + 1;
+  end loop;
+  return v;
+end $$;
+
+-- Alta interna (sin control de permisos): la usan naty_crear_usuario y la puesta en marcha (primer superadmin, desde el SQL Editor).
+create or replace function naty_crear_usuario_interno(p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_clave text, p_telefono text default null)
+returns uuid
+language plpgsql security definer set search_path = public, extensions, auth as $$
+declare
+  v_usuario text := naty_validar_usuario(p_usuario);
+  v_email text := naty_email_de_usuario(v_usuario);
+  v_id uuid := gen_random_uuid();
+begin
+  if length(trim(coalesce(p_nombre, ''))) = 0 then
+    raise exception 'Ingresá el nombre' using errcode = '22023';
+  end if;
+  if length(coalesce(p_clave, '')) < 6 then
+    raise exception 'La contraseña debe tener al menos 6 caracteres' using errcode = '22023';
+  end if;
+  if exists (select 1 from naty_perfiles where usuario = v_usuario) or exists (select 1 from auth.users where lower(email) = v_email) then
+    raise exception 'El usuario “%” ya existe. Elegí otro.', v_usuario using errcode = '23505';
+  end if;
+
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+                          confirmation_token, recovery_token, email_change_token_new, email_change)
+  values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated', v_email,
+          crypt(p_clave, gen_salt('bf')), now(),
+          '{"provider":"email","providers":["email"]}', jsonb_build_object('nombre', trim(p_nombre)), now(), now(),
+          '', '', '', '');
+  insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+  values (v_id::text, v_id, jsonb_build_object('sub', v_id::text, 'email', v_email, 'email_verified', true), 'email', now(), now(), now());
+
+  insert into naty_perfiles (id, nombre, iniciales, rol, telefono, activo, usuario)
+  values (v_id, trim(p_nombre), naty_iniciales_libres(p_nombre), p_rol, nullif(trim(coalesce(p_telefono, '')), ''), true, v_usuario);
+  return v_id;
+end $$;
+
+create or replace function naty_crear_usuario(p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_clave text, p_telefono text default null)
+returns uuid
+language plpgsql security definer set search_path = public as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede gestionar usuarios' using errcode = '42501';
+  end if;
+  return naty_crear_usuario_interno(p_usuario, p_nombre, p_rol, p_clave, p_telefono);
+end $$;
+
+-- Editar datos, usuario, rol y estado. Nunca queda el sistema sin un superadmin activo; nadie se da de baja a sí mismo.
+create or replace function naty_editar_usuario(p_id uuid, p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_telefono text, p_activo boolean)
+returns void
+language plpgsql security definer set search_path = public, auth as $$
+declare
+  v_usuario text := naty_validar_usuario(p_usuario);
+  v_actual naty_perfiles;
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede gestionar usuarios' using errcode = '42501';
+  end if;
+  select * into v_actual from naty_perfiles where id = p_id;
+  if not found then
+    raise exception 'Ese usuario ya no existe' using errcode = '02000';
+  end if;
+  if length(trim(coalesce(p_nombre, ''))) = 0 then
+    raise exception 'Ingresá el nombre' using errcode = '22023';
+  end if;
+  if p_id = auth.uid() and not p_activo then
+    raise exception 'No podés darte de baja a vos mismo/a' using errcode = '22023';
+  end if;
+  if v_actual.rol = 'superadmin' and v_actual.activo and (p_rol <> 'superadmin' or not p_activo)
+     and not exists (select 1 from naty_perfiles where rol = 'superadmin' and activo and id <> p_id) then
+    raise exception 'Tiene que quedar al menos un superadmin activo' using errcode = '22023';
+  end if;
+  if exists (select 1 from naty_perfiles where usuario = v_usuario and id <> p_id) then
+    raise exception 'El usuario “%” ya existe. Elegí otro.', v_usuario using errcode = '23505';
+  end if;
+
+  update naty_perfiles
+     set nombre = trim(p_nombre), rol = p_rol, telefono = nullif(trim(coalesce(p_telefono, '')), ''), activo = p_activo, usuario = v_usuario,
+         iniciales = case when trim(p_nombre) = v_actual.nombre then iniciales else naty_iniciales_libres(p_nombre, p_id) end
+   where id = p_id;
+  if v_actual.usuario is distinct from v_usuario then
+    update auth.users set email = naty_email_de_usuario(v_usuario), updated_at = now() where id = p_id;
+    update auth.identities set identity_data = identity_data || jsonb_build_object('email', naty_email_de_usuario(v_usuario)), updated_at = now()
+     where user_id = p_id and provider = 'email';
+  end if;
+end $$;
+
+create or replace function naty_cambiar_clave(p_id uuid, p_clave text) returns void
+language plpgsql security definer set search_path = public, extensions, auth as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede gestionar usuarios' using errcode = '42501';
+  end if;
+  if length(coalesce(p_clave, '')) < 6 then
+    raise exception 'La contraseña debe tener al menos 6 caracteres' using errcode = '22023';
+  end if;
+  update auth.users set encrypted_password = crypt(p_clave, gen_salt('bf')), updated_at = now() where id = p_id;
+  if not found then
+    raise exception 'Ese usuario ya no existe' using errcode = '02000';
+  end if;
 end $$;
 
 -- Registrar una venta. La app la manda desde el dispositivo (a veces horas después de hacerla, por la mala conexión):
@@ -448,11 +617,11 @@ end $$;
 
 -- Uso de almacenamiento del plan (para el aviso al superadmin): tamaño de la base y de las fotos del bucket.
 -- plpgsql: el cuerpo se valida al ejecutar (en entornos sin el esquema `storage` la creación no falla).
--- Pendiente: cuando exista el rol superadmin en el servidor, restringirla a ese rol.
+-- Solo el superadmin la ve (es quien recibe el aviso).
 create or replace function naty_uso_almacenamiento() returns jsonb
 language plpgsql stable security definer set search_path = public, storage as $$
 begin
-  if not naty_es_rol('admin') then
+  if not naty_es_rol('superadmin') then
     raise exception 'Sin permiso para ver el almacenamiento' using errcode = '42501';
   end if;
   return jsonb_build_object(
@@ -573,7 +742,10 @@ revoke all on table naty_perfiles, naty_categorias, naty_productos, naty_product
   naty_ventas, naty_venta_items, naty_movimientos_stock, naty_config from public, anon, authenticated;
 revoke all on table naty_catalogo_publico from public, anon, authenticated;
 revoke all on function naty_es_miembro(), naty_rol_actual(), naty_es_rol(naty_rol_usuario[]), naty_registrar_venta(jsonb),
-  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_configurar_usuario(text, naty_rol_usuario, text, text, text), naty_uso_almacenamiento()
+  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_configurar_usuario(text, naty_rol_usuario, text, text, text), naty_uso_almacenamiento(),
+  naty_crear_usuario_interno(text, text, naty_rol_usuario, text, text), naty_iniciales_libres(text, uuid),
+  naty_crear_usuario(text, text, naty_rol_usuario, text, text), naty_editar_usuario(uuid, text, text, naty_rol_usuario, text, boolean),
+  naty_cambiar_clave(uuid, text)
   from public, anon, authenticated;
 
 grant select on naty_perfiles, naty_categorias, naty_productos, naty_producto_colores, naty_producto_fotos,
@@ -582,7 +754,10 @@ grant insert on naty_movimientos_stock, naty_categorias, naty_config to authenti
 grant update on naty_categorias, naty_config, naty_perfiles to authenticated;
 grant select on naty_catalogo_publico to anon, authenticated;
 grant execute on function naty_es_miembro(), naty_rol_actual(), naty_es_rol(naty_rol_usuario[]), naty_registrar_venta(jsonb),
-  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_uso_almacenamiento() to authenticated;
+  naty_anular_venta(jsonb), naty_guardar_producto(jsonb), naty_uso_almacenamiento(),
+  naty_crear_usuario(text, text, naty_rol_usuario, text, text), naty_editar_usuario(uuid, text, text, naty_rol_usuario, text, boolean),
+  naty_cambiar_clave(uuid, text) to authenticated;
+-- naty_crear_usuario_interno: sin control de permisos; solo desde el SQL Editor (primer superadmin). Nunca la app.
 -- naty_configurar_usuario: solo quien administra el proyecto (SQL Editor / clave de servicio). Nunca la app.
 
 

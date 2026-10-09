@@ -47,9 +47,22 @@ try {
 
   // Los otros proyectos no se tocaron: FAREP sigue en MODO CERRADO (RLS activado y CERO políticas).
   const farpep = await q("select c.relname as t, c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'farpep\\_%'")
-  ok(farpep.length === 10, `FAREP: sus 10 tablas siguen ahí (hay ${farpep.length})`)
-  ok(farpep.every((t) => t.rls && t.politicas === 0), 'FAREP sigue en modo cerrado: RLS activado y cero políticas')
-  ok((await q("select count(*)::int as c from proyectos"))[0].c === 2, 'la tabla proyectos tiene 2 proyectos (farpep y naty)')
+  // Gestión de usuarios: las funciones de la app sí; el alta interna (sin control) NUNCA desde la app.
+  for (const f of ['naty_crear_usuario(text,text,naty_rol_usuario,text,text)', 'naty_editar_usuario(uuid,text,text,naty_rol_usuario,text,boolean)', 'naty_cambiar_clave(uuid,text)', 'naty_uso_almacenamiento()']) {
+    const [p] = await q(`select has_function_privilege('anon', '${f}', 'execute') as anon, has_function_privilege('authenticated', '${f}', 'execute') as auth`)
+    ok(!p.anon && p.auth, `${f.split('(')[0]}: anon NO, authenticated sí (adentro exige superadmin)`)
+  }
+  const [interno] = await q("select has_function_privilege('authenticated', 'naty_crear_usuario_interno(text,text,naty_rol_usuario,text,text)', 'execute') as auth, has_function_privilege('anon', 'naty_crear_usuario_interno(text,text,naty_rol_usuario,text,text)', 'execute') as anon")
+  ok(!interno.auth && !interno.anon, 'naty_crear_usuario_interno: ni anon ni authenticated')
+
+  // Solo en la instancia compartida (donde vive FAREP). En un proyecto propio de Modas Naty no aplica.
+  if (farpep.length) {
+    ok(farpep.length === 10, `FAREP: sus 10 tablas siguen ahí (hay ${farpep.length})`)
+    ok(farpep.every((t) => t.rls && t.politicas === 0), 'FAREP sigue en modo cerrado: RLS activado y cero políticas')
+    ok((await q("select count(*)::int as c from proyectos"))[0].c === 2, 'la tabla proyectos tiene 2 proyectos (farpep y naty)')
+  } else {
+    ok((await q("select count(*)::int as c from proyectos where identificador = 'naty'"))[0].c === 1, 'proyecto propio: naty registrado en proyectos')
+  }
 } finally {
   await cliente.end()
 }

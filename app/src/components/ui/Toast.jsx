@@ -1,7 +1,10 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck, Info } from 'lucide-react'
 import { cn } from '../../lib/cn.js'
 import { nuevoId } from '../../lib/id.js'
+
+const DURACION_MS = 4000
+const MAXIMO = 3
 
 const ToastCtx = createContext(() => {})
 // eslint-disable-next-line react-refresh/only-export-components
@@ -15,10 +18,19 @@ const TONOS = {
 
 export function ToastProvider({ children }) {
   const [items, setItems] = useState([])
+  const timers = useRef(new Map())
+  // Un mismo mensaje no se apila: se renueva el que ya está. Como máximo se ven los 3 más recientes.
   const avisar = useCallback((texto, tono = 'info') => {
-    const id = nuevoId()
-    setItems((l) => [...l, { id, texto, tono }])
-    setTimeout(() => setItems((l) => l.filter((t) => t.id !== id)), 4000)
+    const clave = `${tono}:${texto}`
+    clearTimeout(timers.current.get(clave))
+    setItems((l) => [...l.filter((t) => t.clave !== clave), { id: nuevoId(), clave, texto, tono }].slice(-MAXIMO))
+    timers.current.set(
+      clave,
+      setTimeout(() => {
+        timers.current.delete(clave)
+        setItems((l) => l.filter((t) => t.clave !== clave))
+      }, DURACION_MS),
+    )
   }, [])
 
   return (

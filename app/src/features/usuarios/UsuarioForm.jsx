@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { Button, Input, useToast } from '../../components/ui/index.js'
 import { perfiles } from '../../data/repos/index.js'
-import { CLAVE_MINIMA, normalizarCi } from '../../lib/clave.js'
+import { CLAVE_MINIMA, normalizarUsuario } from '../../lib/clave.js'
 import { cn } from '../../lib/cn.js'
 import { DESCRIPCION_ROL, ROLES } from '../../lib/permisos.js'
 
@@ -51,7 +51,7 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
   const nuevo = !perfil
   const [f, setF] = useState({
     nombre: perfil?.nombre ?? '',
-    ci: perfil?.ci ?? '',
+    usuario: perfil?.usuario ?? '',
     rol: perfil?.rol ?? 'vendedor',
     telefono: perfil?.telefono ?? '',
     activo: perfil?.activo ?? true,
@@ -71,10 +71,10 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
     setGuardando(true)
     try {
       if (nuevo) {
-        await perfiles.crear({ nombre: f.nombre, ci: f.ci, rol: f.rol, clave: f.clave, telefono: f.telefono }, { por: actorId })
-        avisar(`Usuario creado: CI ${normalizarCi(f.ci)}`, 'exito')
+        await perfiles.crear({ nombre: f.nombre, usuario: f.usuario, rol: f.rol, clave: f.clave, telefono: f.telefono })
+        avisar(`Usuario creado: ${normalizarUsuario(f.usuario)}`, 'exito')
       } else {
-        await perfiles.editar(perfil.id, f, { por: actorId })
+        await perfiles.editar(perfil.id, f)
         avisar('Cambios guardados', 'exito')
       }
       onListo()
@@ -89,7 +89,7 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
     if (f.clave !== f.repetir) return setError('Las contraseñas no coinciden.')
     setGuardando(true)
     try {
-      await perfiles.cambiarClave(perfil.id, f.clave, { por: actorId })
+      await perfiles.cambiarClave(perfil.id, f.clave)
       avisar('Contraseña actualizada', 'exito')
       onListo()
     } catch (err) {
@@ -102,7 +102,7 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
     <form onSubmit={guardar} noValidate className="flex flex-col gap-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input etiqueta="Nombre y apellido" value={f.nombre} onChange={(e) => set('nombre')(e.target.value)} autoComplete="off" autoFocus={nuevo} />
-        <Input etiqueta="CI (con esto ingresa)" value={f.ci} onChange={(e) => set('ci')(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Ej. 1234567" ayuda="Con complemento o extensión si tiene (ej. 1234567-1A)." />
+        <Input etiqueta="Usuario (con esto ingresa)" value={f.usuario} onChange={(e) => set('usuario')(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder="Ej. ariel" ayuda="Solo el nombre, sin apellido, espacios ni acentos." />
         <Input etiqueta="Teléfono (opcional)" inputMode="tel" value={f.telefono} onChange={(e) => set('telefono')(e.target.value)} autoComplete="off" />
       </div>
 
@@ -157,7 +157,7 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-borde pt-4">
         <Button variante="fantasma" onClick={onListo}>Cancelar</Button>
-        <Button type="submit" cargando={guardando && !cambiandoClave} deshabilitado={!f.nombre.trim() || !f.ci.trim() || (nuevo && !f.clave)}>
+        <Button type="submit" cargando={guardando && !cambiandoClave} deshabilitado={!f.nombre.trim() || !f.usuario.trim() || (nuevo && !f.clave)}>
           {nuevo ? 'Crear usuario' : 'Guardar cambios'}
         </Button>
       </div>

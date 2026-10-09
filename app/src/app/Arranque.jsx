@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
 import { ErrorState, Skeleton } from '../components/ui/index.js'
-import { prepararBase } from '../data/seed/cargar.js'
-import { hayBackend } from '../data/supabase.js'
+import { prepararBase } from '../data/base.js'
 
-// Prepara la base local (datos de prueba la primera vez) antes de mostrar la app.
+// Prepara la base local (copia del servidor para trabajar sin internet) antes de mostrar la app.
 export default function Arranque({ children }) {
   const [estado, setEstado] = useState('cargando')
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     let vigente = true
-    prepararBase({ conServidor: hayBackend })
+    prepararBase()
       .then(() => vigente && setEstado('listo'))
       .catch(() => vigente && setEstado('error'))
     return () => {

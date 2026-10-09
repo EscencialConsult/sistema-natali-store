@@ -39,6 +39,10 @@
 .nota-datos dt { display: inline; font-weight: 600; }
 .nota-datos dd { display: inline; margin: 0; }
 .nota-datos div { break-inside: avoid; }
+/* Datos del cliente a la izquierda y, a la derecha, el espacio vacío reservado para un QR (a definir). */
+.nota-datos-fila { display: flex; align-items: flex-start; gap: 4mm; margin-bottom: 4mm; }
+.nota-datos-fila .nota-datos { flex: 1; margin-bottom: 0; }
+.nota-qr-reservado { flex: none; width: 20mm; height: 20mm; border: 0.3mm dashed #b5b5b5; border-radius: 1.5mm; }
 
 .nota-items { width: 100%; border-collapse: collapse; }
 .nota-items thead { display: table-header-group; }

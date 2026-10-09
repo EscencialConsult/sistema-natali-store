@@ -43,12 +43,19 @@ async function config(clave, porDefecto) {
   return f ? f.valor : porDefecto
 }
 
+// El correlativo sigue desde la nota más alta de esa persona que haya en el dispositivo: en un celular nuevo
+// (o después de cerrar sesión) las ventas propias se descargan del servidor y la numeración no vuelve a 0001.
 async function siguienteNumero(vendedor_id) {
   const clave = `correlativo:${vendedor_id}`
-  const n = (await config(clave, 0)) + 1
-  await db.config.put({ clave, valor: n })
   const perfil = await db.perfiles.get(vendedor_id)
-  return `NV-${perfil?.iniciales ?? 'XX'}-${String(n).padStart(4, '0')}`
+  const prefijo = `NV-${perfil?.iniciales ?? 'XX'}-`
+  let ultimo = await config(clave, 0)
+  await db.ventas.where('vendedor_id').equals(vendedor_id).each((v) => {
+    if (v.numero?.startsWith(prefijo)) ultimo = Math.max(ultimo, Number.parseInt(v.numero.slice(prefijo.length), 10) || 0)
+  })
+  const n = ultimo + 1
+  await db.config.put({ clave, valor: n })
+  return `${prefijo}${String(n).padStart(4, '0')}`
 }
 
 export const ventas = {

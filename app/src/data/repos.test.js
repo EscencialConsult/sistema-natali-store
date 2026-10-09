@@ -1,21 +1,21 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { db } from './db.js'
-import { cargarSeedSiVacio } from './seed/cargar.js'
+import { CANTIDAD_PRODUCTOS, cargarFixture, PERFILES_PRUEBA } from '../test/fixture.js'
 import { config, perfiles, productos, stock, ventas } from './repos/index.js'
 import { pendientes, procesar } from './sync/cola.js'
 
 beforeAll(async () => {
-  await cargarSeedSiVacio()
+  await cargarFixture()
 })
 
-describe('seed', () => {
-  it('carga 138 productos y no duplica en una segunda carga', async () => {
-    expect(await db.productos.count()).toBe(138)
-    await cargarSeedSiVacio()
-    await Promise.all([cargarSeedSiVacio(), cargarSeedSiVacio()])
-    expect(await db.productos.count()).toBe(138)
-    expect(await db.perfiles.count()).toBe(8)
+describe('datos de prueba', () => {
+  it('carga los productos y no duplica en una segunda carga', async () => {
+    expect(await db.productos.count()).toBe(CANTIDAD_PRODUCTOS)
+    await cargarFixture()
+    await cargarFixture()
+    expect(await db.productos.count()).toBe(CANTIDAD_PRODUCTOS)
+    expect(await db.perfiles.count()).toBe(PERFILES_PRUEBA.length)
   })
   it('todos los productos tienen foto y al menos 3 colores', async () => {
     const todos = await productos.listar()
@@ -183,5 +183,16 @@ describe('config y perfiles', () => {
   it('perfiles con iniciales', async () => {
     const ariel = await perfiles.obtener('p-ariel')
     expect(ariel.iniciales).toBe('AM')
+  })
+})
+
+describe('número de nota', () => {
+  it('en un dispositivo nuevo sigue desde la última nota descargada (no vuelve a 0001)', async () => {
+    const [p] = await productos.listar()
+    // Simula una nota de esa persona que vino del servidor (otro dispositivo) y un correlativo local en cero.
+    await db.ventas.add({ id: 'venta-de-otro-dispositivo', numero: 'NV-NT-0007', vendedor_id: 'p-norma', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', total_cent: 0, estado: 'activa', sync_status: 'synced', creada_en: new Date().toISOString() })
+    await db.config.delete('correlativo:p-norma')
+    const v = await ventas.crear({ vendedor_id: 'p-norma', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: p.id, color_id: p.colores[0].id, cantidad: 1, unidad: 'docena', precio_cent: 100 }] })
+    expect(v.numero).toBe('NV-NT-0008')
   })
 })

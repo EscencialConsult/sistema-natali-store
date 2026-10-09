@@ -7,7 +7,7 @@ Carpeta de documentación viva del proyecto. Todo lo que se vaya sabiendo va ac�
 | Archivo | Contenido |
 |---|---|
 | [01-pedido-cliente.md](01-pedido-cliente.md) | Lo que pidió la clienta (Natali), tal cual llegó, ordenado |
-| [02-erp-actual.md](02-erp-actual.md) | Qué hace hoy el ERP (`HTML-DEMO.html`, demo en Netlify) |
+| [02-erp-actual.md](02-erp-actual.md) | Qué hacía el ERP demo (`HTML-DEMO.html`, ya borrado; ver historial de git y la demo en Netlify) |
 | [03-modulo-catalogo.md](03-modulo-catalogo.md) | Módulo de catálogo a cotizar + análisis de la referencia |
 | [04-preguntas-abiertas.md](04-preguntas-abiertas.md) | Lo que falta preguntar/definir antes de cotizar |
 | [05-equipo-y-roles.md](05-equipo-y-roles.md) | Personal registrado (6 personas) y roles a modelar |

@@ -1,7 +1,6 @@
 import Dexie from 'dexie'
-import { PERFILES_SEED } from './seed/perfiles.js'
 
-// Base local (IndexedDB). Es la fuente de lectura de toda la app: funciona sin internet.
+// Base local (IndexedDB): copia de lo que viene de Supabase. Es la fuente de lectura de toda la app (funciona sin internet).
 // Para cambiar el esquema NO se edita la versión 1: se agrega db.version(2).stores({...}).upgrade(...).
 export const db = new Dexie('modas-naty')
 
@@ -23,16 +22,11 @@ db.version(2).stores({
   cola_sync: 'id, estado, creado_en, entidad, entidad_id',
 })
 
-// v4: los perfiles locales se identifican por CI (único) para ingresar. La contraseña se completa en cargar.js.
-// A los perfiles de prueba ya guardados se les asigna el CI de demostración de su seed.
-db.version(4)
-  .stores({ perfiles: 'id, rol, activo, &ci' })
-  .upgrade(async (tx) => {
-    const ciDe = new Map(PERFILES_SEED.map((p) => [p.id, p.ci]))
-    await tx
-      .table('perfiles')
-      .toCollection()
-      .modify((p) => {
-        if (!p.ci && ciDe.has(p.id)) p.ci = ciDe.get(p.id)
-      })
-  })
+// v4: índice por CI (versión intermedia, reemplazada por v5).
+db.version(4).stores({ perfiles: 'id, rol, activo, &ci' })
+
+// v5: se ingresa con nombre de usuario (solo el nombre, ej. "ariel"). Los perfiles son una copia del servidor:
+// se vacían y se vuelven a descargar con el usuario de cada uno.
+db.version(5)
+  .stores({ perfiles: 'id, rol, activo, &usuario' })
+  .upgrade((tx) => tx.table('perfiles').clear())

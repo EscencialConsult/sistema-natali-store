@@ -51,6 +51,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                 </p>
               </div>
 
+              <div className="nota-datos-fila">
               <dl className="nota-datos">
                 <div><dt>Cliente: </dt><dd>{venta.cliente_nombre || '—'}</dd></div>
                 {venta.cliente_telefono && <div><dt>Teléfono: </dt><dd>{venta.cliente_telefono}</dd></div>}
@@ -68,6 +69,9 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                 </div>
                 {venta.estado === 'anulada' && <div><dt>Estado: </dt><dd>ANULADA</dd></div>}
               </dl>
+              {/* Espacio reservado para un QR que la clienta va a definir (pedido 2026-10-09). */}
+              <div className="nota-qr-reservado" aria-hidden />
+              </div>
 
               <table className="nota-items">
                 <thead>

@@ -5,11 +5,9 @@ import { useConfig, usePerfiles } from '../../data/hooks.js'
 import { config, perfiles } from '../../data/repos/index.js'
 import { urlDeImagen } from '../../lib/blobUrl.js'
 import { fechaLarga } from '../../lib/fechas.js'
-import { comprimirImagen } from '../../lib/imagen.js'
+import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
-import { MODO_DEMO } from '../../lib/modoDemo.js'
-import DatosDemo from './DatosDemo.jsx'
 import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
 
 const aTexto = (n) => (n == null ? '' : String(n).replace('.', ','))
@@ -58,7 +56,7 @@ function Negocio({ cfg, soloLectura }) {
     setErrorLogo('')
     setProcesando(true)
     try {
-      setLogo({ blob: await comprimirImagen(archivo, { maxLado: 600, calidad: 0.92 }), ruta: '' })
+      setLogo({ blob: await prepararLogo(archivo), ruta: '' })
     } catch (e) {
       setErrorLogo(e.message)
     } finally {
@@ -223,7 +221,6 @@ export default function AjustesPage() {
           <TipoCambio cfg={cfg.datos} soloLectura={soloLectura} />
           <Telefonos lista={equipo.datos} soloLectura={soloLectura} />
           <TarjetaAlmacenamiento />
-          {MODO_DEMO && !soloLectura && <DatosDemo />}
         </div>
       </div>
     </div>

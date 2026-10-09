@@ -36,7 +36,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/seed/imagenes/') || url.pathname.includes('/storage/v1/object/public/naty-productos/'),
+            // Fotos del catálogo en Supabase Storage (bucket naty_productos): se guardan para verlas sin señal.
+            urlPattern: ({ url }) => url.pathname.includes('/storage/v1/object/public/naty_productos/'),
             handler: 'CacheFirst',
             options: { cacheName: 'fotos-catalogo', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 90 }, cacheableResponse: { statuses: [0, 200] } },
           },
@@ -54,5 +55,7 @@ export default defineConfig({
     environment: 'node',
     // Las pruebas de Excel y de base en memoria cargan librerías pesadas: con varios archivos en paralelo 5 s no alcanza.
     testTimeout: 30_000,
+    // Las pruebas nunca tocan el Supabase real aunque exista .env.local (las de servidor usan un Postgres en memoria).
+    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
   },
 })

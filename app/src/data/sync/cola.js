@@ -35,14 +35,11 @@ export const pendientes = () => db.cola_sync.where('estado').anyOf('pendiente', 
 
 export const hayConexion = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false)
 
-// Transporte simulado: hace de cuenta que el servidor aceptó.
-export async function enviarSimulado() {
-  await new Promise((r) => setTimeout(r, 150))
-}
-
 let procesando = false
 
-export async function procesar({ enviar = enviarSimulado, ahora = Date.now() } = {}) {
+// enviar(item): manda un cambio al servidor (ver sync/remoto.js). Siempre es el servidor real: no hay envío simulado.
+export async function procesar({ enviar, ahora = Date.now() } = {}) {
+  if (!enviar) throw new Error('procesar() necesita la función enviar.')
   if (procesando || !hayConexion()) return { enviadas: 0, errores: 0 }
   procesando = true
   const resultado = { enviadas: 0, errores: 0 }

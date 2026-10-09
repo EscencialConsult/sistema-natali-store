@@ -5,13 +5,13 @@ Objetivo: que Facundo (y Natali, si puede) usen el sistema como lo usaría el eq
 ## 0. Preparación (10 min)
 
 **Opción A — en tu PC (la más simple)**
-1. Doble clic en `iniciar-dev.bat` (carpeta MODAS NATALI) → abre http://localhost:5173.
+1. En una terminal: `cd app` → `npm run dev` → abre http://localhost:5173.
 2. Entrá como **Natali** (PIN `0000`) → **Ajustes** → abajo: **Cargar ventas de demostración** (una vez; si la repetís suma más).
 3. Para empezar de cero: Ajustes → **Reiniciar todos los datos**.
 
 **Opción B — en celulares reales (necesaria para probar instalación, WhatsApp y modo avión)**
 La instalación como app y el botón de compartir de WhatsApp solo funcionan con **https**. Hay que publicar una versión de prueba:
-1. Doble clic no sirve acá: abrí una terminal en la carpeta MODAS NATALI y corré `iniciar-dev.bat npm run build:demo` (genera `app/dist` con la sección de datos de demostración habilitada; la versión normal `npm run build` **no** la incluye).
+1. Abrí una terminal en `app/` y corré `npm run build:demo` (genera `app/dist` con la sección de datos de demostración habilitada; la versión normal `npm run build` **no** la incluye).
 2. Subir la carpeta `app/dist` a Netlify (arrastrar y soltar en https://app.netlify.com/drop, o un sitio nuevo de pruebas). El archivo `_redirects` ya está incluido para que se pueda refrescar cualquier pantalla.
 3. En cada celular: abrir la dirección, entrar como Natali, **Cargar ventas de demostración**, y luego entrar con el usuario que corresponda a cada prueba.
 4. Android (Chrome): menú ⋮ → *Instalar aplicación*. iPhone (Safari): Compartir → *Agregar a pantalla de inicio*.

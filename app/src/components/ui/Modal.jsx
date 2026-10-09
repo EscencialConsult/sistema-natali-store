@@ -29,7 +29,7 @@ const UMBRAL_VELOCIDAD = 0.6 // px/ms: un gesto rápido cierra aunque sea corto
 
 /* <dialog> nativo: atrapa el foco y cierra con Esc sin código extra.
    abajo: en celular es una hoja inferior que se cierra deslizando hacia abajo desde la barrita o la cabecera. */
-export default function Modal({ abierto, onCerrar, titulo, children, abajo = false, className }) {
+export default function Modal({ abierto, onCerrar, titulo, children, abajo = false, cerrarConFondo = true, ancho = 'w-[min(92vw,32rem)]', className }) {
   const ref = useRef(null)
   const arrastre = useRef(null)
 
@@ -82,9 +82,10 @@ export default function Modal({ abierto, onCerrar, titulo, children, abajo = fal
     <dialog
       ref={ref}
       onClose={onCerrar}
-      onClick={(e) => e.target === ref.current && onCerrar()}
+      onClick={(e) => cerrarConFondo && e.target === ref.current && onCerrar()}
       className={cn(
-        'panel fixed m-auto w-[min(92vw,32rem)] overscroll-contain rounded-panel bg-superficie p-0 text-texto shadow-flotante',
+        'panel fixed m-auto max-w-none overscroll-contain rounded-panel bg-superficie p-0 text-texto shadow-flotante',
+        ancho,
         abajo && 'panel-abajo',
         abajo && 'max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:m-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none max-sm:rounded-t-[1.5rem]',
         className,

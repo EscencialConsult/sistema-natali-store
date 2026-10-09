@@ -4,8 +4,6 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { Button, EmptyState, Skeleton } from '../components/ui/index.js'
 import { useAuth } from '../features/auth/AuthContext.js'
 import LoginPage from '../features/auth/LoginPage.jsx'
-import LoginRemoto from '../features/auth/LoginRemoto.jsx'
-import { hayBackend } from '../data/supabase.js'
 import RutaProtegida from '../features/auth/RutaProtegida.jsx'
 import BuscadorPage from '../features/catalogo/BuscadorPage.jsx'
 import NuevaVentaPage from '../features/ventas/NuevaVentaPage.jsx'
@@ -27,8 +25,6 @@ const ProductoFormPage = lazy(() => import('../features/catalogo/admin/ProductoF
 const ImportarPage = lazy(() => import('../features/catalogo/admin/ImportarPage.jsx'))
 const CatalogoPublico = lazy(() => import('../features/catalogo/publico/CatalogoPublico.jsx'))
 
-// Solo existe en desarrollo: en el build de producción se elimina junto con el seed que importa.
-const Muestra = import.meta.env.DEV ? lazy(() => import('./Muestra.jsx')) : null
 
 const PAGINAS = {
   '/inicio': DashboardPage,
@@ -50,7 +46,7 @@ function Raiz() {
   const { usuario, cargando } = useAuth()
   if (cargando) return null
   if (usuario) return <Navigate to={rutaInicio(usuario.rol)} replace />
-  return hayBackend ? <LoginRemoto /> : <LoginPage />
+  return <LoginPage />
 }
 
 function NoEncontrada() {
@@ -94,7 +90,6 @@ export default function AppRoutes() {
             <Route path="*" element={<NoEncontrada />} />
           </Route>
         </Route>
-        {Muestra && <Route path="/muestra" element={<Muestra />} />}
       </Routes>
     </Suspense>
   )

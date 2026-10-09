@@ -4,17 +4,19 @@ import { cn } from '../lib/cn.js'
 
 // Sin logo cargado en Ajustes se muestra un monograma con la inicial del negocio.
 
-export function MarcaIcono({ className, claro = false }) {
+const TAMANO = { md: 'size-9 text-lg rounded-[0.7rem]', lg: 'size-16 text-3xl rounded-[1.1rem]' }
+
+export function MarcaIcono({ className, claro = false, tamano = 'md' }) {
   const { nombre, logo } = useMarca()
   if (logo) {
     return (
-      <span aria-hidden className={cn('flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[0.7rem] bg-superficie p-0.5 ring-1 ring-borde', className)}>
+      <span aria-hidden className={cn('flex shrink-0 items-center justify-center overflow-hidden bg-superficie p-0.5 ring-1 ring-borde', TAMANO[tamano], className)}>
         <img src={logo} alt="" className="max-h-full max-w-full object-contain" />
       </span>
     )
   }
   return (
-    <span aria-hidden className={cn('flex size-9 shrink-0 items-center justify-center rounded-[0.7rem] font-titulo text-lg font-semibold shadow-boton', claro ? 'bg-sobre-tinta text-tinta' : 'bg-tinta text-sobre-tinta', className)}>
+    <span aria-hidden className={cn('flex shrink-0 items-center justify-center font-titulo font-semibold shadow-boton', TAMANO[tamano], claro ? 'bg-sobre-tinta text-tinta' : 'bg-tinta text-sobre-tinta', className)}>
       {nombre[0].toUpperCase()}
     </span>
   )
