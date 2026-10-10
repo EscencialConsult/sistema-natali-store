@@ -18,3 +18,11 @@ export const PANTALLAS = [
 // Primera pantalla al entrar, según el rol.
 // Quien ve todo arranca en el resumen del día; las vendedoras, en el buscador (su herramienta principal).
 export const rutaInicio = (rol) => (rol === 'enc_deposito' ? '/stock' : puede(rol, 'dashboard.ver_global') ? '/inicio' : '/catalogo')
+
+const MAX_EN_BARRA = 5
+// Barra inferior del celular: hasta 4 pantallas + "Más" SIEMPRE (ahí están la persona y "Cerrar sesión").
+// Lo que no entra en la barra va dentro de "Más". Devuelve { enBarra, enMas }.
+export function repartirBarra(visibles) {
+  const enBarra = visibles.slice(0, MAX_EN_BARRA - 1)
+  return { enBarra, enMas: visibles.slice(enBarra.length) }
+}

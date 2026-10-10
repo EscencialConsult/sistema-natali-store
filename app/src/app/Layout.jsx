@@ -10,9 +10,8 @@ import { useConexion } from '../lib/useConexion.js'
 import AvisoAlmacenamiento from '../features/almacenamiento/AvisoAlmacenamiento.jsx'
 import ConexionPildora, { AvisoConexion } from './ConexionPildora.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
-import { PANTALLAS } from './navegacion.js'
+import { PANTALLAS, repartirBarra } from './navegacion.js'
 
-const MAX_EN_BARRA = 5
 
 function ItemLateral({ pantalla, onClick }) {
   const Icono = pantalla.icono
@@ -68,8 +67,8 @@ export default function Layout() {
     document.title = actual ? `${actual.etiqueta} · Modas Naty` : 'Modas Naty'
   }, [actual])
   const visibles = PANTALLAS.filter((p) => puedeAlguna(usuario.rol, p.accion))
-  const enBarra = visibles.length > MAX_EN_BARRA ? visibles.slice(0, MAX_EN_BARRA - 1) : visibles
-  const enMas = visibles.slice(enBarra.length)
+  // "Más" va SIEMPRE en la barra del celular: ahí están la persona y "Cerrar sesión" (con 5 pantallas no había cómo salir).
+  const { enBarra, enMas } = repartirBarra(visibles)
   const masActivo = enMas.some((p) => p === actual)
 
   return (
@@ -119,17 +118,15 @@ export default function Layout() {
       <nav
         aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-20 grid border-t border-borde/80 bg-superficie/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgb(42_34_48/0.12)] backdrop-blur-md md:hidden"
-        style={{ gridTemplateColumns: `repeat(${enBarra.length + (enMas.length ? 1 : 0)}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${enBarra.length + 1}, minmax(0, 1fr))` }}
       >
         {enBarra.map((p) => <ItemBarra key={p.ruta} pantalla={p} />)}
-        {enMas.length > 0 && (
-          <button type="button" onClick={() => setMasAbierto(true)} aria-current={masActivo || undefined} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium">
-            <span className={cn('flex h-7 w-12 items-center justify-center rounded-pildora', masActivo ? 'bg-tinte text-tinta' : 'text-texto-suave')}>
-              <Ellipsis size={20} strokeWidth={1.75} aria-hidden />
-            </span>
-            <span className={masActivo ? 'text-texto' : 'text-texto-suave'}>Más</span>
-          </button>
-        )}
+        <button type="button" onClick={() => setMasAbierto(true)} aria-current={masActivo || undefined} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium">
+          <span className={cn('flex h-7 w-12 items-center justify-center rounded-pildora', masActivo ? 'bg-tinte text-tinta' : 'text-texto-suave')}>
+            <Ellipsis size={20} strokeWidth={1.75} aria-hidden />
+          </span>
+          <span className={masActivo ? 'text-texto' : 'text-texto-suave'}>Más</span>
+        </button>
       </nav>
 
       <Sheet abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Más opciones">
