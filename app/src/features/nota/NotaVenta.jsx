@@ -3,11 +3,10 @@ import { urlDeImagen } from '../../lib/blobUrl.js'
 import { textoCantidad } from '../../lib/docenas.js'
 import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { fechaLarga } from '../../lib/fechas.js'
-import { formatear, META_MONEDA } from '../../lib/moneda.js'
+import { formatear } from '../../lib/moneda.js'
 import './nota.css'
 
 const PAGO = { efectivo: 'Efectivo', transferencia: 'Transferencia' }
-const tasa = (n) => String(n).replace('.', ',')
 
 // Nota de venta A5. Es solo presentación: recibe la venta ya guardada (con copia de nombres) y la configuración.
 // Teléfonos del pie: vendedores y encargada de tienda, tomados de los perfiles (Ajustes).
@@ -61,13 +60,6 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                 <div><dt>Vendedor/a: </dt><dd>{venta.vendedor_nombre || '—'}</dd></div>
                 <div><dt>Pago: </dt><dd>{PAGO[venta.metodo_pago]}</dd></div>
                 {venta.metodo_entrega && <div><dt>Entrega: </dt><dd>{METODOS_ENTREGA[venta.metodo_entrega]}</dd></div>}
-                <div>
-                  <dt>Moneda: </dt>
-                  <dd>
-                    {META_MONEDA[venta.moneda].nombre}
-                    {venta.moneda !== 'usd' && ` (1 US$ = ${META_MONEDA[venta.moneda].simbolo} ${tasa(venta.tipo_cambio)})`}
-                  </dd>
-                </div>
                 {venta.estado === 'anulada' && <div><dt>Estado: </dt><dd>ANULADA</dd></div>}
               </dl>
               {/* Espacio reservado para un QR que la clienta va a definir (pedido 2026-10-09). */}
