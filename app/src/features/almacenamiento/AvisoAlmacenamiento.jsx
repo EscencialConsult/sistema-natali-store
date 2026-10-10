@@ -16,7 +16,7 @@ const ESTILO = {
 export default function AvisoAlmacenamiento() {
   const { usuario } = useAuth()
   const esSuper = puede(usuario.rol, 'datos.borrar')
-  const { uso } = useUsoAlmacenamiento(esSuper)
+  const { uso, actualizar } = useUsoAlmacenamiento(esSuper)
   const [abierto, setAbierto] = useState(false)
   if (!esSuper || !uso || uso.nivel === 'ok') return null
   const pct = String(uso.pct).replace('.', ',')
@@ -31,7 +31,7 @@ export default function AvisoAlmacenamiento() {
         <span className="max-sm:hidden">Almacenamiento al</span> {pct} %
         <span className="sr-only">. Ver detalle</span>
       </button>
-      <AlmacenamientoModal abierto={abierto} onCerrar={() => setAbierto(false)} uso={uso} />
+      <AlmacenamientoModal abierto={abierto} onCerrar={() => setAbierto(false)} uso={uso} actualizar={actualizar} />
     </>
   )
 }
@@ -40,7 +40,7 @@ export default function AvisoAlmacenamiento() {
 export function TarjetaAlmacenamiento() {
   const { usuario } = useAuth()
   const esSuper = puede(usuario.rol, 'datos.borrar')
-  const { uso } = useUsoAlmacenamiento(esSuper)
+  const { uso, actualizar } = useUsoAlmacenamiento(esSuper)
   const [abierto, setAbierto] = useState(false)
   if (!esSuper) return null
   return (
@@ -51,7 +51,7 @@ export function TarjetaAlmacenamiento() {
         </p>
         <Button variante="secundario" icono={HardDrive} onClick={() => setAbierto(true)} className="self-start">Ver detalle</Button>
       </div>
-      <AlmacenamientoModal abierto={abierto} onCerrar={() => setAbierto(false)} uso={uso} />
+      <AlmacenamientoModal abierto={abierto} onCerrar={() => setAbierto(false)} uso={uso} actualizar={actualizar} />
     </Tarjeta>
   )
 }

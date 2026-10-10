@@ -77,8 +77,8 @@ Para no abrir la instancia compartida, el modo aplicado es **ABIERTO-AUTENTICADO
 | | |
 |---|---|
 | Estado | `en_desarrollo` — esquema aplicado el 2026-10-08, 7 personas dadas de alta, 138 productos de EJEMPLO cargados |
-| Tablas | `naty_perfiles`, `naty_categorias`, `naty_productos`, `naty_producto_colores`, `naty_producto_fotos`, `naty_ventas`, `naty_venta_items`, `naty_movimientos_stock`, `naty_config` + vista `naty_catalogo_publico` |
-| Funciones | `naty_registrar_venta`, `naty_anular_venta`, `naty_guardar_producto`, `naty_configurar_usuario`, `naty_es_miembro`, `naty_es_rol`, `naty_rol_actual` |
+| Tablas | `naty_perfiles`, `naty_categorias`, `naty_productos`, `naty_producto_colores`, `naty_producto_fotos`, `naty_ventas`, `naty_venta_items`, `naty_movimientos_stock`, `naty_config`, `naty_limpiezas` + vista `naty_catalogo_publico` |
+| Funciones | `naty_registrar_venta`, `naty_anular_venta`, `naty_guardar_producto`, `naty_eliminar_productos`, `naty_eliminar_productos_de_baja`, `naty_borrar_ventas`, `naty_resumir_movimientos`, `naty_previsualizar_limpieza`, `naty_configurar_usuario`, `naty_es_miembro`, `naty_es_rol`, `naty_rol_actual` |
 | Buckets | `naty_productos` (lectura pública) |
 | Modo de acceso | frontend con `anon` + sesión de cada persona (ABIERTO-AUTENTICADO, ver arriba) |
 | GitHub | _(sin repo todavía)_ |

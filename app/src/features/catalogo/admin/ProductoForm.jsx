@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Plus, Power, RotateCcw, Tag } from 'lucide-react'
+import { Plus, Power, RotateCcw, Tag, Trash2 } from 'lucide-react'
 import { Button, CAMPO, Input, Modal, Select, TARJETA, useToast } from '../../../components/ui/index.js'
 import { categorias, esquemaProducto, productos, stock } from '../../../data/repos/index.js'
 import { cn } from '../../../lib/cn.js'
 import { aCentavos } from '../../../lib/moneda.js'
+import { puede } from '../../../lib/permisos.js'
 import { useAuth } from '../../auth/AuthContext.js'
 import ColoresEditor from './ColoresEditor.jsx'
+import { ConfirmarEliminarProducto } from './EliminarProducto.jsx'
 import FotosEditor from './FotosEditor.jsx'
 
 const aTexto = (cent) => (cent / 100).toFixed(2).replace('.', ',')
@@ -64,6 +66,7 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
   const [errorGeneral, setErrorGeneral] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [confirmaBaja, setConfirmaBaja] = useState(false)
+  const [confirmaEliminar, setConfirmaEliminar] = useState(false)
   const [creandoCat, setCreandoCat] = useState(false)
   const [nuevaCat, setNuevaCat] = useState('')
   const limpiarError = (campo) => setErrores(({ [campo]: _quitado, ...resto }) => resto)
@@ -199,6 +202,7 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
       >
         {!esNuevo && producto.activo && <Button variante="peligro_suave" icono={Power} onClick={() => setConfirmaBaja(true)}>Dar de baja</Button>}
         {!esNuevo && !producto.activo && <Button variante="fantasma" icono={RotateCcw} onClick={reactivar}>Reactivar</Button>}
+        {!esNuevo && puede(usuario.rol, 'catalogo.eliminar') && <Button variante="peligro_suave" icono={Trash2} onClick={() => setConfirmaEliminar(true)}>Eliminar</Button>}
         {hayErrores && !errorGeneral && <p role="alert" className="text-sm text-error max-sm:w-full">Revisá los campos marcados.</p>}
         <div className="ml-auto flex gap-2">
           <Button variante="fantasma" onClick={onListo}>Cancelar</Button>
@@ -213,6 +217,7 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
           <Button variante="peligro" icono={Power} onClick={darDeBaja}>Sí, dar de baja</Button>
         </div>
       </Modal>
+      <ConfirmarEliminarProducto producto={confirmaEliminar ? producto : null} onCerrar={() => setConfirmaEliminar(false)} onListo={onListo} />
     </form>
   )
 }

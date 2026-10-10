@@ -65,6 +65,8 @@ async function enviarMovimiento(sb, id) {
   const m = await db.movimientos_stock.get(id)
   if (!m) return
   const { error } = await sb.from('naty_movimientos_stock').upsert(pick(m, ['id', 'producto_id', 'color_id', 'tipo', 'delta', 'motivo', 'usuario_id', 'venta_id', 'creado_en']), { onConflict: 'id', ignoreDuplicates: true })
+  // 23503: el producto (o la nota) se eliminó en el servidor mientras esto esperaba. No hay a qué cargarle el stock.
+  if (error?.code === '23503') return
   fallar(error, 'movimiento de stock')
 }
 
@@ -141,11 +143,53 @@ async function traer(sb, tabla, { desde, orden = 'updated_at', filtros = (q) => 
 const maximo = (filas, previo) => filas.reduce((m, f) => (f.updated_at > m ? f.updated_at : m), previo ?? '')
 const conSolape = (iso) => (iso ? new Date(new Date(iso).getTime() - SOLAPE_MS).toISOString() : null)
 
+// Producto eliminado en el servidor: se quita del dispositivo con su stock, y lo que esperaba enviarse de él se descarta.
+export async function borrarProductosDelDispositivo(ids) {
+  await db.transaction('rw', db.productos, db.producto_colores, db.producto_fotos, db.movimientos_stock, db.cola_sync, async () => {
+    const movs = await db.movimientos_stock.where('producto_id').anyOf(ids).primaryKeys()
+    await db.cola_sync.filter((c) => (c.entidad === 'producto' && ids.includes(c.entidad_id)) || (c.entidad === 'movimiento' && movs.includes(c.entidad_id))).delete()
+    await db.movimientos_stock.bulkDelete(movs)
+    await db.producto_colores.where('producto_id').anyOf(ids).delete()
+    await db.producto_fotos.where('producto_id').anyOf(ids).delete()
+    await db.productos.bulkDelete(ids)
+  })
+}
+
+// Limpiezas hechas en el servidor (productos eliminados, notas e historial borrados). Lo afectado se borra del dispositivo
+// y, para notas e historial, se vuelve a bajar entero (así queda idéntico al servidor). Nunca se toca lo que está por enviarse.
+async function aplicarLimpiezas(sb, meta, nuevo, bloqueados) {
+  const limpiezas = await traer(sb, 'naty_limpiezas', { desde: conSolape(meta.limpiezas) })
+  const vistas = new Set(meta.limpiezas_vistas ?? [])
+  nuevo.limpiezas = maximo(limpiezas, meta.limpiezas)
+  nuevo.limpiezas_vistas = limpiezas.map((l) => l.id)
+  // Un dispositivo que todavía no bajó nada ya va a recibir los datos limpios.
+  if (!meta.productos && !meta.movimientos && !meta.ventas) return
+
+  for (const l of limpiezas.filter((x) => !vistas.has(x.id))) {
+    if (l.tipo === 'productos') {
+      await borrarProductosDelDispositivo(l.ids)
+    } else if (l.tipo === 'ventas') {
+      await db.transaction('rw', db.ventas, db.venta_items, async () => {
+        const ids = await db.ventas.filter((v) => v.sync_status === 'synced' && !bloqueados.has(`venta:${v.id}`)).primaryKeys()
+        await db.venta_items.where('venta_id').anyOf(ids).delete()
+        await db.ventas.bulkDelete(ids)
+      })
+      delete nuevo.ventas
+    } else if (l.tipo === 'movimientos') {
+      await db.movimientos_stock
+        .filter((m) => !bloqueados.has(`movimiento:${m.id}`) && !(m.venta_id && bloqueados.has(`venta:${m.venta_id}`)))
+        .delete()
+      delete nuevo.movimientos
+    }
+  }
+}
+
 export async function descargar(sb) {
   const bloqueados = await pendientes()
   const meta = (await db.config.get('sync_ultima'))?.valor ?? {}
   const nuevo = { ...meta }
   const resumen = {}
+  await aplicarLimpiezas(sb, meta, nuevo, bloqueados)
 
   // Perfiles y categorías son pocos: se bajan completos.
   const perfiles = (await traer(sb, 'naty_perfiles')).filter((p) => !bloqueados.has(`perfil:${p.id}`))
@@ -171,7 +215,7 @@ export async function descargar(sb) {
   resumen.config = config.length
 
   // Productos con sus colores y fotos: si cambió algo de un producto, se baja el producto completo.
-  const productos = (await traer(sb, 'naty_productos', { desde: conSolape(meta.productos) })).filter((p) => !bloqueados.has(`producto:${p.id}`))
+  const productos = (await traer(sb, 'naty_productos', { desde: conSolape(nuevo.productos) })).filter((p) => !bloqueados.has(`producto:${p.id}`))
   for (const lote of por(productos, LOTE_IN)) {
     const ids = lote.map((p) => p.id)
     const [colores, fotos] = await Promise.all([
@@ -186,17 +230,17 @@ export async function descargar(sb) {
       await db.producto_fotos.bulkPut(fotos.map((f) => ({ id: f.id, producto_id: f.producto_id, orden: f.orden, ruta: urlFoto(sb, f.ruta) })))
     })
   }
-  nuevo.productos = maximo(productos, meta.productos)
+  nuevo.productos = maximo(productos, nuevo.productos)
   resumen.productos = productos.length
 
   // Movimientos de stock (las ventas y anulaciones de todos los dispositivos). Mismo id local y remoto: no se duplican.
-  const movimientos = await traer(sb, 'naty_movimientos_stock', { desde: conSolape(meta.movimientos) })
+  const movimientos = await traer(sb, 'naty_movimientos_stock', { desde: conSolape(nuevo.movimientos) })
   for (const lote of por(movimientos, 500)) await db.movimientos_stock.bulkPut(lote.map((m) => pick(m, ['id', 'producto_id', 'color_id', 'tipo', 'delta', 'motivo', 'usuario_id', 'venta_id', 'creado_en'])))
-  nuevo.movimientos = maximo(movimientos, meta.movimientos)
+  nuevo.movimientos = maximo(movimientos, nuevo.movimientos)
   resumen.movimientos = movimientos.length
 
   // Ventas (solo las que este usuario puede ver) con sus ítems.
-  const ventas = (await traer(sb, 'naty_ventas', { desde: conSolape(meta.ventas) })).filter((v) => !bloqueados.has(`venta:${v.id}`))
+  const ventas = (await traer(sb, 'naty_ventas', { desde: conSolape(nuevo.ventas) })).filter((v) => !bloqueados.has(`venta:${v.id}`))
   for (const lote of por(ventas, LOTE_IN)) {
     const ids = lote.map((v) => v.id)
     const items = await traer(sb, 'naty_venta_items', { orden: 'id', filtros: (q) => q.in('venta_id', ids) })
@@ -206,7 +250,7 @@ export async function descargar(sb) {
       await db.venta_items.bulkPut(items.map((i) => ({ ...pick(i, ['id', 'venta_id', 'producto_id', 'color_id', 'codigo', 'nombre', 'color_nombre', 'unidad', 'unidades']), cantidad: Number(i.cantidad), precio_cent: Number(i.precio_cent), subtotal_cent: Number(i.subtotal_cent) })))
     })
   }
-  nuevo.ventas = maximo(ventas, meta.ventas)
+  nuevo.ventas = maximo(ventas, nuevo.ventas)
   resumen.ventas = ventas.length
 
   await db.config.put({ clave: 'sync_ultima', valor: nuevo })

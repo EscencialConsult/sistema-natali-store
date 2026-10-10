@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Power, RotateCcw, Sparkles } from 'lucide-react'
+import { Pencil, Power, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge, TARJETA, useToast } from '../../../components/ui/index.js'
 import { productos } from '../../../data/repos/index.js'
@@ -10,7 +10,8 @@ import Foto from '../Foto.jsx'
 const ACCION = 'inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-control px-1.5 text-[0.8125rem] font-medium transition-colors disabled:opacity-50 sm:flex-none sm:px-3 sm:text-sm'
 
 // Tarjeta del listado de administración: foto + datos (abre la edición) y acciones rápidas sin abrir el formulario.
-export default function TarjetaProductoAdmin({ producto: p, categoria, onEditar, onDarDeBaja }) {
+// onEliminar: solo si quien mira puede eliminar productos.
+export default function TarjetaProductoAdmin({ producto: p, categoria, onEditar, onDarDeBaja, onEliminar }) {
   const avisar = useToast()
   const [ocupado, setOcupado] = useState(false)
 
@@ -59,6 +60,11 @@ export default function TarjetaProductoAdmin({ producto: p, categoria, onEditar,
         ) : (
           <button type="button" disabled={ocupado} onClick={() => correr(() => productos.reactivar(p.id), `${p.codigo} reactivado`)} className={cn(ACCION, 'text-exito hover:bg-exito-fondo')}>
             <RotateCcw size={16} strokeWidth={1.9} aria-hidden /> Reactivar
+          </button>
+        )}
+        {onEliminar && (
+          <button type="button" disabled={ocupado} onClick={onEliminar} aria-label={`Eliminar ${p.codigo}`} title="Eliminar" className={cn(ACCION, 'flex-none px-2.5 text-texto-suave hover:bg-error-fondo hover:text-error sm:px-2.5')}>
+            <Trash2 size={16} strokeWidth={1.9} aria-hidden />
           </button>
         )}
         <Link to={`/catalogo/admin/${p.id}`} onClick={onEditar} className={cn(ACCION, 'text-tinta hover:bg-tinte sm:ml-auto')}>

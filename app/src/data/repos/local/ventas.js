@@ -1,7 +1,7 @@
 // Repositorio de ventas.
 //   crear(datos) · anular(id, { motivo, usuario_id }) · obtener(id) · listar(filtros) · listarConItems(filtros)
 // Crear una venta es UNA transacción: nota + ítems + descuento de stock + cola de sincronización.
-// Si algo falla no queda nada a medias. Las ventas se anulan, nunca se borran.
+// Si algo falla no queda nada a medias. Las ventas se anulan; solo el superadmin borra notas viejas (limpieza.js).
 import { z } from 'zod'
 import { db } from '../../db.js'
 import { nuevoId } from '../../../lib/id.js'
@@ -49,7 +49,8 @@ async function siguienteNumero(vendedor_id) {
   const clave = `correlativo:${vendedor_id}`
   const perfil = await db.perfiles.get(vendedor_id)
   const prefijo = `NV-${perfil?.iniciales ?? 'XX'}-`
-  let ultimo = await config(clave, 0)
+  // numeros_borrados: la nota más alta de cada prefijo que se borró en una limpieza (para no volver a usar esos números).
+  let ultimo = Math.max(await config(clave, 0), (await config('numeros_borrados', {}))[prefijo] ?? 0)
   await db.ventas.where('vendedor_id').equals(vendedor_id).each((v) => {
     if (v.numero?.startsWith(prefijo)) ultimo = Math.max(ultimo, Number.parseInt(v.numero.slice(prefijo.length), 10) || 0)
   })
@@ -115,7 +116,7 @@ export const ventas = {
 
   async anular(id, { motivo, usuario_id }) {
     if (!String(motivo ?? '').trim()) throw new Error('Indicá el motivo de la anulación.')
-    await db.transaction('rw', db.ventas, db.venta_items, db.movimientos_stock, db.cola_sync, async () => {
+    await db.transaction('rw', db.ventas, db.venta_items, db.movimientos_stock, db.cola_sync, db.productos, async () => {
       const venta = await db.ventas.get(id)
       if (!venta) throw new Error('La venta no existe.')
       if (venta.estado === 'anulada') throw new Error('La venta ya está anulada.')
@@ -123,6 +124,8 @@ export const ventas = {
       const anuladaEn = new Date().toISOString()
       const movimientos = []
       for (const i of items) {
+        // Producto eliminado: no hay stock al que devolverle las unidades.
+        if (!i.producto_id || !(await db.productos.get(i.producto_id))) continue
         movimientos.push(await insertarMovimiento({
           producto_id: i.producto_id,
           color_id: i.color_id,

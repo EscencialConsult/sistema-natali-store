@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
-import { PackagePlus, PackageSearch, Power, Upload } from 'lucide-react'
+import { PackagePlus, PackageSearch, Power, Trash2, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button, CampoBusqueda, Encabezado, EmptyState, ErrorState, Modal, Skeleton, Tabs, useToast } from '../../../components/ui/index.js'
 import ExportarExcel from '../../../components/ExportarExcel.jsx'
 import { useCategorias, useProducto, useProductos } from '../../../data/hooks.js'
 import { productos } from '../../../data/repos/index.js'
 import { contiene, etiquetaDe, nombreArchivo } from '../../../lib/excel.js'
+import { puede } from '../../../lib/permisos.js'
 import { useEsEscritorio } from '../../../lib/useMediaQuery.js'
+import { useAuth } from '../../auth/AuthContext.js'
+import { ConfirmarEliminarDeBaja, ConfirmarEliminarProducto } from './EliminarProducto.jsx'
 import ProductoForm from './ProductoForm.jsx'
 import TarjetaProductoAdmin from './TarjetaProductoAdmin.jsx'
 
@@ -18,6 +21,9 @@ export default function AdminListado() {
   const [editando, setEditando] = useState(null) // null · 'nuevo' · id del producto
   const esEscritorio = useEsEscritorio()
   const [dandoDeBaja, setDandoDeBaja] = useState(null)
+  const [eliminando, setEliminando] = useState(null) // un producto · 'baja' (todos los dados de baja)
+  const { usuario } = useAuth()
+  const puedeEliminar = puede(usuario.rol, 'catalogo.eliminar')
   const avisar = useToast()
   const darDeBaja = async () => {
     const p = dandoDeBaja
@@ -113,11 +119,18 @@ export default function AdminListado() {
           texto={tab === 'activos' && !texto ? 'Creá el primero o importá varios desde Excel.' : undefined}
         />
       )}
-      {lista.length > 0 && <p className="-mb-3 text-sm text-texto-suave"><span className="font-semibold tabular-nums text-texto">{lista.length}</span> productos</p>}
+      {lista.length > 0 && (
+        <div className="-mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-texto-suave"><span className="font-semibold tabular-nums text-texto">{lista.length}</span> productos</p>
+          {tab === 'inactivos' && !texto && puedeEliminar && (
+            <Button variante="peligro_suave" icono={Trash2} onClick={() => setEliminando('baja')}>Eliminar todos los dados de baja</Button>
+          )}
+        </div>
+      )}
       <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         {lista.map((p) => (
           <li key={p.id}>
-            <TarjetaProductoAdmin producto={p} categoria={nombreCat.get(p.categoria_id)} onEditar={(e) => abrir(e, p.id)} onDarDeBaja={() => setDandoDeBaja(p)} />
+            <TarjetaProductoAdmin producto={p} categoria={nombreCat.get(p.categoria_id)} onEditar={(e) => abrir(e, p.id)} onDarDeBaja={() => setDandoDeBaja(p)} onEliminar={puedeEliminar ? () => setEliminando(p) : undefined} />
           </li>
         ))}
       </ul>
@@ -129,6 +142,8 @@ export default function AdminListado() {
           <Button variante="peligro" icono={Power} onClick={darDeBaja}>Sí, dar de baja</Button>
         </div>
       </Modal>
+      <ConfirmarEliminarProducto producto={eliminando && eliminando !== 'baja' ? eliminando : null} onCerrar={() => setEliminando(null)} />
+      <ConfirmarEliminarDeBaja abierto={eliminando === 'baja'} cantidad={lista.length} onCerrar={() => setEliminando(null)} />
 
       <Modal
         abierto={!!editando}

@@ -13,7 +13,7 @@ const ok = (cond, texto) => {
 await cliente.connect()
 try {
   const tablas = (await q("select c.relname as t, c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'naty\\_%' order by 1"))
-  ok(tablas.length === 9, `9 tablas naty_* (hay ${tablas.length})`)
+  ok(tablas.length === 10, `10 tablas naty_* (hay ${tablas.length})`)
   ok(tablas.every((t) => t.rls), 'RLS activado en todas las tablas naty_*')
   for (const t of tablas) console.log(`        ${t.t}: ${t.politicas} política(s)`)
 
@@ -48,7 +48,8 @@ try {
   // Los otros proyectos no se tocaron: FAREP sigue en MODO CERRADO (RLS activado y CERO políticas).
   const farpep = await q("select c.relname as t, c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'farpep\\_%'")
   // Gestión de usuarios: las funciones de la app sí; el alta interna (sin control) NUNCA desde la app.
-  for (const f of ['naty_crear_usuario(text,text,naty_rol_usuario,text,text)', 'naty_editar_usuario(uuid,text,text,naty_rol_usuario,text,boolean)', 'naty_cambiar_clave(uuid,text)', 'naty_uso_almacenamiento()']) {
+  for (const f of ['naty_crear_usuario(text,text,naty_rol_usuario,text,text)', 'naty_editar_usuario(uuid,text,text,naty_rol_usuario,text,boolean)', 'naty_cambiar_clave(uuid,text)', 'naty_uso_almacenamiento()',
+    'naty_eliminar_productos(jsonb)', 'naty_eliminar_productos_de_baja(jsonb)', 'naty_borrar_ventas(jsonb)', 'naty_resumir_movimientos(jsonb)', 'naty_previsualizar_limpieza(jsonb)']) {
     const [p] = await q(`select has_function_privilege('anon', '${f}', 'execute') as anon, has_function_privilege('authenticated', '${f}', 'execute') as auth`)
     ok(!p.anon && p.auth, `${f.split('(')[0]}: anon NO, authenticated sí (adentro exige superadmin)`)
   }

@@ -161,7 +161,7 @@ create table if not exists naty_producto_fotos (
   updated_at timestamptz not null default clock_timestamp()
 );
 
--- Las ventas se anulan, nunca se borran. El número lo arma cada dispositivo (NV-<iniciales>-<correlativo>) para poder vender sin internet.
+-- Las ventas se anulan; solo se borran con la limpieza del superadmin (naty_borrar_ventas). El número lo arma cada dispositivo (NV-<iniciales>-<correlativo>) para poder vender sin internet.
 create table if not exists naty_ventas (
   id uuid primary key,
   numero text not null,
@@ -513,9 +513,13 @@ begin
           coalesce(p ->> 'cliente_email', ''), coalesce(p ->> 'cliente_direccion', ''), nullif(p ->> 'metodo_entrega', ''),
           (p ->> 'total_cent')::bigint, (p ->> 'creada_en')::timestamptz);
 
+  -- Un dispositivo sin señal pudo vender un producto que mientras tanto se eliminó: el ítem queda con la copia
+  -- (código, nombre, color) y sin vínculo, y no se descuenta stock de algo que ya no existe.
   for v_item in select * from jsonb_array_elements(p -> 'items') loop
     insert into naty_venta_items (id, venta_id, producto_id, color_id, codigo, nombre, color_nombre, cantidad, unidad, unidades, precio_cent, subtotal_cent)
-    values ((v_item ->> 'id')::uuid, v_id, (v_item ->> 'producto_id')::uuid, (v_item ->> 'color_id')::uuid, v_item ->> 'codigo', v_item ->> 'nombre',
+    values ((v_item ->> 'id')::uuid, v_id,
+            (select id from naty_productos where id = (v_item ->> 'producto_id')::uuid),
+            (select id from naty_producto_colores where id = (v_item ->> 'color_id')::uuid), v_item ->> 'codigo', v_item ->> 'nombre',
             v_item ->> 'color_nombre', (v_item ->> 'cantidad')::numeric, (v_item ->> 'unidad')::naty_unidad_venta, (v_item ->> 'unidades')::int,
             (v_item ->> 'precio_cent')::bigint, (v_item ->> 'subtotal_cent')::bigint);
   end loop;
@@ -525,6 +529,7 @@ begin
     if (v_mov ->> 'delta')::int >= 0 then
       raise exception 'Un movimiento de venta debe restar stock' using errcode = '22023';
     end if;
+    continue when not exists (select 1 from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid);
     insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, venta_id, creado_en)
     values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (v_mov ->> 'color_id')::uuid, 'venta', (v_mov ->> 'delta')::int,
             coalesce(v_mov ->> 'motivo', ''), v_vendedor, v_id, (v_mov ->> 'creado_en')::timestamptz);
@@ -561,6 +566,7 @@ begin
     if (v_mov ->> 'delta')::int <= 0 then
       raise exception 'Un movimiento de anulación debe sumar stock' using errcode = '22023';
     end if;
+    continue when not exists (select 1 from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid);
     insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, venta_id, creado_en)
     values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (v_mov ->> 'color_id')::uuid, 'anulacion', (v_mov ->> 'delta')::int,
             coalesce(v_mov ->> 'motivo', ''), auth.uid(), v_id, (v_mov ->> 'creado_en')::timestamptz)
@@ -583,6 +589,10 @@ declare
 begin
   if not naty_es_rol('admin', 'enc_deposito') then
     raise exception 'Tu rol no puede modificar el catálogo' using errcode = '42501';
+  end if;
+  -- Un producto eliminado no revive porque un dispositivo sin señal mande una edición vieja.
+  if exists (select 1 from naty_limpiezas where tipo = 'productos' and v_id = any (ids)) then
+    return v_id;
   end if;
 
   if p -> 'categoria' is not null and p -> 'categoria' <> 'null'::jsonb then
@@ -786,7 +796,7 @@ values (
   'naty',
   'Modas Naty — Notas de venta y catálogo',
   'ERP de notas de venta en USD/ARS/Bs con catálogo por código, inventario y modo sin conexión (PWA). Provisorio acá; migra a cuenta propia de la clienta.',
-  '["naty_perfiles","naty_categorias","naty_productos","naty_producto_colores","naty_producto_fotos","naty_ventas","naty_venta_items","naty_movimientos_stock","naty_config","naty_catalogo_publico (vista)","bucket:naty_productos"]'::jsonb,
+  '["naty_perfiles","naty_categorias","naty_productos","naty_producto_colores","naty_producto_fotos","naty_ventas","naty_venta_items","naty_movimientos_stock","naty_config","naty_limpiezas","naty_catalogo_publico (vista)","bucket:naty_productos"]'::jsonb,
   '',
   '',
   'en_desarrollo'
@@ -806,3 +816,155 @@ on conflict (identificador) do update set
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- ── AAAA-MM-DD · <qué cambia y por qué> ──
+
+-- ── 2026-10-10 · Eliminar productos y liberar espacio (borrar notas e historial anteriores a una fecha) ──
+-- Nada se borra solo: lo dispara una persona desde la app, con confirmación.
+--   · Eliminar productos: administración (uno por uno, o todos los dados de baja). Las notas de venta conservan la copia
+--     de código, nombre y color; el ítem queda sin vínculo al producto. Su stock e historial se van con él.
+--   · Borrar notas de venta y resumir el historial de stock anteriores a una fecha: solo el superadmin.
+--     El stock NUNCA cambia: el historial que se quita se reemplaza por un "saldo" por color con la misma suma.
+-- Cada limpieza queda anotada en naty_limpiezas: los dispositivos la leen al sincronizar y vuelven a bajar lo afectado.
+
+create table if not exists naty_limpiezas (
+  id uuid primary key default gen_random_uuid(),
+  tipo text not null check (tipo in ('productos', 'ventas', 'movimientos')),
+  antes_de timestamptz,
+  ids uuid[] not null default '{}',
+  cantidad integer not null default 0,
+  por uuid references naty_perfiles (id) on delete set null,
+  creado_en timestamptz not null default now(),
+  updated_at timestamptz not null default clock_timestamp()
+);
+create index if not exists idx_naty_limpiezas_updated on naty_limpiezas (updated_at);
+
+-- Los ítems de una nota sobreviven al producto (guardan su copia); los movimientos sobreviven a la nota.
+alter table naty_venta_items alter column producto_id drop not null;
+alter table naty_venta_items alter column color_id drop not null;
+alter table naty_venta_items drop constraint if exists naty_venta_items_producto_id_fkey;
+alter table naty_venta_items add constraint naty_venta_items_producto_id_fkey foreign key (producto_id) references naty_productos (id) on delete set null;
+alter table naty_venta_items drop constraint if exists naty_venta_items_color_id_fkey;
+alter table naty_venta_items add constraint naty_venta_items_color_id_fkey foreign key (color_id) references naty_producto_colores (id) on delete set null;
+alter table naty_movimientos_stock drop constraint if exists naty_movimientos_stock_venta_id_fkey;
+alter table naty_movimientos_stock add constraint naty_movimientos_stock_venta_id_fkey foreign key (venta_id) references naty_ventas (id) on delete set null;
+
+-- Elimina productos con sus colores, fotos, stock e historial. Devuelve las fotos, para que la app las borre del bucket.
+-- p = { ids: [uuid] }
+create or replace function naty_eliminar_productos(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_ids uuid[];
+  v_fotos jsonb;
+begin
+  if not naty_es_rol('admin') then
+    raise exception 'Solo la administración puede eliminar productos' using errcode = '42501';
+  end if;
+  select coalesce(array_agg(id), '{}') into v_ids
+    from naty_productos where id in (select jsonb_array_elements_text(coalesce(p -> 'ids', '[]'::jsonb))::uuid);
+  if cardinality(v_ids) = 0 then
+    return jsonb_build_object('cantidad', 0, 'fotos', '[]'::jsonb);
+  end if;
+  select coalesce(jsonb_agg(ruta), '[]'::jsonb) into v_fotos from naty_producto_fotos where producto_id = any (v_ids);
+  delete from naty_movimientos_stock where producto_id = any (v_ids);
+  delete from naty_productos where id = any (v_ids); -- colores y fotos en cascada; los ítems de ventas quedan sin vínculo
+  insert into naty_limpiezas (tipo, ids, cantidad, por) values ('productos', v_ids, cardinality(v_ids), auth.uid());
+  return jsonb_build_object('cantidad', cardinality(v_ids), 'fotos', v_fotos);
+end $$;
+
+-- Todos los productos dados de baja. p = {}
+create or replace function naty_eliminar_productos_de_baja(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  return naty_eliminar_productos(jsonb_build_object('ids', (select coalesce(jsonb_agg(id), '[]'::jsonb) from naty_productos where not activo)));
+end $$;
+
+-- Notas de venta (con sus ítems, también las anuladas) anteriores a la fecha. El historial de stock queda (sin vínculo a la nota).
+-- El número más alto borrado de cada persona se guarda en `numeros_borrados`: la numeración nunca vuelve atrás.
+-- p = { antes_de }
+create or replace function naty_borrar_ventas(p jsonb) returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  v_antes timestamptz := (p ->> 'antes_de')::timestamptz;
+  v_n integer;
+  v_numeros jsonb;
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede borrar datos' using errcode = '42501';
+  end if;
+  if v_antes is null then
+    raise exception 'Elegí la fecha' using errcode = '22023';
+  end if;
+
+  select coalesce(jsonb_object_agg(prefijo, n), '{}'::jsonb) into v_numeros from (
+    select m[1] as prefijo, max(m[2]::int) as n
+      from (select regexp_match(numero, '^(.*-)(\d+)$') as m from naty_ventas where creada_en < v_antes) x
+     where m is not null group by m[1]
+  ) y;
+  insert into naty_config (clave, valor) values ('numeros_borrados', v_numeros)
+  on conflict (clave) do update set valor = (
+    select coalesce(jsonb_object_agg(k, greatest(coalesce((naty_config.valor ->> k)::int, 0), coalesce((v_numeros ->> k)::int, 0))), '{}'::jsonb)
+      from (select jsonb_object_keys(naty_config.valor) as k union select jsonb_object_keys(v_numeros)) claves
+  );
+
+  update naty_movimientos_stock set venta_id = null where venta_id in (select id from naty_ventas where creada_en < v_antes);
+  delete from naty_ventas where creada_en < v_antes; -- ítems en cascada
+  get diagnostics v_n = row_count;
+  if v_n > 0 then
+    insert into naty_limpiezas (tipo, antes_de, cantidad, por) values ('ventas', v_antes, v_n, auth.uid());
+  end if;
+  return v_n;
+end $$;
+
+-- Historial de stock anterior a la fecha: se reemplaza por un saldo por color con la misma suma. p = { antes_de }
+create or replace function naty_resumir_movimientos(p jsonb) returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  v_antes timestamptz := (p ->> 'antes_de')::timestamptz;
+  v_n integer;
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede borrar datos' using errcode = '42501';
+  end if;
+  if v_antes is null then
+    raise exception 'Elegí la fecha' using errcode = '22023';
+  end if;
+  select count(*) into v_n from naty_movimientos_stock where creado_en < v_antes;
+  if v_n = 0 then
+    return 0;
+  end if;
+
+  with borrados as (
+    delete from naty_movimientos_stock where creado_en < v_antes returning producto_id, color_id, delta
+  )
+  insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, creado_en)
+  select gen_random_uuid(), producto_id, color_id, 'saldo', s, 'Saldo del historial anterior (resumido)', v_antes - interval '1 millisecond'
+    from (select producto_id, color_id, sum(delta)::int as s from borrados group by producto_id, color_id) t
+   where s <> 0;
+  insert into naty_limpiezas (tipo, antes_de, cantidad, por) values ('movimientos', v_antes, v_n, auth.uid());
+  return v_n;
+end $$;
+
+-- Cuánto se borraría (para mostrar antes de confirmar). p = { antes_de? }
+create or replace function naty_previsualizar_limpieza(p jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_antes timestamptz := (p ->> 'antes_de')::timestamptz;
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede borrar datos' using errcode = '42501';
+  end if;
+  return jsonb_build_object(
+    'ventas', case when v_antes is null then 0 else (select count(*) from naty_ventas where creada_en < v_antes) end,
+    'movimientos', case when v_antes is null then 0 else (select count(*) from naty_movimientos_stock where creado_en < v_antes) end,
+    'productos_baja', (select count(*) from naty_productos where not activo)
+  );
+end $$;
+
+alter table naty_limpiezas enable row level security;
+drop policy if exists "naty_limpiezas_leer" on naty_limpiezas;
+create policy "naty_limpiezas_leer" on naty_limpiezas for select to authenticated using (naty_es_miembro());
+revoke all on table naty_limpiezas from public, anon, authenticated;
+grant select on naty_limpiezas to authenticated;
+revoke all on function naty_eliminar_productos(jsonb), naty_eliminar_productos_de_baja(jsonb), naty_borrar_ventas(jsonb),
+  naty_resumir_movimientos(jsonb), naty_previsualizar_limpieza(jsonb) from public, anon, authenticated;
+grant execute on function naty_eliminar_productos(jsonb), naty_eliminar_productos_de_baja(jsonb), naty_borrar_ventas(jsonb),
+  naty_resumir_movimientos(jsonb), naty_previsualizar_limpieza(jsonb) to authenticated;

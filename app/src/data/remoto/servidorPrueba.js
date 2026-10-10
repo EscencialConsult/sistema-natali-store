@@ -143,6 +143,11 @@ export function clienteDe(servidor, usuarioId) {
           if (!r.error) servidor.archivos.set(`${bucket}/${ruta}`, blob)
           return { data: r.error ? null : { path: ruta }, error: r.error }
         },
+        remove: async (rutas) => {
+          const r = await respuesta(() => db.query('delete from storage.objects where bucket_id = $1 and name = any($2::text[])', [bucket, rutas]))
+          if (!r.error) for (const x of rutas) servidor.archivos.delete(`${bucket}/${x}`)
+          return { data: r.error ? null : rutas, error: r.error }
+        },
         getPublicUrl: (ruta) => ({ data: { publicUrl: `https://prueba.supabase.co/storage/v1/object/public/${bucket}/${ruta}` } }),
       }),
     },

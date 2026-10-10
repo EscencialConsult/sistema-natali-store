@@ -13,6 +13,7 @@ const VENDEDOR = ['catalogo.ver', 'venta.crear', 'ventas.ver_propias', 'comision
 const ADMIN = [
   ...VENDEDOR,
   'catalogo.editar',
+  'catalogo.eliminar',
   'ventas.ver_todas',
   'ventas.anular',
   'ventas.exportar',
