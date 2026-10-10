@@ -1,17 +1,16 @@
 import { useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Button, CAMPO, ErrorState, Sheet, Skeleton } from '../../components/ui/index.js'
-import { useConfig, useProducto, useStockPorColor } from '../../data/hooks.js'
+import { useConfig, useProducto, useStockDe } from '../../data/hooks.js'
 import { formatear } from '../../lib/moneda.js'
-import ColoresChips from '../catalogo/ColoresChips.jsx'
+import ColorStock from '../catalogo/ColorStock.jsx'
 import Foto from '../catalogo/Foto.jsx'
-import { normalizarCantidad, PASO_DOCENA, precioDocena, subtotal, textoCantidad, UNIDADES_POR_DOCENA } from './calculos.js'
+import { normalizarCantidad, PASO_DOCENA, precioDocena, subtotal, textoCantidad, textoDocenas, UNIDADES_POR_DOCENA } from './calculos.js'
 
 function Contenido({ productoId, moneda, onAgregar }) {
   const prod = useProducto(productoId)
-  const stock = useStockPorColor(productoId)
+  const stock = useStockDe(productoId)
   const cfg = useConfig()
-  const [colorId, setColorId] = useState(null)
   // Se escribe libre ("1,5"); al salir del campo se ajusta a la media docena más cercana.
   const [texto, setTexto] = useState('1')
   const cantidad = normalizarCantidad(texto.replace(',', '.'))
@@ -20,7 +19,7 @@ function Contenido({ productoId, moneda, onAgregar }) {
   if (prod.error || !prod.datos) return <ErrorState mensaje="No pudimos cargar el producto." onReintentar={prod.reintentar} />
   const p = prod.datos
   const precio = precioDocena({ precioUsdCent: p.precio_docena_usd_cent, moneda, tc: cfg.datos.tipo_cambio })
-  const disponible = colorId ? (stock.datos?.[colorId] ?? 0) : null
+  const disponible = stock.datos ?? 0
   const pide = cantidad * UNIDADES_POR_DOCENA
   const cambiar = (n) => setTexto(textoCantidad(normalizarCantidad(n)))
 
@@ -35,10 +34,7 @@ function Contenido({ productoId, moneda, onAgregar }) {
         </div>
       </div>
 
-      <section aria-label="Elegí el color" className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-texto-suave">Color</h3>
-        <ColoresChips colores={p.colores} stock={stock.datos ?? {}} seleccionado={colorId} onSelect={setColorId} />
-      </section>
+      <ColorStock colores={p.colores} stock={disponible} umbral={cfg.datos.stock_bajo_unidades} />
 
       <section aria-label="Cantidad" className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-texto-suave">Docenas</h3>
@@ -53,18 +49,17 @@ function Contenido({ productoId, moneda, onAgregar }) {
             className={`${CAMPO} h-12 w-24 border-borde-campo text-center text-xl tabular-nums`}
           />
           <button type="button" aria-label="Media docena más" onClick={() => cambiar(cantidad + PASO_DOCENA)} className="flex size-12 items-center justify-center rounded-control border border-borde-fuerte bg-superficie hover:bg-superficie-2"><Plus size={20} strokeWidth={1.75} aria-hidden /></button>
-          <span className="text-sm text-texto-suave">= {pide} prendas</span>
         </div>
         <p className="text-xs text-texto-suave">Se vende por docena o media docena (de 0,5 en 0,5).</p>
-        {colorId && pide > disponible && (
+        {pide > disponible && (
           <p role="status" className="rounded-control bg-alerta-fondo p-2 text-sm text-alerta">
-            Hay {disponible} prendas de este color. Podés agregarlo igual, pero revisá el stock.
+            Hay {textoDocenas(disponible, { corto: false })} de este producto. Podés agregarlo igual, pero revisá el stock.
           </p>
         )}
       </section>
 
-      <Button tamano="lg" ancho deshabilitado={!colorId} onClick={() => onAgregar({ productoId: p.id, colorId, cantidad })}>
-        {colorId ? `Agregar · ${formatear(subtotal(cantidad, precio), moneda)}` : 'Elegí un color'}
+      <Button tamano="lg" ancho onClick={() => onAgregar({ productoId: p.id, colorId: p.colores[0]?.id ?? null, cantidad })}>
+        {`Agregar · ${formatear(subtotal(cantidad, precio), moneda)}`}
       </Button>
     </div>
   )

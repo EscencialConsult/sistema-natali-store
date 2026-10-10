@@ -50,12 +50,11 @@ export default function DashboardPage() {
     const umbral = cfg.datos.stock_bajo_unidades
     let agotados = 0
     let bajos = 0
+    // El stock es por producto.
     for (const p of prods.datos) {
-      for (const c of p.colores) {
-        const n = stock.datos[c.id] ?? 0
-        if (n <= 0) agotados++
-        else if (n <= umbral) bajos++
-      }
+      const n = stock.datos[p.id] ?? 0
+      if (n <= 0) agotados++
+      else if (n <= umbral) bajos++
     }
     return { agotados, bajos }
   }, [verStock, prods.datos, stock.datos, cfg.datos])
@@ -171,7 +170,7 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-control bg-error-fondo p-3">
                         <p className="font-titulo text-2xl font-semibold tabular-nums text-error">{alertas.agotados}</p>
-                        <p className="text-xs font-medium text-error">colores agotados</p>
+                        <p className="text-xs font-medium text-error">productos agotados</p>
                       </div>
                       <div className="rounded-control bg-alerta-fondo p-3">
                         <p className="font-titulo text-2xl font-semibold tabular-nums text-alerta">{alertas.bajos}</p>

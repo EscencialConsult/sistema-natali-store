@@ -29,9 +29,11 @@ const esquemaVenta = z.object({
     .array(
       z.object({
         producto_id: z.string().min(1),
-        color_id: z.string().min(1, 'Elegí un color en cada producto.'),
+        // El color es el del producto (informativo, opcional): en la venta no se elige.
+        color_id: z.string().min(1).nullable().default(null),
         cantidad: z.number().positive('La cantidad debe ser mayor a 0.').refine(esCantidadValida, 'Solo se vende por docena o media docena.'),
-        unidad: z.enum(['docena', 'unidad']).default('docena'),
+        // Nunca por unidad: solo docenas y medias docenas.
+        unidad: z.literal('docena', { message: 'Solo se vende por docena o media docena.' }).default('docena'),
         precio_cent: z.number().int().min(0),
       }),
     )
@@ -68,16 +70,21 @@ export const ventas = {
       // Se guarda una copia del nombre y color: la nota debe seguir diciendo lo mismo aunque el producto cambie después.
       const items = []
       for (const i of d.items) {
-        const [prod, color] = await Promise.all([db.productos.get(i.producto_id), db.producto_colores.get(i.color_id)])
+        const prod = await db.productos.get(i.producto_id)
         if (!prod) throw new Error('Uno de los productos ya no existe.')
-        if (!color || color.producto_id !== prod.id) throw new Error(`El color elegido no corresponde a ${prod.codigo}.`)
+        // Si no viene, se usa el color del producto (si tiene).
+        const color = i.color_id
+          ? await db.producto_colores.get(i.color_id)
+          : await db.producto_colores.where('producto_id').equals(prod.id).first()
+        if (i.color_id && color?.producto_id !== prod.id) throw new Error(`El color no corresponde a ${prod.codigo}.`)
         items.push({
           ...i,
+          color_id: color?.id ?? null,
           id: nuevoId(),
           venta_id: idVenta,
           codigo: prod.codigo,
           nombre: prod.nombre,
-          color_nombre: color.nombre,
+          color_nombre: color?.nombre ?? '',
           unidades: i.cantidad * (i.unidad === 'docena' ? porDocena : 1),
           subtotal_cent: subtotal(i.cantidad, i.precio_cent),
         })

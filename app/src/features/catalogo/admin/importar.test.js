@@ -15,7 +15,7 @@ describe('plantilla y lectura de Excel', () => {
   it('exporta todos los productos, los lee de vuelta y todos quedan como "actualizar", sin duplicar', async () => {
     const todos = await productos.listar()
     const blob = await crearPlantilla(
-      todos.map((p) => ({ codigo: p.codigo, nombre: p.nombre, categoria: 'LINO', precio: p.precio_docena_usd_cent / 100, colores: p.colores.map((c) => c.nombre).join(', ') })),
+      todos.map((p) => ({ codigo: p.codigo, nombre: p.nombre, categoria: 'LINO', precio: p.precio_docena_usd_cent / 100, color: p.colores[0]?.nombre ?? '' })),
     )
     const filas = await leerExcel(await blob.arrayBuffer())
     expect(filas).toHaveLength(CANTIDAD_PRODUCTOS)
@@ -45,12 +45,12 @@ describe('planificar', () => {
   it('detecta errores por fila y duplicados dentro del archivo', () => {
     const plan = planificar(
       aFilas([
-        { codigo: 'ZA-1', nombre: 'Uno', categoria: '', precio: '12,50', colores: 'Negro' },
-        { codigo: 'ZA-1', nombre: 'Repetido', categoria: '', precio: '5', colores: '' },
-        { codigo: '', nombre: 'Sin código', categoria: '', precio: '5', colores: '' },
-        { codigo: 'ZA-2', nombre: '', categoria: '', precio: '5', colores: '' },
-        { codigo: 'ZA-3', nombre: 'Sin precio', categoria: '', precio: '', colores: '' },
-        { codigo: 'ZA-4', nombre: 'Precio raro', categoria: '', precio: 'abc', colores: '' },
+        { codigo: 'ZA-1', nombre: 'Uno', categoria: '', precio: '12,50', color: 'Negro' },
+        { codigo: 'ZA-1', nombre: 'Repetido', categoria: '', precio: '5', color: '' },
+        { codigo: '', nombre: 'Sin código', categoria: '', precio: '5', color: '' },
+        { codigo: 'ZA-2', nombre: '', categoria: '', precio: '5', color: '' },
+        { codigo: 'ZA-3', nombre: 'Sin precio', categoria: '', precio: '', color: '' },
+        { codigo: 'ZA-4', nombre: 'Precio raro', categoria: '', precio: 'abc', color: '' },
       ]),
       new Map(),
     )
@@ -62,9 +62,9 @@ describe('planificar', () => {
   it('interpreta precios con coma, punto y miles', () => {
     const [a, b, c] = planificar(
       aFilas([
-        { codigo: 'P-1', nombre: 'a', categoria: '', precio: '1.234,50', colores: '' },
-        { codigo: 'P-2', nombre: 'b', categoria: '', precio: '1,234.50', colores: '' },
-        { codigo: 'P-3', nombre: 'c', categoria: '', precio: 'US$ 99', colores: '' },
+        { codigo: 'P-1', nombre: 'a', categoria: '', precio: '1.234,50', color: '' },
+        { codigo: 'P-2', nombre: 'b', categoria: '', precio: '1,234.50', color: '' },
+        { codigo: 'P-3', nombre: 'c', categoria: '', precio: 'US$ 99', color: '' },
       ]),
       new Map(),
     )
@@ -73,21 +73,29 @@ describe('planificar', () => {
 })
 
 describe('ejecutar', () => {
-  it('crea productos nuevos con colores y categoría nueva; luego actualiza conservando colores y fotos', async () => {
-    const plan = planificar(aFilas([{ codigo: 'IM-001', nombre: 'Importado', categoria: 'Categoría nueva', precio: '10', colores: 'Negro, Rojo, negro' }]), new Map())
+  it('crea con un color y categoría nueva; al actualizar cambia el color conservando su id; vacío lo deja igual', async () => {
+    const plan = planificar(aFilas([{ codigo: 'IM-001', nombre: 'Importado', categoria: 'Categoría nueva', precio: '10', color: 'Negro' }]), new Map())
     const r = await ejecutar(plan)
     expect(r.creados).toBe(1)
     const creado = await productos.obtenerPorCodigo('IM-001')
-    expect(creado.colores.map((c) => c.nombre)).toEqual(['Negro', 'Rojo'])
-    const idNegro = creado.colores.find((c) => c.nombre === 'Negro').id
+    expect(creado.colores.map((c) => c.nombre)).toEqual(['Negro'])
+    const idColor = creado.colores[0].id
 
-    const plan2 = planificar(aFilas([{ codigo: 'IM-001', nombre: 'Importado v2', categoria: 'Categoría nueva', precio: '11', colores: 'Rojo, Azul' }]), mapa([creado]))
+    const plan2 = planificar(aFilas([{ codigo: 'IM-001', nombre: 'Importado v2', categoria: 'Categoría nueva', precio: '11', color: 'Azul' }]), mapa([creado]))
     expect(plan2[0].accion).toBe('actualizar')
     await ejecutar(plan2)
     const actualizado = await productos.obtenerPorCodigo('IM-001')
     expect(actualizado.nombre).toBe('Importado v2')
-    expect(actualizado.colores.map((c) => c.nombre).sort()).toEqual(['Azul', 'Negro', 'Rojo'])
-    expect(actualizado.colores.find((c) => c.nombre === 'Negro').id).toBe(idNegro)
+    expect(actualizado.colores).toEqual([expect.objectContaining({ id: idColor, nombre: 'Azul' })])
+
+    await ejecutar(planificar(aFilas([{ codigo: 'IM-001', nombre: 'Importado v3', categoria: '', precio: '11', color: '' }]), mapa([actualizado])))
+    expect((await productos.obtenerPorCodigo('IM-001')).colores.map((c) => c.nombre)).toEqual(['Azul'])
+  })
+
+  it('rechaza varios colores en una fila', () => {
+    const [p] = planificar(aFilas([{ codigo: 'IM-002', nombre: 'X', categoria: '', precio: '1', color: 'Negro, Rojo' }]), new Map())
+    expect(p.accion).toBe('error')
+    expect(p.errores.join(' ')).toMatch(/solo color/)
   })
 })
 

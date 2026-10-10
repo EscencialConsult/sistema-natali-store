@@ -11,7 +11,7 @@ import GrillaProductos from './GrillaProductos.jsx'
 import ProductoFicha from './ProductoFicha.jsx'
 import { useRecientes } from './useRecientes.js'
 
-// Pantalla principal del vendedor: escribe un código y ve foto + colores al instante.
+// Pantalla principal del vendedor: escribe un código y ve foto, color y stock al instante.
 export default function BuscadorPage() {
   const { usuario } = useAuth()
   const [texto, setTexto] = useState('')
@@ -33,7 +33,7 @@ export default function BuscadorPage() {
     <div className="flex flex-col gap-6">
       <Encabezado
         titulo="Catálogo"
-        descripcion="Escribí el código del modelo para ver fotos, colores y stock al instante."
+        descripcion="Escribí el código del modelo para ver fotos, color y stock al instante."
         acciones={puede(usuario.rol, 'catalogo.editar') && (
           <Link to="/catalogo/admin">
             <Button variante="secundario" icono={Settings2}>Administrar</Button>

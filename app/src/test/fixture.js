@@ -7,6 +7,7 @@ const NOMBRES = [
   'Blazer Clásico', 'Blazer Cropped', 'Blazer Oversize', 'Blusa Básica Rib', 'Blusa Asimétrica', 'Blusa de Lino',
   'Blusa Satín', 'Blusa Peplum', 'Pantalón Palazzo', 'Pantalón Recto', 'Pantalón Cargo', 'Pantalón de Lino',
 ]
+// Un color por producto (informativo); el stock es del producto. Algunos sin color.
 const COLORES = [['Negro', '#1d1e20'], ['Rojo', '#b42318'], ['Beige', '#d9c3a5']]
 
 export const PERFILES_PRUEBA = [
@@ -54,11 +55,13 @@ export async function cargarFixture() {
         creado_en: ahora,
       })
       await db.producto_fotos.add({ id: `foto-${n}`, producto_id: id, orden: 0, ruta: `/fotos-prueba/mn-${n}.jpg` })
-      for (const [k, [color, hex]] of COLORES.entries()) {
-        const colorId = `color-${n}-${k}`
-        await db.producto_colores.add({ id: colorId, producto_id: id, nombre: color, hex, orden: k })
-        await db.movimientos_stock.add({ id: `mov-${n}-${k}`, producto_id: id, color_id: colorId, tipo: 'entrada', delta: 60, motivo: 'Stock de prueba', usuario_id: null, venta_id: null, creado_en: ahora })
+      // Cada 4.º producto, sin color.
+      const colorId = i % 4 === 3 ? null : `color-${n}`
+      if (colorId) {
+        const [color, hex] = COLORES[i % COLORES.length]
+        await db.producto_colores.add({ id: colorId, producto_id: id, nombre: color, hex, orden: 0 })
       }
+      await db.movimientos_stock.add({ id: `mov-${n}`, producto_id: id, color_id: colorId, tipo: 'entrada', delta: 180, motivo: 'Stock de prueba', usuario_id: null, venta_id: null, creado_en: ahora })
     }
   })
 }

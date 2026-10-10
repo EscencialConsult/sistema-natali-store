@@ -2,9 +2,8 @@
 import { subtotal } from '../../lib/docenas.js'
 import { convertirDesdeUsd } from '../../lib/moneda.js'
 
-export { CANTIDAD_MAXIMA, esCantidadValida, normalizarCantidad, PASO_DOCENA, subtotal, textoCantidad } from '../../lib/docenas.js'
-
-export const UNIDADES_POR_DOCENA = 12
+export { CANTIDAD_MAXIMA, esCantidadValida, normalizarCantidad, PASO_DOCENA, subtotal, textoCantidad, textoDocenas, UNIDADES_POR_DOCENA } from '../../lib/docenas.js'
+import { UNIDADES_POR_DOCENA } from '../../lib/docenas.js'
 
 // Tipo de cambio que se guarda en la venta: 1 para USD, o cuántas unidades de esa moneda vale 1 USD.
 export function tipoCambioDe(moneda, tc) {
@@ -25,14 +24,14 @@ export function totalDeLineas(lineas) {
   return lineas.reduce((t, l) => t + subtotal(l.cantidad, l.precioCent), 0)
 }
 
-// Suma una línea; si ya existe el mismo producto y color, junta las cantidades.
+// Suma una línea; si ya está el mismo producto, junta las cantidades.
 export function agregarLinea(lineas, nueva) {
-  const i = lineas.findIndex((l) => l.productoId === nueva.productoId && l.colorId === nueva.colorId)
+  const i = lineas.findIndex((l) => l.productoId === nueva.productoId)
   if (i === -1) return [...lineas, nueva]
   return lineas.map((l, k) => (k === i ? { ...l, cantidad: l.cantidad + nueva.cantidad } : l))
 }
 
-// Líneas que piden más unidades que las que hay en el color.
-export function lineasSinStock(lineas, stockPorColor) {
-  return lineas.filter((l) => l.cantidad * UNIDADES_POR_DOCENA > (stockPorColor[l.colorId] ?? 0))
+// Líneas que piden más de lo que hay del producto (stockPorProducto: { producto_id: prendas }).
+export function lineasSinStock(lineas, stockPorProducto) {
+  return lineas.filter((l) => l.cantidad * UNIDADES_POR_DOCENA > (stockPorProducto[l.productoId] ?? 0))
 }

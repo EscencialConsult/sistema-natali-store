@@ -33,7 +33,7 @@ export function libroComisiones(ventas, nombres, filtrosTexto = []) {
         columnas: [
           { titulo: 'Vendedor/a', clave: 'vendedor', ancho: 22 },
           { titulo: 'Ventas', clave: 'ventas', tipo: 'entero', ancho: 9 },
-          { titulo: 'Docenas', clave: 'docenas', tipo: 'decimal', ancho: 10 },
+          { titulo: 'Docenas', clave: 'docenas', tipo: 'docenas', ancho: 10 },
           { titulo: 'Comisión (USD)', clave: 'comision', tipo: 'dinero', ancho: 15, tono: () => 'exito' },
           ...MONEDAS.map((m) => ({ titulo: `Vendido en ${META_MONEDA[m].nombre}`, clave: `vendido_${m}`, tipo: 'dinero', ancho: 20 })),
         ],
@@ -46,7 +46,7 @@ export function libroComisiones(ventas, nombres, filtrosTexto = []) {
           { titulo: 'Nota', clave: 'numero', ancho: 14 },
           { titulo: 'Vendedor/a', clave: 'vendedor', ancho: 22 },
           { titulo: 'Cliente', clave: 'cliente', ancho: 22 },
-          { titulo: 'Docenas', clave: 'docenas', tipo: 'decimal', ancho: 10 },
+          { titulo: 'Docenas', clave: 'docenas', tipo: 'docenas', ancho: 10 },
           { titulo: 'Comisión (USD)', clave: 'comision', tipo: 'dinero', ancho: 15 },
           { titulo: 'Moneda', clave: 'moneda', ancho: 9 },
           { titulo: 'Total de la nota', clave: 'total', tipo: 'dinero', ancho: 16 },

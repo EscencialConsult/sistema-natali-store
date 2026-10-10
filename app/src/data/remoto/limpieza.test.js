@@ -22,7 +22,7 @@ const dispositivoNuevo = async () => {
   await db.delete()
   await db.open()
 }
-const stockServidor = async (color) => (await q('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where color_id = $1', [color]))[0].s
+const stockServidor = async (producto) => (await q('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where producto_id = $1', [producto]))[0].s
 const vender = (prod, docenas = 1) => ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: prod.id, color_id: prod.color, cantidad: docenas, unidad: 'docena', precio_cent: 1000 }] })
 
 beforeAll(async () => {
@@ -127,20 +127,20 @@ describe('liberar espacio por fecha (superadmin)', () => {
     await bajar(U.ariel)
     await vender(C, 2)
     await enviar(U.ariel)
-    const stockAntes = await stockServidor(C.color)
+    const stockAntes = await stockServidor(C.id)
     const numeroAlto = (await q("select max(numero) as n from naty_ventas where numero like 'NV-AM-%'"))[0].n
 
     expect((await rpc(SUPER, 'naty_previsualizar_limpieza', { antes_de: MANANA })).data.ventas).toBeGreaterThan(0)
     const r = await rpc(SUPER, 'naty_borrar_ventas', { antes_de: MANANA })
     expect(r.data).toBeGreaterThan(0)
     expect(await q('select count(*)::int as c from naty_ventas')).toEqual([{ c: 0 }])
-    expect(await stockServidor(C.color)).toBe(stockAntes)
+    expect(await stockServidor(C.id)).toBe(stockAntes)
     expect((await q("select valor from naty_config where clave = 'numeros_borrados'"))[0].valor['NV-AM-']).toBe(Number(numeroAlto.slice(6)))
 
     await bajar(U.ariel)
     expect(await db.ventas.count()).toBe(0)
     expect(await db.venta_items.count()).toBe(0)
-    expect(await stock.stockActual(C.id, C.color)).toBe(stockAntes)
+    expect(await stock.stockDe(C.id)).toBe(stockAntes)
 
     // Un celular nuevo no vuelve a usar números ya usados.
     await dispositivoNuevo()
@@ -150,16 +150,16 @@ describe('liberar espacio por fecha (superadmin)', () => {
     await enviar(U.ariel)
   })
 
-  it('resumir el historial de stock: queda un saldo por color, el stock es el mismo en el servidor y en el celular', async () => {
+  it('resumir el historial de stock: queda un saldo por producto, el stock es el mismo en el servidor y en el celular', async () => {
     await dispositivoNuevo()
     await bajar(U.maria)
-    const antes = await stockServidor(C.color)
+    const antes = await stockServidor(C.id)
     const r = await rpc(SUPER, 'naty_resumir_movimientos', { antes_de: MANANA })
     expect(r.data).toBeGreaterThan(1)
-    expect(await q('select tipo, delta from naty_movimientos_stock where color_id = $1', [C.color])).toEqual([{ tipo: 'saldo', delta: antes }])
+    expect(await q('select tipo, delta, color_id from naty_movimientos_stock where producto_id = $1', [C.id])).toEqual([{ tipo: 'saldo', delta: antes, color_id: C.color }])
 
     await bajar(U.maria)
-    expect(await stock.stockActual(C.id, C.color)).toBe(antes)
+    expect(await stock.stockDe(C.id)).toBe(antes)
     expect(await db.movimientos_stock.count()).toBe((await q('select count(*)::int as c from naty_movimientos_stock'))[0].c)
   })
 

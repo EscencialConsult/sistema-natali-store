@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { ReceiptText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, ErrorState, Skeleton } from '../../components/ui/index.js'
-import { useConfig, useProducto, useStockPorColor } from '../../data/hooks.js'
+import { useConfig, useProducto, useStockDe } from '../../data/hooks.js'
 import { cn } from '../../lib/cn.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
-import ColoresChips from './ColoresChips.jsx'
+import ColorStock from './ColorStock.jsx'
 import Galeria from './Galeria.jsx'
 import Precio from './Precio.jsx'
 
@@ -15,7 +15,7 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const prod = useProducto(productoId)
-  const stock = useStockPorColor(productoId)
+  const stock = useStockDe(productoId)
   const cfg = useConfig()
   const [verMas, setVerMas] = useState(false)
 
@@ -35,7 +35,7 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
   const mostrarPrecio = !publico || cfg.datos?.mostrar_precios_publico
   const puedeVender = !publico && puede(usuario?.rol, 'venta.crear')
   const umbral = cfg.datos?.stock_bajo_unidades ?? 24
-  const sinStock = !publico && p.colores.length > 0 && p.colores.every((c) => (stock.datos?.[c.id] ?? 0) <= 0)
+  const sinStock = !publico && stock.datos !== undefined && stock.datos <= 0
 
   return (
     <article className={cn('grid gap-5', compacta ? 'sm:grid-cols-[minmax(0,14rem)_1fr]' : 'md:grid-cols-2')}>
@@ -51,9 +51,9 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
           {mostrarPrecio && <Precio usdCent={p.precio_docena_usd_cent} equivalentes={!publico} className="text-lg" />}
         </header>
 
-        <section aria-label="Colores disponibles" className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-texto-suave">Colores</h3>
-          <ColoresChips colores={p.colores} stock={publico ? null : (stock.datos ?? {})} umbral={umbral} />
+        <section aria-label={publico ? 'Color' : 'Color y stock'} className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-texto-suave">{publico ? 'Color' : 'Color y stock'}</h3>
+          <ColorStock colores={p.colores} stock={publico ? null : (stock.datos ?? 0)} umbral={umbral} />
         </section>
 
         {p.descripcion && (

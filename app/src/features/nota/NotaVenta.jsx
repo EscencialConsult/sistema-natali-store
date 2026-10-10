@@ -18,7 +18,6 @@ export default function NotaVenta({ venta, cfg, equipo }) {
   const nombre = cfg.negocio?.nombre ?? 'Modas Naty'
   const url = cfg.url_catalogo
   const docenas = venta.items.reduce((t, i) => t + (i.unidad === 'docena' ? i.cantidad : 0), 0)
-  const prendas = venta.items.reduce((t, i) => t + i.unidades, 0)
 
   return (
     <div className={venta.estado === 'anulada' ? 'nota nota--anulada' : 'nota'}>
@@ -84,7 +83,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                         {i.nombre}
                         <span className="color">{i.color_nombre}</span>
                       </td>
-                      <td className="num">{textoCantidad(i.cantidad)}{i.unidad === 'unidad' ? ' u.' : ''}</td>
+                      <td className="num">{textoCantidad(i.cantidad)}</td>
                       <td className="num">{formatear(i.precio_cent, venta.moneda)}</td>
                       <td className="num">{formatear(i.subtotal_cent, venta.moneda)}</td>
                     </tr>
@@ -95,7 +94,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
               <div className="nota-total">
                 <div>
                   <span>TOTAL</span>
-                  <small>{textoCantidad(docenas)} {docenas === 1 ? 'docena' : 'docenas'} · {prendas} prendas</small>
+                  <small>{textoCantidad(docenas)} {docenas === 1 ? 'docena' : 'docenas'}</small>
                 </div>
                 <strong>{formatear(venta.total_cent, venta.moneda)}</strong>
               </div>

@@ -11,7 +11,7 @@ function PasoExcel() {
   return (
     <section aria-labelledby="p1" className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie shadow-tarjeta p-4">
       <h2 id="p1" className="text-lg">1. Productos desde Excel</h2>
-      <p className="text-sm text-texto-suave">Columnas: código, nombre, categoría, precio por docena en US$ y colores separados por coma. Si el código ya existe se actualiza (los colores existentes se conservan); si no, se crea.</p>
+      <p className="text-sm text-texto-suave">Columnas: código, nombre, categoría, precio por docena en US$ y color (uno solo, opcional). Si el código ya existe se actualiza; si no, se crea.</p>
       <ImportarProductosExcel />
     </section>
   )
@@ -33,7 +33,7 @@ function PasoFotos() {
         const fotos = []
         for (const { archivo } of g.archivos) fotos.push({ ruta: '', blob: await comprimirImagen(archivo) })
         const p = await productos.obtener(g.producto.id)
-        await productos.actualizar(p.id, { ...p, fotos, colores: p.colores.map(({ id, nombre, hex }) => ({ id, nombre, hex })) })
+        await productos.actualizar(p.id, { ...p, fotos, colores: p.colores.slice(0, 1).map(({ id, nombre, hex }) => ({ id, nombre, hex })) })
         out.productos++
         out.fotos += fotos.length
       } catch (e) {

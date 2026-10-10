@@ -102,11 +102,13 @@ beforeAll(async () => {
     q('select naty_guardar_producto($1::jsonb)', [
       JSON.stringify({
         id: PROD, codigo: 'MN-001', nombre: 'Blusa', categoria: { id: CAT, nombre: 'BLUSAS', orden: 1 }, descripcion: 'x', precio_docena_usd_cent: 10000, nuevo: true, activo: true,
-        colores: [{ id: ROJO, nombre: 'Rojo', hex: '#c00', orden: 0 }, { id: AZUL, nombre: 'Azul', hex: '#00c', orden: 1 }],
+        colores: [{ id: ROJO, nombre: 'Rojo', hex: '#c00', orden: 0 }],
         fotos: [{ id: uuid(), orden: 0, ruta: 'MN-001/a.jpg' }, { id: uuid(), orden: 1, ruta: 'MN-001/b.jpg' }],
       }),
     ]),
   )
+  // Un segundo color "de antes" (cuando un producto podía tener varios): datos viejos que la app nueva tiene que tolerar.
+  await q("insert into naty_producto_colores (id, producto_id, nombre, hex, orden) values ($1, $2, 'Azul', '#00c', 1)", [AZUL, PROD])
   await como(U.maria, async () => {
     for (const color of [ROJO, AZUL]) {
       await q("insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, creado_en) values ($1, $2, $3, 'entrada', 100, 'inicial', $4, now())", [uuid(), PROD, color, U.maria])
@@ -183,12 +185,17 @@ describe('catálogo', () => {
     await expect(como(U.ariel, () => q('select naty_guardar_producto($1::jsonb)', [p]))).rejects.toThrow(/no puede modificar el catálogo/)
   })
 
-  it('quitar un color lo marca eliminado (no lo borra) y las fotos se reemplazan', async () => {
+  it('un producto tiene un solo color', async () => {
+    const p = JSON.stringify({ id: uuid(), codigo: 'MN-051', nombre: 'Top', categoria: null, precio_docena_usd_cent: 3000, colores: [{ id: uuid(), nombre: 'Verde' }, { id: uuid(), nombre: 'Rojo' }], fotos: [] })
+    await expect(como(U.admin, () => q('select naty_guardar_producto($1::jsonb)', [p]))).rejects.toThrow(/un solo color/)
+  })
+
+  it('cambiar el color marca el anterior eliminado (no lo borra) y las fotos se reemplazan', async () => {
     const prod = uuid()
     const verde = uuid()
     const amarillo = uuid()
     const base = { id: prod, codigo: 'MN-050', nombre: 'Short', categoria: null, precio_docena_usd_cent: 3000 }
-    await como(U.admin, () => q('select naty_guardar_producto($1::jsonb)', [JSON.stringify({ ...base, colores: [{ id: verde, nombre: 'Verde' }, { id: amarillo, nombre: 'Amarillo' }], fotos: [{ id: uuid(), orden: 0, ruta: 'a.jpg' }, { id: uuid(), orden: 1, ruta: 'b.jpg' }] })]))
+    await como(U.admin, () => q('select naty_guardar_producto($1::jsonb)', [JSON.stringify({ ...base, colores: [{ id: amarillo, nombre: 'Amarillo' }], fotos: [{ id: uuid(), orden: 0, ruta: 'a.jpg' }, { id: uuid(), orden: 1, ruta: 'b.jpg' }] })]))
     await como(U.admin, () => q('select naty_guardar_producto($1::jsonb)', [JSON.stringify({ ...base, colores: [{ id: verde, nombre: 'Verde' }], fotos: [{ id: uuid(), orden: 0, ruta: 'c.jpg' }] })]))
     const colores = await q('select nombre, eliminado from naty_producto_colores where producto_id = $1 order by nombre', [prod])
     expect(colores).toEqual([{ nombre: 'Amarillo', eliminado: true }, { nombre: 'Verde', eliminado: false }])
@@ -332,7 +339,7 @@ describe('catálogo público (sin login)', () => {
     expect(await precio()).toBeNull()
     await como(U.admin, () => q("update naty_config set valor = 'true' where clave = 'mostrar_precios_publico'"))
     expect(await precio()).toBe(10000)
-    const p = JSON.stringify({ id: PROD, codigo: 'MN-001', nombre: 'Blusa', categoria: null, precio_docena_usd_cent: 10000, activo: false, colores: [{ id: ROJO, nombre: 'Rojo' }, { id: AZUL, nombre: 'Azul' }], fotos: [] })
+    const p = JSON.stringify({ id: PROD, codigo: 'MN-001', nombre: 'Blusa', categoria: null, precio_docena_usd_cent: 10000, activo: false, colores: [{ id: ROJO, nombre: 'Rojo' }], fotos: [] })
     await como(U.admin, () => q('select naty_guardar_producto($1::jsonb)', [p]))
     expect(await como(null, () => q("select 1 from naty_catalogo_publico where codigo = 'MN-001'"))).toHaveLength(0)
   })
@@ -346,5 +353,33 @@ describe('storage de fotos', () => {
     await expect(subir(U.ariel)).rejects.toThrow(/row-level security/)
     expect(await como(null, () => q("select name from storage.objects where bucket_id = 'naty_productos'"))).toHaveLength(2)
     await expect(como(U.ariel, () => q("delete from storage.objects where bucket_id = 'naty_productos' returning name"))).resolves.toHaveLength(0)
+  })
+})
+
+describe('stock por producto y un solo color (corrección de datos al aplicar el esquema)', () => {
+  it('una venta sin color descuenta stock del producto', async () => {
+    const v = venta({ numero: 'NV-AM-0900' })
+    v.items = [{ id: uuid(), producto_id: PROD, color_id: null, codigo: 'MN-001', nombre: 'Blusa', color_nombre: '', cantidad: 1, unidad: 'docena', unidades: 12, precio_cent: 100, subtotal_cent: 100 }]
+    v.movimientos = [{ id: uuid(), producto_id: PROD, color_id: null, delta: -12, motivo: v.numero, creado_en: v.creada_en }]
+    v.total_cent = 100
+    await registrar(U.ariel, v)
+    expect(await q('select color_id, delta from naty_movimientos_stock where venta_id = $1', [v.id])).toEqual([{ color_id: null, delta: -12 }])
+  })
+
+  it('deja el primer color y redondea el stock a la media docena más cercana; correrlo de nuevo no cambia nada', async () => {
+    const prod = uuid()
+    const [c1, c2] = [uuid(), uuid()]
+    await q("insert into naty_productos (id, codigo, nombre, precio_docena_usd_cent) values ($1, 'MN-090', 'Viejo', 1000)", [prod])
+    await q("insert into naty_producto_colores (id, producto_id, nombre, orden) values ($1, $3, 'Negro', 0), ($2, $3, 'Rojo', 1)", [c1, c2, prod])
+    // 64 + 30 = 94 prendas = 7,83 docenas → 8 docenas (96).
+    await q("insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, creado_en) values (gen_random_uuid(), $1, $2, 'entrada', 64, now()), (gen_random_uuid(), $1, $3, 'entrada', 30, now())", [prod, c1, c2])
+    await db.exec(esquema)
+    expect(await q('select nombre from naty_producto_colores where producto_id = $1 and not eliminado', [prod])).toEqual([{ nombre: 'Negro' }])
+    const total = async () => (await q('select sum(delta)::int as s from naty_movimientos_stock where producto_id = $1', [prod]))[0].s
+    expect(await total()).toBe(96)
+    expect(await q("select delta, motivo from naty_movimientos_stock where producto_id = $1 and tipo = 'ajuste'", [prod])).toEqual([{ delta: 2, motivo: 'Redondeo a media docena' }])
+    await db.exec(esquema)
+    expect(await total()).toBe(96)
+    expect((await q('select count(*)::int as n from naty_movimientos_stock where producto_id = $1', [prod]))[0].n).toBe(3)
   })
 })

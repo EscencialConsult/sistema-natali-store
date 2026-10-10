@@ -35,7 +35,7 @@ describe.skipIf(!hay)('integración con Supabase real', () => {
   }
   const enviar = (sb) => procesar({ enviar: (item) => enviarRemoto(sb, item) })
   const filas = async (sql, params) => (await pgc.query(sql, params)).rows
-  const stockServidor = async (color) => (await filas('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where color_id = $1', [color]))[0].s
+  const stockServidor = async (producto) => (await filas('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where producto_id = $1', [producto]))[0].s
 
   beforeAll(async () => {
     pgc = new pg.Client({ connectionString: E.NATY_DATABASE_URL, ssl: { rejectUnauthorized: false } })
@@ -68,7 +68,7 @@ describe.skipIf(!hay)('integración con Supabase real', () => {
     expect(r.productos).toBeGreaterThanOrEqual(138)
     expect((await productos.listar()).length).toBeGreaterThanOrEqual(138)
     const [p] = await productos.buscarPorCodigo('MN-005')
-    expect(p.colores.length).toBeGreaterThanOrEqual(3)
+    expect(p.colores.length).toBeLessThanOrEqual(1)
     expect(p.fotos[0].ruta).toContain('/storage/v1/object/public/naty_productos/')
     expect((await fetch(p.fotos[0].ruta, { method: 'HEAD' })).status).toBe(200)
     expect(Object.keys(await stock.resumen()).length).toBeGreaterThan(300)
@@ -77,17 +77,15 @@ describe.skipIf(!hay)('integración con Supabase real', () => {
   it('una venta hecha en el dispositivo llega al servidor real, descuenta stock y es idempotente', async () => {
     const sb = await entrar('ariel')
     const [p] = await productos.buscarPorCodigo('MN-005')
-    const colores = await stock.stockPorColor(p.id)
-    const color = p.colores.find((c) => (colores[c.id] ?? 0) >= 24)
-    const antes = await stockServidor(color.id)
+    const antes = await stockServidor(p.id)
     const { data: perfil } = await sb.from('naty_perfiles').select('*').eq('iniciales', 'AM').single()
-    const venta = await ventas.crear({ vendedor_id: perfil.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', cliente_nombre: 'PRUEBA INTEGRACIÓN', items: [{ producto_id: p.id, color_id: color.id, cantidad: 2, unidad: 'docena', precio_cent: p.precio_docena_usd_cent }] })
+    const venta = await ventas.crear({ vendedor_id: perfil.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', cliente_nombre: 'PRUEBA INTEGRACIÓN', items: [{ producto_id: p.id, cantidad: 2, unidad: 'docena', precio_cent: p.precio_docena_usd_cent }] })
     ventasCreadas.push(venta.id)
     expect(await enviar(sb)).toEqual({ enviadas: 1, errores: 0 })
-    expect(await stockServidor(color.id)).toBe(antes - 24)
+    expect(await stockServidor(p.id)).toBe(antes - 24)
     const item = { entidad: 'venta', operacion: 'crear', entidad_id: venta.id, payload: { venta, items: venta.items, movimientos: await db.movimientos_stock.where('venta_id').equals(venta.id).toArray() } }
     await enviarRemoto(sb, item)
-    expect(await stockServidor(color.id)).toBe(antes - 24)
+    expect(await stockServidor(p.id)).toBe(antes - 24)
     expect((await filas('select count(*)::int as c from naty_ventas where id = $1', [venta.id]))[0].c).toBe(1)
   }, 120_000)
 

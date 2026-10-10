@@ -3,16 +3,16 @@ import { Minus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { CAMPO } from '../../components/ui/index.js'
 import { aCentavos, formatear } from '../../lib/moneda.js'
 import Foto from '../catalogo/Foto.jsx'
-import { PASO_DOCENA, subtotal, textoCantidad, UNIDADES_POR_DOCENA } from './calculos.js'
+import { PASO_DOCENA, subtotal, textoCantidad, textoDocenas, UNIDADES_POR_DOCENA } from './calculos.js'
 
 const aTexto = (cent) => (cent / 100).toFixed(2).replace('.', ',')
 
 // Una línea de la venta: producto, color, docenas y precio. El precio solo se edita con permiso.
-export default function LineaVenta({ linea, producto, precioCent, moneda, stockColor, puedeEditarPrecio, onCantidad, onPrecio, onQuitar }) {
+export default function LineaVenta({ linea, producto, precioCent, moneda, stockProducto, puedeEditarPrecio, onCantidad, onPrecio, onQuitar }) {
   const [editando, setEditando] = useState(false)
   const [texto, setTexto] = useState('')
-  const color = producto?.colores.find((c) => c.id === linea.colorId)
-  const sinStock = linea.cantidad * UNIDADES_POR_DOCENA > stockColor
+  const color = producto?.colores.find((c) => c.id === linea.colorId) ?? producto?.colores[0]
+  const sinStock = linea.cantidad * UNIDADES_POR_DOCENA > stockProducto
 
   const confirmarPrecio = () => {
     const n = Number(texto.replace(',', '.'))
@@ -29,8 +29,8 @@ export default function LineaVenta({ linea, producto, precioCent, moneda, stockC
           <p className="text-xs font-semibold tabular-nums text-tinta">{producto.codigo}</p>
           <p className="truncate text-base font-medium">{producto.nombre}</p>
           <p className="flex items-center gap-1.5 text-sm text-texto-suave">
-            <span aria-hidden className="size-3.5 rounded-full border border-borde-fuerte" style={{ background: color?.hex }} />
-            {color?.nombre ?? 'Color'}
+            {color && <span aria-hidden className="size-3.5 rounded-full border border-borde-fuerte" style={{ background: color.hex }} />}
+            {color?.nombre ?? 'Sin color'}
           </p>
         </div>
         <button type="button" aria-label={`Quitar ${producto.codigo}`} onClick={onQuitar} className="-mr-1 -mt-1 flex size-11 shrink-0 items-center justify-center rounded-full text-texto-tenue hover:bg-error-fondo hover:text-error">
@@ -52,7 +52,7 @@ export default function LineaVenta({ linea, producto, precioCent, moneda, stockC
         </div>
       </div>
 
-      {sinStock && <p role="status" className="rounded-control bg-alerta-fondo p-2 text-sm text-alerta">Stock disponible: {stockColor} prendas. Se vende igual si confirmás.</p>}
+      {sinStock && <p role="status" className="rounded-control bg-alerta-fondo p-2 text-sm text-alerta">Stock disponible: {textoDocenas(stockProducto, { corto: false })}. Se vende igual si confirmás.</p>}
 
       {puedeEditarPrecio && (
         editando ? (

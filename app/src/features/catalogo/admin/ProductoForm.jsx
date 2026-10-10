@@ -3,10 +3,11 @@ import { Plus, Power, RotateCcw, Tag, Trash2 } from 'lucide-react'
 import { Button, CAMPO, Input, Modal, Select, TARJETA, useToast } from '../../../components/ui/index.js'
 import { categorias, esquemaProducto, productos, stock } from '../../../data/repos/index.js'
 import { cn } from '../../../lib/cn.js'
+import { aPrendas, leerDocenas } from '../../../lib/docenas.js'
 import { aCentavos } from '../../../lib/moneda.js'
 import { puede } from '../../../lib/permisos.js'
 import { useAuth } from '../../auth/AuthContext.js'
-import ColoresEditor from './ColoresEditor.jsx'
+import ColorEditor from './ColorEditor.jsx'
 import { ConfirmarEliminarProducto } from './EliminarProducto.jsx'
 import FotosEditor from './FotosEditor.jsx'
 
@@ -59,7 +60,9 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
     activo: producto?.activo ?? true,
     nuevo: producto?.nuevo ?? false,
     fotos: (producto?.fotos ?? []).map((x) => ({ key: x.id, ruta: x.ruta, blob: x.blob })),
-    colores: (producto?.colores ?? []).map((c) => ({ id: c.id, nombre: c.nombre, hex: c.hex, existente: true, stock_inicial: '' })),
+    // Un solo color (opcional). El stock es del producto: el inicial se pide solo al crearlo.
+    color: producto?.colores?.[0] ? { id: producto.colores[0].id, nombre: producto.colores[0].nombre, hex: producto.colores[0].hex } : null,
+    stock_inicial: '',
   }))
   const [cats, setCats] = useState(listaCategorias)
   const [errores, setErrores] = useState({})
@@ -100,14 +103,19 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
       activo: f.activo,
       nuevo: f.nuevo,
       fotos: f.fotos.map(({ ruta, blob }) => ({ ruta, blob })),
-      colores: f.colores.map(({ id, nombre, hex }) => ({ id, nombre, hex })),
+      colores: f.color ? [{ id: f.color.id, nombre: f.color.nombre, hex: f.color.hex }] : [],
     }
     const nuevosErrores = {}
     if (precio.error) nuevosErrores.precio = precio.error
     const parsed = esquemaProducto.safeParse(datos)
     if (!parsed.success) for (const i of parsed.error.issues) nuevosErrores[i.path[0] === 'precio_docena_usd_cent' ? 'precio' : i.path[0]] ??= i.message
-    const nombres = datos.colores.map((c) => c.nombre.trim().toLowerCase())
-    if (new Set(nombres).size !== nombres.length) nuevosErrores.colores = 'Hay colores repetidos.'
+    // Stock inicial (solo al crear): en docenas o medias docenas; vacío = sin stock.
+    let inicial = 0
+    if (esNuevo && f.stock_inicial.trim() !== '') {
+      const leida = leerDocenas(f.stock_inicial, { permitirCero: true })
+      if (leida.error) nuevosErrores.stock_inicial = leida.error
+      else inicial = aPrendas(leida.docenas)
+    }
     setErrores(nuevosErrores)
     if (Object.keys(nuevosErrores).length) {
       // Lleva al primer campo con error: el formulario es largo.
@@ -118,9 +126,7 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
     setGuardando(true)
     try {
       const guardado = esNuevo ? await productos.crear(datos) : await productos.actualizar(producto.id, datos)
-      for (const c of f.colores.filter((x) => !x.existente && Number(x.stock_inicial) > 0)) {
-        await stock.registrarMovimiento({ producto_id: guardado.id, color_id: c.id, tipo: 'entrada', delta: Number(c.stock_inicial), motivo: 'Stock inicial', usuario_id: usuario.id })
-      }
+      if (inicial > 0) await stock.registrarMovimiento({ producto_id: guardado.id, color_id: datos.colores[0]?.id ?? null, tipo: 'entrada', delta: inicial, motivo: 'Stock inicial', usuario_id: usuario.id })
       avisar(esNuevo ? 'Producto creado' : 'Cambios guardados', 'exito')
       onListo()
     } catch (err) {
@@ -185,8 +191,14 @@ export default function ProductoForm({ producto, listaCategorias, onListo, enMod
             </div>
           </Seccion>
 
-          <Seccion titulo="Colores" descripcion={esNuevo ? 'Agregá cada color con su stock inicial en prendas.' : 'El stock de los colores existentes se mueve desde Inventario.'}>
-            <ColoresEditor colores={f.colores} onChange={set('colores')} error={errores.colores} />
+          <Seccion titulo="Color" descripcion="Un solo color, opcional. Es informativo: el stock es del producto.">
+            <ColorEditor color={f.color} onChange={set('color')} error={errores.colores} />
+          </Seccion>
+
+          <Seccion titulo="Stock" descripcion={esNuevo ? 'Stock inicial del producto, en docenas o medias docenas (opcional).' : 'El stock se mueve desde Inventario (queda el historial).'}>
+            {esNuevo && (
+              <Input etiqueta="Stock inicial (docenas)" inputMode="decimal" value={f.stock_inicial} onChange={(e) => set('stock_inicial')(e.target.value.replace(/[^\d.,]/g, ''))} error={errores.stock_inicial} placeholder="Ej. 10 o 2,5" />
+            )}
           </Seccion>
         </div>
       </div>

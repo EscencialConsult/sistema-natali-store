@@ -31,5 +31,5 @@ export const useVentasConItems = (filtros) => useConsulta(() => ventas.listarCon
 export const useVenta = (id) => useConsulta(() => (id ? ventas.obtener(id) : undefined), [id])
 export const usePerfiles = (opciones) => useConsulta(() => perfiles.listar(opciones), [JSON.stringify(opciones ?? {})])
 export const useConfig = () => useConsulta(() => config.todo(), [])
-export const useStockPorColor = (producto_id) => useConsulta(() => stock.stockPorColor(producto_id), [producto_id])
+export const useStockDe = (producto_id) => useConsulta(() => stock.stockDe(producto_id), [producto_id])
 export const useStockResumen = () => useConsulta(() => stock.resumen(), [])

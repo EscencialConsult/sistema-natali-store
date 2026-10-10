@@ -4,6 +4,7 @@ import { Button, Encabezado, ErrorState, Input, Skeleton, useToast } from '../..
 import { useConfig, usePerfiles } from '../../data/hooks.js'
 import { config, perfiles } from '../../data/repos/index.js'
 import { urlDeImagen } from '../../lib/blobUrl.js'
+import { aDocenas, aPrendas, leerDocenas, textoCantidad } from '../../lib/docenas.js'
 import { fechaLarga } from '../../lib/fechas.js'
 import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
@@ -157,18 +158,19 @@ function Catalogo({ cfg, soloLectura }) {
 }
 
 function Inventario({ cfg, soloLectura }) {
-  const [umbral, setUmbral] = useState(String(cfg.stock_bajo_unidades ?? 24))
+  // Se escribe en docenas; se guarda en prendas (stock_bajo_unidades), como el resto del stock.
+  const [umbral, setUmbral] = useState(textoCantidad(aDocenas(cfg.stock_bajo_unidades ?? 24)))
   return (
     <Seccion
       titulo="Inventario"
       soloLectura={soloLectura}
       onGuardar={async () => {
-        const n = Number(umbral)
-        if (!Number.isInteger(n) || n < 0) throw new Error('El umbral de stock bajo debe ser un número entero, 0 o más.')
-        await config.guardar('stock_bajo_unidades', n)
+        const leida = leerDocenas(umbral, { permitirCero: true })
+        if (leida.error) throw new Error(`Umbral de stock bajo: ${leida.error}`)
+        await config.guardar('stock_bajo_unidades', aPrendas(leida.docenas))
       }}
     >
-      <Input etiqueta="Avisar “stock bajo” cuando queden (unidades) o menos" inputMode="numeric" value={umbral} onChange={(e) => setUmbral(soloDigitos(e.target.value))} />
+      <Input etiqueta="Avisar “stock bajo” cuando queden (docenas) o menos" inputMode="decimal" value={umbral} onChange={(e) => setUmbral(e.target.value.replace(/[^\d.,]/g, ''))} ayuda="Docenas o medias docenas (ej. 2 o 1,5)." />
     </Seccion>
   )
 }

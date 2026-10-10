@@ -17,9 +17,10 @@ describe('datos de prueba', () => {
     expect(await db.productos.count()).toBe(CANTIDAD_PRODUCTOS)
     expect(await db.perfiles.count()).toBe(PERFILES_PRUEBA.length)
   })
-  it('todos los productos tienen foto y al menos 3 colores', async () => {
+  it('todos los productos tienen foto y como mucho un color', async () => {
     const todos = await productos.listar()
-    expect(todos.every((p) => p.fotos.length >= 1 && p.colores.length >= 3)).toBe(true)
+    expect(todos.every((p) => p.fotos.length >= 1 && p.colores.length <= 1)).toBe(true)
+    expect(todos.some((p) => p.colores.length === 0)).toBe(true)
   })
 })
 
@@ -52,26 +53,17 @@ describe('productos CRUD', () => {
     await expect(productos.crear({ codigo: 'ZZ-1', nombre: '', categoria_id: p.categoria_id, precio_docena_usd_cent: 100 })).rejects.toThrow()
     await expect(productos.crear({ codigo: 'ZZ-1', nombre: 'X', categoria_id: p.categoria_id, precio_docena_usd_cent: 10.5 })).rejects.toThrow()
   })
-  it('crea, edita conservando ids de colores y da de baja', async () => {
+  it('un solo color por producto: crea, cambia el color conservando su id y da de baja', async () => {
     const [base] = await productos.listar()
-    const nuevo = await productos.crear({
-      codigo: 'ZZ-001',
-      nombre: 'Prueba',
-      categoria_id: base.categoria_id,
-      precio_docena_usd_cent: 1000,
-      colores: [{ nombre: 'Rojo', hex: '#f00' }, { nombre: 'Azul', hex: '#00f' }],
-      fotos: [{ ruta: '/x.jpg' }],
-    })
-    expect(nuevo.colores).toHaveLength(2)
-    const rojo = nuevo.colores.find((c) => c.nombre === 'Rojo')
-    const editado = await productos.actualizar(nuevo.id, {
-      ...nuevo,
-      nombre: 'Prueba 2',
-      colores: [{ id: rojo.id, nombre: 'Rojo', hex: '#f00' }, { nombre: 'Verde', hex: '#0f0' }],
-    })
+    const datos = { codigo: 'ZZ-001', nombre: 'Prueba', categoria_id: base.categoria_id, precio_docena_usd_cent: 1000, fotos: [{ ruta: '/x.jpg' }] }
+    await expect(productos.crear({ ...datos, colores: [{ nombre: 'Rojo', hex: '#f00' }, { nombre: 'Azul', hex: '#00f' }] })).rejects.toThrow(/un solo color/)
+    const nuevo = await productos.crear({ ...datos, colores: [{ nombre: 'Rojo', hex: '#f00' }] })
+    const rojo = nuevo.colores[0]
+    const editado = await productos.actualizar(nuevo.id, { ...nuevo, nombre: 'Prueba 2', colores: [{ id: rojo.id, nombre: 'Verde', hex: '#0f0' }] })
     expect(editado.nombre).toBe('Prueba 2')
-    expect(editado.colores.map((c) => c.nombre).sort()).toEqual(['Rojo', 'Verde'])
-    expect(editado.colores.find((c) => c.nombre === 'Rojo').id).toBe(rojo.id)
+    expect(editado.colores).toEqual([expect.objectContaining({ id: rojo.id, nombre: 'Verde' })])
+    const sinColor = await productos.actualizar(nuevo.id, { ...editado, colores: [] })
+    expect(sinColor.colores).toEqual([])
     await productos.eliminar(nuevo.id)
     expect((await productos.listar()).some((p) => p.id === nuevo.id)).toBe(false)
     expect((await productos.listar({ soloActivos: false })).some((p) => p.id === nuevo.id)).toBe(true)
@@ -79,12 +71,11 @@ describe('productos CRUD', () => {
 })
 
 describe('venta, stock y cola', () => {
+  // Un producto con color y stock (el stock es del producto).
   async function productoConStock() {
-    const lista = await productos.listar()
-    for (const p of lista) {
-      const s = await stock.stockPorColor(p.id)
-      const color = p.colores.find((c) => (s[c.id] ?? 0) >= 24)
-      if (color) return { p, color, antes: s[color.id] }
+    for (const p of await productos.listar()) {
+      const antes = await stock.stockDe(p.id)
+      if (p.colores.length && antes >= 24) return { p, color: p.colores[0], antes }
     }
     throw new Error('sin stock en el seed')
   }
@@ -103,22 +94,33 @@ describe('venta, stock y cola', () => {
     expect(venta.items[0]).toMatchObject({ codigo: p.codigo, nombre: p.nombre, color_nombre: color.nombre })
     expect(venta.total_cent).toBe(2 * p.precio_docena_usd_cent)
     expect(venta.sync_status).toBe('pending')
-    expect(await stock.stockActual(p.id, color.id)).toBe(antes - 24)
+    expect(await stock.stockDe(p.id)).toBe(antes - 24)
     expect(await pendientes()).toBeGreaterThanOrEqual(1)
 
+    // Sin color en la venta: toma el del producto.
     const otra = await ventas.crear({
       vendedor_id: 'p-ariel',
       moneda: 'bs',
       tipo_cambio: 6.96,
       metodo_pago: 'transferencia',
-      items: [{ producto_id: p.id, color_id: color.id, cantidad: 1, unidad: 'docena', precio_cent: 100 }],
+      items: [{ producto_id: p.id, cantidad: 1, unidad: 'docena', precio_cent: 100 }],
     })
     expect(otra.numero).toBe('NV-AM-0002')
+    expect(otra.items[0]).toMatchObject({ color_id: color.id, color_nombre: color.nombre })
+    expect(await stock.stockDe(p.id)).toBe(antes - 36)
+  })
+
+  it('vende un producto sin color', async () => {
+    const p = (await productos.listar()).find((x) => x.colores.length === 0)
+    const antes = await stock.stockDe(p.id)
+    const v = await ventas.crear({ vendedor_id: 'p-ariel', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: p.id, cantidad: 1.5, precio_cent: 100 }] })
+    expect(v.items[0]).toMatchObject({ color_id: null, color_nombre: '' })
+    expect(await stock.stockDe(p.id)).toBe(antes - 18)
   })
 
   it('rechaza un color que no es del producto', async () => {
     const { p } = await productoConStock()
-    const otro = (await productos.listar()).find((x) => x.id !== p.id)
+    const otro = (await productos.listar()).find((x) => x.id !== p.id && x.colores.length)
     await expect(
       ventas.crear({ vendedor_id: 'p-ariel', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: p.id, color_id: otro.colores[0].id, cantidad: 1, precio_cent: 100 }] }),
     ).rejects.toThrow(/color/)
@@ -137,7 +139,7 @@ describe('venta, stock y cola', () => {
 
   it('anular devuelve el stock y exige motivo; no se anula dos veces', async () => {
     const { p, color } = await productoConStock()
-    const antes = await stock.stockActual(p.id, color.id)
+    const antes = await stock.stockDe(p.id)
     const v = await ventas.crear({
       vendedor_id: 'p-brayan',
       moneda: 'usd',
@@ -145,11 +147,11 @@ describe('venta, stock y cola', () => {
       metodo_pago: 'efectivo',
       items: [{ producto_id: p.id, color_id: color.id, cantidad: 1, precio_cent: 500 }],
     })
-    expect(await stock.stockActual(p.id, color.id)).toBe(antes - 12)
+    expect(await stock.stockDe(p.id)).toBe(antes - 12)
     await expect(ventas.anular(v.id, { motivo: '  ', usuario_id: 'p-admin' })).rejects.toThrow(/motivo/)
     const a = await ventas.anular(v.id, { motivo: 'error de carga', usuario_id: 'p-admin' })
     expect(a.estado).toBe('anulada')
-    expect(await stock.stockActual(p.id, color.id)).toBe(antes)
+    expect(await stock.stockDe(p.id)).toBe(antes)
     await expect(ventas.anular(v.id, { motivo: 'otra vez', usuario_id: 'p-admin' })).rejects.toThrow(/anulada/)
   })
 

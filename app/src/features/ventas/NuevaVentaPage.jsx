@@ -104,7 +104,8 @@ export default function NuevaVentaPage() {
         cliente_email: estado.cliente_email,
         cliente_direccion: estado.cliente_direccion,
         metodo_entrega: estado.metodo_entrega,
-        items: lineas.map((l) => ({ producto_id: l.productoId, color_id: l.colorId, cantidad: l.cantidad, unidad: 'docena', precio_cent: precios.get(l.key) })),
+        // Sin color: la venta usa el color del producto (un borrador viejo pudo guardar un color que ya no existe).
+        items: lineas.map((l) => ({ producto_id: l.productoId, color_id: null, cantidad: l.cantidad, unidad: 'docena', precio_cent: precios.get(l.key) })),
       })
       borrarBorrador(usuario.id)
       navigate(`/ventas/${venta.id}`, { replace: true, state: { nueva: true } })
@@ -149,7 +150,7 @@ export default function NuevaVentaPage() {
                     producto={mapa.get(l.productoId)}
                     precioCent={precios.get(l.key) ?? 0}
                     moneda={estado.moneda}
-                    stockColor={stock.datos[l.colorId] ?? 0}
+                    stockProducto={stock.datos[l.productoId] ?? 0}
                     puedeEditarPrecio={puedeEditarPrecio}
                     onCantidad={(n) => despachar({ tipo: 'cantidad', key: l.key, cantidad: n })}
                     onPrecio={(cent) => despachar({ tipo: 'precio_manual', key: l.key, cent })}
@@ -229,7 +230,7 @@ export default function NuevaVentaPage() {
       <AgregarSheet productoId={eligiendo} moneda={estado.moneda} onCerrar={() => setEligiendo(null)} onAgregar={agregar} />
 
       <Modal abierto={pidiendoConfirmacion} onCerrar={() => setPidiendoConfirmacion(false)} titulo="Stock insuficiente">
-        <p className="mb-5 text-sm text-texto-suave">Algún color tiene menos prendas que las pedidas. Si confirmás, el stock de ese color quedará en negativo hasta que se cargue mercadería. ¿Confirmar igual?</p>
+        <p className="mb-5 text-sm text-texto-suave">Algún color tiene menos docenas que las pedidas. Si confirmás, el stock de ese color quedará en negativo hasta que se cargue mercadería. ¿Confirmar igual?</p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variante="fantasma" onClick={() => setPidiendoConfirmacion(false)}>Revisar</Button>
           <Button onClick={confirmar}>Sí, confirmar</Button>

@@ -48,7 +48,7 @@ export default function GrillaProductos({ onAbrir, publico = false }) {
   }
 
   const mostrarPrecio = !publico || cfg.datos?.mostrar_precios_publico
-  const agotado = (p) => !publico && p.colores.length > 0 && stock.datos && p.colores.every((c) => (stock.datos[c.id] ?? 0) <= 0)
+  const agotado = (p) => !publico && !!stock.datos && (stock.datos[p.id] ?? 0) <= 0
 
   return (
     <section aria-label="Catálogo" className="flex flex-col gap-4">

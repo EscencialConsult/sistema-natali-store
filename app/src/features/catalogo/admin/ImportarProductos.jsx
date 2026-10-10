@@ -65,7 +65,7 @@ export function ImportarProductosExcel({ conEjemplo = false }) {
                     <td className="p-2">{f.nombre}</td>
                     <td className="p-2">{f.categoria}</td>
                     <td className="p-2 tabular-nums">{String(f.precio).replace('.', ',')}</td>
-                    <td className="p-2">{f.colores}</td>
+                    <td className="p-2">{f.color || '—'}</td>
                   </tr>
                 ))}
               </tbody>

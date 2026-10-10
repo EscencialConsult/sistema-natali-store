@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Badge, Button, CampoBusqueda, Chip, Dato, Encabezado, EmptyState, ErrorState, Skeleton } from '../../components/ui/index.js'
 import ExportarExcel from '../../components/ExportarExcel.jsx'
 import { useCategorias, useConfig, useProductos, useStockResumen } from '../../data/hooks.js'
+import { aDocenas, textoCantidad, textoDocenas } from '../../lib/docenas.js'
 import { etiquetaDe, nombreArchivo } from '../../lib/excel.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
@@ -50,20 +51,16 @@ export default function InventarioPage() {
   const filas = useMemo(() => {
     if (!prods.datos || !stock.datos) return []
     return prods.datos.map((p) => {
-      const unidades = p.colores.map((c) => stock.datos[c.id] ?? 0)
-      return {
-        p,
-        total: unidades.reduce((t, n) => t + n, 0),
-        agotados: unidades.filter((n) => n <= 0).length,
-        bajos: unidades.filter((n) => n > 0 && n <= umbral).length,
-      }
+      // El stock es del producto (no del color).
+      const total = stock.datos[p.id] ?? 0
+      return { p, total, agotado: total <= 0, bajo: total > 0 && total <= umbral }
     })
   }, [prods.datos, stock.datos, umbral])
 
-  const resumen = filas.reduce((r, f) => ({ prendas: r.prendas + f.total, agotados: r.agotados + f.agotados, bajos: r.bajos + f.bajos }), { prendas: 0, agotados: 0, bajos: 0 })
+  const resumen = filas.reduce((r, f) => ({ prendas: r.prendas + Math.max(f.total, 0), agotados: r.agotados + f.agotado, bajos: r.bajos + f.bajo }), { prendas: 0, agotados: 0, bajos: 0 })
   const q = norm(texto.trim())
   const lista = filas
-    .filter((f) => (filtro === 'agotados' ? f.agotados > 0 : filtro === 'bajos' ? f.bajos > 0 : true))
+    .filter((f) => (filtro === 'agotados' ? f.agotado : filtro === 'bajos' ? f.bajo : true))
     .filter((f) => !q || norm(`${f.p.codigo} ${f.p.nombre}`).includes(q))
 
   const cargando = prods.cargando || stock.cargando || cfg.cargando
@@ -73,7 +70,7 @@ export default function InventarioPage() {
     <div className="flex flex-col gap-6">
       <Encabezado
         titulo="Inventario"
-        descripcion="Prendas por modelo y color. Tocá un producto para cargar entradas o ajustes."
+        descripcion="Docenas por modelo. Tocá un producto para cargar entradas o ajustes."
         acciones={
           <>
             <ExportarExcel titulo="Exportar inventario a Excel" campos={camposExportar} generar={generarExcel} deshabilitado={!prods.datos || !stock.datos} />
@@ -90,24 +87,24 @@ export default function InventarioPage() {
       {!cargando && !error && (
         <>
           <section aria-label="Resumen" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Dato etiqueta="Prendas" valor={resumen.prendas} icono={Shirt} />
+            <Dato etiqueta="Docenas" valor={textoCantidad(aDocenas(resumen.prendas))} icono={Shirt} />
             <Dato etiqueta="Stock bajo" valor={resumen.bajos} icono={TrendingDown} tono="alerta" claseValor="text-alerta" />
             <Dato etiqueta="Agotados" valor={resumen.agotados} icono={PackageX} tono="error" claseValor="text-error" />
           </section>
-          <p className="-mt-2 text-xs text-texto-suave">Stock bajo y agotados cuentan colores (no productos). Bajo = {umbral} prendas o menos.</p>
+          <p className="-mt-2 text-xs text-texto-suave">Stock bajo y agotados cuentan productos. Bajo = {textoDocenas(umbral, { corto: false })} o menos.</p>
 
           <CampoBusqueda id="buscar-stock" etiqueta="Buscar producto" valor={texto} onCambiar={(t) => { setTexto(t); setVisibles(TANDA) }} placeholder="Código o nombre" />
           <div className="flex flex-wrap gap-2">
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todos</Chip>
             <Chip activo={filtro === 'bajos'} onClick={() => setFiltro('bajos')}>Con stock bajo</Chip>
-            <Chip activo={filtro === 'agotados'} onClick={() => setFiltro('agotados')}>Con colores agotados</Chip>
+            <Chip activo={filtro === 'agotados'} onClick={() => setFiltro('agotados')}>Agotados</Chip>
           </div>
 
           {lista.length === 0 ? (
             <EmptyState icono={PackageSearch} titulo="No hay productos para mostrar" texto="Probá con otro filtro o búsqueda." />
           ) : (
             <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              {lista.slice(0, visibles).map(({ p, total, agotados, bajos }) => (
+              {lista.slice(0, visibles).map(({ p, total, agotado, bajo }) => (
                 <li key={p.id}>
                   <button type="button" onClick={() => setAbierto(p.id)} className="flex min-h-[4.5rem] w-full items-center gap-3 rounded-tarjeta border border-borde/70 bg-superficie p-2 shadow-tarjeta text-left hover:bg-superficie-2">
                     <Foto foto={p.fotos[0]} alt="" className="size-14 shrink-0 rounded-control" />
@@ -115,11 +112,12 @@ export default function InventarioPage() {
                       <span className="text-xs font-semibold tabular-nums text-tinta">{p.codigo}</span>
                       <span className="truncate text-base">{p.nombre}</span>
                       <span className="flex flex-wrap gap-1.5 pt-0.5">
-                        {agotados > 0 && <Badge tono="error">{agotados} agotado{agotados > 1 && 's'}</Badge>}
-                        {bajos > 0 && <Badge tono="alerta">{bajos} con stock bajo</Badge>}
+                        {p.colores[0] && <span className="text-xs text-texto-suave">{p.colores[0].nombre}</span>}
+                        {agotado && <Badge tono="error">Agotado</Badge>}
+                        {bajo && <Badge tono="alerta">Stock bajo</Badge>}
                       </span>
                     </span>
-                    <span className="text-right"><span className="block font-titulo text-xl font-semibold tabular-nums">{total}</span><span className="text-xs text-texto-suave">prendas</span></span>
+                    <span className="text-right"><span className="block font-titulo text-xl font-semibold tabular-nums">{textoCantidad(aDocenas(total))}</span><span className="text-xs text-texto-suave">docenas</span></span>
                   </button>
                 </li>
               ))}

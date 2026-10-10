@@ -529,9 +529,9 @@ begin
     if (v_mov ->> 'delta')::int >= 0 then
       raise exception 'Un movimiento de venta debe restar stock' using errcode = '22023';
     end if;
-    continue when not exists (select 1 from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid);
+    continue when not exists (select 1 from naty_productos where id = (v_mov ->> 'producto_id')::uuid);
     insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, venta_id, creado_en)
-    values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (v_mov ->> 'color_id')::uuid, 'venta', (v_mov ->> 'delta')::int,
+    values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (select id from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid), 'venta', (v_mov ->> 'delta')::int,
             coalesce(v_mov ->> 'motivo', ''), v_vendedor, v_id, (v_mov ->> 'creado_en')::timestamptz);
   end loop;
 
@@ -566,9 +566,9 @@ begin
     if (v_mov ->> 'delta')::int <= 0 then
       raise exception 'Un movimiento de anulación debe sumar stock' using errcode = '22023';
     end if;
-    continue when not exists (select 1 from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid);
+    continue when not exists (select 1 from naty_productos where id = (v_mov ->> 'producto_id')::uuid);
     insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, venta_id, creado_en)
-    values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (v_mov ->> 'color_id')::uuid, 'anulacion', (v_mov ->> 'delta')::int,
+    values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (select id from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid), 'anulacion', (v_mov ->> 'delta')::int,
             coalesce(v_mov ->> 'motivo', ''), auth.uid(), v_id, (v_mov ->> 'creado_en')::timestamptz)
     on conflict (id) do nothing;
   end loop;
@@ -593,6 +593,10 @@ begin
   -- Un producto eliminado no revive porque un dispositivo sin señal mande una edición vieja.
   if exists (select 1 from naty_limpiezas where tipo = 'productos' and v_id = any (ids)) then
     return v_id;
+  end if;
+  -- Un producto tiene un solo color (o ninguno); el stock es del producto.
+  if jsonb_array_length(coalesce(p -> 'colores', '[]'::jsonb)) > 1 then
+    raise exception 'Un producto tiene un solo color' using errcode = '22023';
   end if;
 
   if p -> 'categoria' is not null and p -> 'categoria' <> 'null'::jsonb then
@@ -822,7 +826,7 @@ on conflict (identificador) do update set
 --   · Eliminar productos: administración (uno por uno, o todos los dados de baja). Las notas de venta conservan la copia
 --     de código, nombre y color; el ítem queda sin vínculo al producto. Su stock e historial se van con él.
 --   · Borrar notas de venta y resumir el historial de stock anteriores a una fecha: solo el superadmin.
---     El stock NUNCA cambia: el historial que se quita se reemplaza por un "saldo" por color con la misma suma.
+--     El stock NUNCA cambia: el historial que se quita se reemplaza por un "saldo" por producto con la misma suma.
 -- Cada limpieza queda anotada en naty_limpiezas: los dispositivos la leen al sincronizar y vuelven a bajar lo afectado.
 
 create table if not exists naty_limpiezas (
@@ -914,7 +918,7 @@ begin
   return v_n;
 end $$;
 
--- Historial de stock anterior a la fecha: se reemplaza por un saldo por color con la misma suma. p = { antes_de }
+-- Historial de stock anterior a la fecha: se reemplaza por un saldo por producto con la misma suma. p = { antes_de }
 create or replace function naty_resumir_movimientos(p jsonb) returns integer
 language plpgsql security definer set search_path = public as $$
 declare
@@ -932,12 +936,15 @@ begin
     return 0;
   end if;
 
+  -- El stock es del producto: un saldo por producto (con su color actual, informativo).
   with borrados as (
-    delete from naty_movimientos_stock where creado_en < v_antes returning producto_id, color_id, delta
+    delete from naty_movimientos_stock where creado_en < v_antes returning producto_id, delta
   )
   insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, creado_en)
-  select gen_random_uuid(), producto_id, color_id, 'saldo', s, 'Saldo del historial anterior (resumido)', v_antes - interval '1 millisecond'
-    from (select producto_id, color_id, sum(delta)::int as s from borrados group by producto_id, color_id) t
+  select gen_random_uuid(), producto_id,
+         (select c.id from naty_producto_colores c where c.producto_id = t.producto_id and not c.eliminado order by c.orden, c.id limit 1),
+         'saldo', s, 'Saldo del historial anterior (resumido)', v_antes - interval '1 millisecond'
+    from (select producto_id, sum(delta)::int as s from borrados group by producto_id) t
    where s <> 0;
   insert into naty_limpiezas (tipo, antes_de, cantidad, por) values ('movimientos', v_antes, v_n, auth.uid());
   return v_n;
@@ -968,3 +975,23 @@ revoke all on function naty_eliminar_productos(jsonb), naty_eliminar_productos_d
   naty_resumir_movimientos(jsonb), naty_previsualizar_limpieza(jsonb) from public, anon, authenticated;
 grant execute on function naty_eliminar_productos(jsonb), naty_eliminar_productos_de_baja(jsonb), naty_borrar_ventas(jsonb),
   naty_resumir_movimientos(jsonb), naty_previsualizar_limpieza(jsonb) to authenticated;
+
+-- ── 2026-10-10 · Stock por producto (no por color), un solo color por producto y todo en medias docenas ──
+-- El color es un dato del producto (opcional, uno solo, informativo). El stock es la suma de los movimientos del PRODUCTO.
+-- Los movimientos y notas viejos conservan su color. Por dentro el stock sigue en prendas (media docena = 6).
+alter table naty_movimientos_stock alter column color_id drop not null;
+
+-- Corrección de datos (se puede correr de nuevo: si ya está corregido, no hace nada).
+-- 1) Productos con varios colores: queda el primero (por orden); los demás se marcan eliminados.
+update naty_producto_colores c set eliminado = true
+ where not c.eliminado
+   and exists (select 1 from naty_producto_colores o
+                where o.producto_id = c.producto_id and not o.eliminado and (o.orden, o.id) < (c.orden, c.id));
+
+-- 2) Stock que no es media docena exacta: se redondea a la media docena más cercana con un ajuste (queda en el historial).
+insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, creado_en)
+select gen_random_uuid(), s.producto_id,
+       (select c.id from naty_producto_colores c where c.producto_id = s.producto_id and not c.eliminado order by c.orden, c.id limit 1),
+       'ajuste', (round(s.total / 6.0) * 6)::int - s.total, 'Redondeo a media docena', now()
+  from (select producto_id, sum(delta)::int as total from naty_movimientos_stock group by producto_id) s
+ where s.total % 6 <> 0;

@@ -3,6 +3,7 @@ import { ChevronLeft, Download, FileSpreadsheet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge, Button } from '../../components/ui/index.js'
 import { productos, stock } from '../../data/repos/index.js'
+import { textoDocenas } from '../../lib/docenas.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { crearPlantillaStock, ejecutarStock, leerExcelStock, planificarStock } from './importarStock.js'
 
@@ -62,7 +63,7 @@ export default function ImportarStockPage() {
       </Link>
       <h1 className="text-[1.75rem] leading-tight tracking-tight md:text-[2rem]">Cargar stock desde Excel</h1>
       <section className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie shadow-tarjeta p-4">
-        <p className="text-sm text-texto-suave">Descargá la planilla con el stock actual, corregí la columna <strong>unidades</strong> con lo que hay de verdad (conteo real) y subila. El sistema registra la diferencia como un ajuste, con su historial.</p>
+        <p className="text-sm text-texto-suave">Descargá la planilla con el stock actual, corregí la columna <strong>docenas</strong> con lo que hay de verdad (conteo real, docenas o medias docenas: 1, 1,5, 2…) y subila. El sistema registra la diferencia como un ajuste, con su historial.</p>
         <div className="flex flex-wrap gap-2">
           <Button variante="secundario" icono={Download} onClick={bajar}>Descargar planilla con el stock actual</Button>
           <Button icono={FileSpreadsheet} cargando={trabajando && !plan} onClick={() => input.current?.click()}>Elegir archivo Excel</Button>
@@ -79,13 +80,13 @@ export default function ImportarStockPage() {
             </div>
             <div className="max-h-80 overflow-auto rounded-control border border-borde">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-superficie-2"><tr><th className="p-2">Fila</th><th className="p-2">Producto y color</th><th className="p-2 text-right">Ahora → Nuevo</th><th className="p-2">Resultado</th></tr></thead>
+                <thead className="sticky top-0 bg-superficie-2"><tr><th className="p-2">Fila</th><th className="p-2">Producto</th><th className="p-2 text-right">Ahora → Nuevo</th><th className="p-2">Resultado</th></tr></thead>
                 <tbody>
                   {plan.filter((p) => p.accion !== 'sin_cambio').map((p) => (
                     <tr key={p.fila} className="border-t border-borde align-top">
                       <td className="p-2 tabular-nums">{p.fila}</td>
-                      <td className="p-2">{p.codigo} · {p.color}{p.errores.length > 0 && <span className="block text-error">{p.errores.join(' ')}</span>}</td>
-                      <td className="p-2 text-right tabular-nums">{p.accion === 'ajustar' ? `${p.actual} → ${p.nuevo} (${p.delta > 0 ? '+' : ''}${p.delta})` : '—'}</td>
+                      <td className="p-2">{p.codigo}{p.nombre ? ` · ${p.nombre}` : ''}{p.errores.length > 0 && <span className="block text-error">{p.errores.join(' ')}</span>}</td>
+                      <td className="p-2 text-right tabular-nums">{p.accion === 'ajustar' ? `${textoDocenas(p.actual)} → ${textoDocenas(p.nuevo)} (${p.delta > 0 ? '+' : ''}${textoDocenas(p.delta)})` : '—'}</td>
                       <td className="p-2"><Badge tono={ACCION[p.accion][0]}>{ACCION[p.accion][1]}</Badge></td>
                     </tr>
                   ))}

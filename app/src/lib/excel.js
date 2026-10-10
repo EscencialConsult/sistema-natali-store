@@ -3,7 +3,7 @@
 //   bordes finos, encabezado fijo y autofiltro. Importes y cantidades van como números (se pueden sumar en Excel).
 //
 // crearLibro({ titulo, filtros: [[etiqueta, valor]], hojas: [{ nombre, columnas, filas }] }) → Blob
-//   columna: { titulo, clave, ancho?, tipo?: 'texto'|'entero'|'decimal'|'dinero'|'fecha', tono?: (fila) => 'exito'|'alerta'|'error'|null }
+//   columna: { titulo, clave, ancho?, tipo?: 'texto'|'entero'|'decimal'|'docenas'|'dinero'|'fecha', tono?: (fila) => 'exito'|'alerta'|'error'|null }
 
 const COLOR = {
   tinta: 'FF8A3A63',
@@ -18,7 +18,7 @@ const TONO = {
   alerta: { fondo: 'FFFDF1DC', letra: 'FF92400E' },
   error: { fondo: 'FFFDECEB', letra: 'FFB42318' },
 }
-const FORMATO = { entero: '#,##0', decimal: '#,##0.0', dinero: '#,##0.00', fecha: 'dd/mm/yyyy hh:mm' }
+const FORMATO = { entero: '#,##0', decimal: '#,##0.0', docenas: '#,##0.0#', dinero: '#,##0.00', fecha: 'dd/mm/yyyy hh:mm' }
 const FILA_ENCABEZADO = 5
 
 const relleno = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } })
@@ -63,7 +63,7 @@ function armarHoja(wb, { titulo, filtros = [] }, { nombre, columnas, filas }) {
       celda.value = c.tipo === 'fecha' && v ? new Date(v) : (v ?? '')
       if (FORMATO[c.tipo]) celda.numFmt = FORMATO[c.tipo]
       celda.border = bordeFino()
-      celda.alignment = { vertical: 'middle', horizontal: ['entero', 'decimal', 'dinero'].includes(c.tipo) ? 'right' : 'left' }
+      celda.alignment = { vertical: 'middle', horizontal: ['entero', 'decimal', 'docenas', 'dinero'].includes(c.tipo) ? 'right' : 'left' }
       const tono = c.tono?.(f)
       if (tono && TONO[tono]) {
         celda.fill = relleno(TONO[tono].fondo)

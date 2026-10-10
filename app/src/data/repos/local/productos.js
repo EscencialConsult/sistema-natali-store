@@ -18,7 +18,8 @@ export const esquemaProducto = z.object({
   nuevo: z.boolean().default(false),
   // Una foto es una ruta (dirección en Supabase Storage) o un blob recién elegido en el dispositivo (se sube al sincronizar).
   fotos: z.array(z.object({ ruta: z.string().default(''), blob: z.any().optional() })).default([]),
-  colores: z.array(z.object({ id: z.string().optional(), nombre: z.string().trim().min(1, 'Cada color necesita nombre.'), hex: z.string().default('#cccccc') })).default([]),
+  // Un solo color (o ninguno): es informativo. El stock es del producto.
+  colores: z.array(z.object({ id: z.string().optional(), nombre: z.string().trim().min(1, 'El color necesita nombre.'), hex: z.string().default('#cccccc') })).max(1, 'Un producto tiene un solo color.').default([]),
 })
 
 const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

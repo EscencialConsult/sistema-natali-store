@@ -150,12 +150,12 @@ function Limpieza({ actualizar }) {
         <Accion
           icono={History}
           titulo="Historial de stock"
-          descripcion="Entradas, salidas, ajustes y ventas anteriores a la fecha se resumen en un saldo por color. El stock actual queda igual."
+          descripcion="Entradas, salidas, ajustes y ventas anteriores a la fecha se resumen en un saldo por producto. El stock actual queda igual."
           cantidad={contar(pMovs, 'movimientos', fechaMovs)}
           unidad="movimientos"
           bloqueo={!fechaMovs ? 'Elegí la fecha.' : null}
           tituloConfirmar="¿Borrar el historial de stock?"
-          confirmar={`Se borrará todo el historial de stock anterior al ${fechaDeInput(fechaMovs)} y se reemplazará por un saldo por color. El stock actual queda exactamente igual.`}
+          confirmar={`Se borrará todo el historial de stock anterior al ${fechaDeInput(fechaMovs)} y se reemplazará por un saldo por producto. El stock actual queda exactamente igual.`}
           onBorrar={hecho(() => limpieza.resumirMovimientos({ antesDe: antesMovs }))}
         >
           <CampoFecha valor={fechaMovs} max={maxFecha} onChange={setFechaMovs} />

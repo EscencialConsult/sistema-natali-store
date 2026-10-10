@@ -4,7 +4,7 @@ import { partirCodigo, puntajeCodigo } from '../../../lib/codigo.js'
 import { hexDeNombre } from '../../../lib/colores.js'
 import { aCentavos } from '../../../lib/moneda.js'
 
-export const COLUMNAS = ['codigo', 'nombre', 'categoria', 'precio_docena_usd', 'colores']
+export const COLUMNAS = ['codigo', 'nombre', 'categoria', 'precio_docena_usd', 'color']
 
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 const ALIAS = {
@@ -12,7 +12,7 @@ const ALIAS = {
   nombre: ['nombre', 'producto', 'descripcion corta'],
   categoria: ['categoria', 'rubro'],
   precio: ['precio_docena_usd', 'precio docena usd', 'precio docena', 'precio', 'usd'],
-  colores: ['colores', 'color'],
+  color: ['color', 'colores'],
 }
 
 function textoCelda(v) {
@@ -27,9 +27,9 @@ function textoCelda(v) {
 
 // Filas de ejemplo de la plantilla (genéricas: se reemplazan por los productos reales).
 export const EJEMPLOS = [
-  { codigo: 'MN-001', nombre: 'Blusa de lino manga corta', categoria: 'BLUSAS Y CAMISAS', precio: 120, colores: 'Negro, Blanco, Rojo' },
-  { codigo: 'MN-002', nombre: 'Pantalón palazzo', categoria: 'PANTALONES', precio: 150.5, colores: 'Beige, Azul marino' },
-  { codigo: 'MN-003', nombre: 'Vestido largo estampado', categoria: 'VESTIDOS', precio: 210, colores: 'Verde' },
+  { codigo: 'MN-001', nombre: 'Blusa de lino manga corta', categoria: 'BLUSAS Y CAMISAS', precio: 120, color: 'Negro' },
+  { codigo: 'MN-002', nombre: 'Pantalón palazzo', categoria: 'PANTALONES', precio: 150.5, color: 'Beige' },
+  { codigo: 'MN-003', nombre: 'Vestido largo estampado', categoria: 'VESTIDOS', precio: 210, color: '' },
 ]
 
 // Qué va en cada columna (hoja "Cómo llenarla" y modal de carga).
@@ -38,7 +38,7 @@ export const AYUDA_COLUMNAS = [
   ['nombre', 'Obligatorio.'],
   ['categoria', 'Si no existe, se crea.'],
   ['precio_docena_usd', 'Obligatorio. Precio por docena en dólares (ej. 120 o 150,50).'],
-  ['colores', 'Separados por coma (ej. Negro, Blanco, Rojo).'],
+  ['color', 'Opcional. Un solo color por producto (ej. Negro). El stock es del producto, no del color.'],
 ]
 
 // filas: por defecto, los ejemplos genéricos.
@@ -51,7 +51,7 @@ export async function crearPlantilla(filas = EJEMPLOS) {
     { header: 'nombre', key: 'nombre', width: 38 },
     { header: 'categoria', key: 'categoria', width: 20 },
     { header: 'precio_docena_usd', key: 'precio', width: 20 },
-    { header: 'colores', key: 'colores', width: 50 },
+    { header: 'color', key: 'color', width: 20 },
   ]
   ws.getRow(1).font = { bold: true }
   filas.forEach((f) => ws.addRow(f))
@@ -64,7 +64,7 @@ export async function crearPlantilla(filas = EJEMPLOS) {
   return new Blob([await wb.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
-// Devuelve filas crudas [{ fila, codigo, nombre, categoria, precio, colores }]. entrada: ArrayBuffer/Uint8Array.
+// Devuelve filas crudas [{ fila, codigo, nombre, categoria, precio, color }]. entrada: ArrayBuffer/Uint8Array.
 export async function leerExcel(entrada) {
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
@@ -82,7 +82,7 @@ export async function leerExcel(entrada) {
   ws.eachRow((row, n) => {
     if (n === 1) return
     const leer = (c) => (indice[c] ? textoCelda(row.getCell(indice[c]).value).trim() : '')
-    const f = { fila: n, codigo: leer('codigo'), nombre: leer('nombre'), categoria: leer('categoria'), precio: leer('precio'), colores: leer('colores') }
+    const f = { fila: n, codigo: leer('codigo'), nombre: leer('nombre'), categoria: leer('categoria'), precio: leer('precio'), color: leer('color') }
     if (Object.values(f).slice(1).some(Boolean)) filas.push(f)
   })
   return filas
@@ -99,13 +99,6 @@ function parsearPrecio(texto) {
   return { cent: aCentavos(n) }
 }
 
-const listaColores = (texto) => {
-  const vistos = new Set()
-  return String(texto)
-    .split(/[,;]/)
-    .map((c) => c.trim())
-    .filter((c) => c && !vistos.has(norm(c)) && vistos.add(norm(c)))
-}
 
 // existentes: Map codigo → producto. Devuelve un plan por fila: crear | actualizar | error.
 export function planificar(filas, existentes) {
@@ -122,7 +115,9 @@ export function planificar(filas, existentes) {
       if (vistos.has(codigo)) errores.push(`Código repetido en el archivo (también en la fila ${vistos.get(codigo)}).`)
       else vistos.set(codigo, f.fila)
     }
-    const datos = { codigo, nombre: f.nombre.trim(), categoria: f.categoria.trim().toUpperCase() || 'VARIOS', precio_docena_usd_cent: precio.cent, colores: listaColores(f.colores) }
+    const color = String(f.color ?? '').trim()
+    if (/[,;]/.test(color)) errores.push('Un solo color por producto (sin comas).')
+    const datos = { codigo, nombre: f.nombre.trim(), categoria: f.categoria.trim().toUpperCase() || 'VARIOS', precio_docena_usd_cent: precio.cent, color }
     const existe = existentes.get(codigo)
     return { fila: f.fila, accion: errores.length ? 'error' : existe ? 'actualizar' : 'crear', errores, datos }
   })
@@ -141,17 +136,16 @@ export async function ejecutar(plan) {
           nombre: d.nombre,
           categoria_id: cat.id,
           precio_docena_usd_cent: d.precio_docena_usd_cent,
-          colores: d.colores.map((nombre) => ({ nombre, hex: hexDeNombre(nombre) })),
+          colores: d.color ? [{ nombre: d.color, hex: hexDeNombre(d.color) }] : [],
         })
         out.creados++
       } else {
         const actual = await productos.obtenerPorCodigo(d.codigo)
-        const conocidos = new Set(actual.colores.map((c) => norm(c.nombre)))
-        // Los colores existentes se conservan (el stock y las ventas apuntan a ellos); solo se agregan los nuevos.
-        const colores = [
-          ...actual.colores.map((c) => ({ id: c.id, nombre: c.nombre, hex: c.hex })),
-          ...d.colores.filter((n) => !conocidos.has(norm(n))).map((nombre) => ({ nombre, hex: hexDeNombre(nombre) })),
-        ]
+        // Color vacío = se deja el que tenía. Si cambia, se conserva su id (las notas viejas guardan su propia copia).
+        const previo = actual.colores[0]
+        const colores = !d.color
+          ? actual.colores.slice(0, 1).map((c) => ({ id: c.id, nombre: c.nombre, hex: c.hex }))
+          : [{ id: previo?.id, nombre: d.color, hex: previo && norm(previo.nombre) === norm(d.color) ? previo.hex : hexDeNombre(d.color) }]
         await productos.actualizar(actual.id, {
           ...actual,
           nombre: d.nombre,

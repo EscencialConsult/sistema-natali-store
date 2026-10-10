@@ -1,9 +1,15 @@
-// Carga de stock desde Excel: la planilla dice cuántas prendas HAY de cada color (conteo real);
-// el sistema registra la diferencia como un movimiento de "ajuste", así queda el historial.
+// Carga de stock desde Excel: la planilla dice cuántas DOCENAS hay de cada producto (conteo real, de 0,5 en 0,5);
+// el sistema registra la diferencia como un movimiento de "ajuste", así queda el historial. Por dentro se guarda en prendas.
+// El stock es del producto: la columna "color" de la planilla es solo informativa.
 import { stock } from '../../data/repos/index.js'
+import { aDocenas, aPrendas, leerDocenas } from '../../lib/docenas.js'
 
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-const ALIAS = { codigo: ['codigo', 'cod'], color: ['color'], unidades: ['unidades', 'stock', 'cantidad', 'prendas'] }
+// Sin "unidades" ni "prendas": una planilla vieja (en prendas) no se toma como docenas por error.
+const ALIAS = { codigo: ['codigo', 'cod'], docenas: ['docenas', 'docena', 'stock', 'cantidad'] }
+
+// Docenas con 2 decimales, como se ven en la planilla (un stock viejo que no es media docena exacta queda, ej., 5,33).
+const redondear = (prendas) => Math.round(aDocenas(prendas) * 100) / 100
 
 const texto = (v) => {
   if (v == null) return ''
@@ -11,7 +17,8 @@ const texto = (v) => {
   return String(v)
 }
 
-export async function crearPlantillaStock(productos, stockPorColor) {
+// stockPorProducto: { producto_id: prendas }
+export async function crearPlantillaStock(productos, stockPorProducto) {
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Stock')
@@ -19,10 +26,10 @@ export async function crearPlantillaStock(productos, stockPorColor) {
     { header: 'codigo', key: 'codigo', width: 12 },
     { header: 'producto', key: 'producto', width: 36 },
     { header: 'color', key: 'color', width: 18 },
-    { header: 'unidades', key: 'unidades', width: 12 },
+    { header: 'docenas', key: 'docenas', width: 12 },
   ]
   ws.getRow(1).font = { bold: true }
-  for (const p of productos) for (const c of p.colores) ws.addRow({ codigo: p.codigo, producto: p.nombre, color: c.nombre, unidades: stockPorColor[c.id] ?? 0 })
+  for (const p of productos) ws.addRow({ codigo: p.codigo, producto: p.nombre, color: p.colores[0]?.nombre ?? '', docenas: redondear(stockPorProducto[p.id] ?? 0) })
   return new Blob([await wb.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
@@ -38,35 +45,36 @@ export async function leerExcelStock(entrada) {
     for (const [campo, alias] of Object.entries(ALIAS)) if (alias.includes(t) && !(campo in idx)) idx[campo] = col
   })
   const faltan = Object.keys(ALIAS).filter((c) => !(c in idx))
-  if (faltan.length) throw new Error(`Faltan columnas en la primera fila: ${faltan.join(', ')}. Descargá la planilla con el stock actual para ver el formato.`)
+  if (faltan.length) throw new Error(`Faltan columnas en la primera fila: ${faltan.join(', ')}. Descargá la planilla con el stock actual para ver el formato (el stock va en docenas).`)
   const filas = []
   ws.eachRow((row, n) => {
     if (n === 1) return
-    const f = { fila: n, codigo: texto(row.getCell(idx.codigo).value).trim(), color: texto(row.getCell(idx.color).value).trim(), unidades: texto(row.getCell(idx.unidades).value).trim() }
-    if (f.codigo || f.color || f.unidades) filas.push(f)
+    const f = { fila: n, codigo: texto(row.getCell(idx.codigo).value).trim(), docenas: texto(row.getCell(idx.docenas).value).trim() }
+    if (f.codigo || f.docenas) filas.push(f)
   })
   return filas
 }
 
-// productos: lista con colores; stockPorColor: { color_id: unidades }.
-export function planificarStock(filas, productos, stockPorColor) {
+// productos: lista; stockPorProducto: { producto_id: prendas }. En el plan, actual / nuevo / delta van en prendas.
+export function planificarStock(filas, productos, stockPorProducto) {
   const porCodigo = new Map(productos.map((p) => [p.codigo.toUpperCase(), p]))
   const vistos = new Set()
   return filas.map((f) => {
     const errores = []
     const prod = porCodigo.get(f.codigo.toUpperCase())
-    const color = prod?.colores.find((c) => norm(c.nombre) === norm(f.color))
     if (!f.codigo) errores.push('Falta el código.')
     else if (!prod) errores.push(`No existe el producto ${f.codigo}.`)
-    else if (!color) errores.push(`${prod.codigo} no tiene el color “${f.color}”.`)
-    const n = Number(f.unidades.replace(',', '.'))
-    if (f.unidades === '' || !Number.isInteger(n) || n < 0) errores.push('Las unidades deben ser un número entero, 0 o más.')
-    if (color && vistos.has(color.id)) errores.push('Ese producto y color están repetidos en el archivo.')
-    if (errores.length) return { fila: f.fila, accion: 'error', errores, codigo: f.codigo, color: f.color }
-    // Solo una fila correcta "reserva" el color: una con error no hace fallar a la siguiente.
-    vistos.add(color.id)
-    const actual = stockPorColor[color.id] ?? 0
-    return { fila: f.fila, accion: n === actual ? 'sin_cambio' : 'ajustar', errores, codigo: prod.codigo, color: color.nombre, producto_id: prod.id, color_id: color.id, actual, nuevo: n, delta: n - actual }
+    const actual = prod ? (stockPorProducto[prod.id] ?? 0) : 0
+    // El mismo número que bajó en la planilla = sin cambio (aunque no sea media docena exacta).
+    const igual = !!prod && f.docenas !== '' && Number(f.docenas.replace(',', '.')) === redondear(actual)
+    const leida = igual ? null : leerDocenas(f.docenas, { permitirCero: true })
+    if (leida?.error) errores.push(leida.error)
+    if (prod && vistos.has(prod.id)) errores.push('Ese producto está repetido en el archivo.')
+    if (errores.length) return { fila: f.fila, accion: 'error', errores, codigo: f.codigo }
+    // Solo una fila correcta "reserva" el producto: una con error no hace fallar a la siguiente.
+    vistos.add(prod.id)
+    const n = igual ? actual : aPrendas(leida.docenas)
+    return { fila: f.fila, accion: n === actual ? 'sin_cambio' : 'ajustar', errores, codigo: prod.codigo, nombre: prod.nombre, producto_id: prod.id, color_id: prod.colores[0]?.id ?? null, actual, nuevo: n, delta: n - actual }
   })
 }
 

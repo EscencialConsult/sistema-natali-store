@@ -40,7 +40,7 @@ export default function CatalogoPublico() {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-8 md:px-8 md:pt-12">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-4xl tracking-tight md:text-5xl">Catálogo</h1>
-          <p className="max-w-md text-texto-suave">Elegí un modelo para ver todas sus fotos y colores.</p>
+          <p className="max-w-md text-texto-suave">Elegí un modelo para ver todas sus fotos y su color.</p>
         </div>
 
         <CampoBusqueda id="q" etiqueta="Buscar modelo" grande valor={texto} onCambiar={setTexto} placeholder="Buscar por código o nombre" className="mx-auto w-full max-w-xl" />

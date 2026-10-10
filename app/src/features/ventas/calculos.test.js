@@ -22,19 +22,19 @@ describe('precio y tipo de cambio', () => {
 })
 
 describe('líneas', () => {
-  it('junta producto y color repetidos', () => {
+  it('junta el mismo producto en una sola línea', () => {
     let l = agregarLinea([], { productoId: 'p1', colorId: 'c1', cantidad: 1, precioCent: 100 })
-    l = agregarLinea(l, { productoId: 'p1', colorId: 'c2', cantidad: 1, precioCent: 100 })
+    l = agregarLinea(l, { productoId: 'p2', colorId: null, cantidad: 1, precioCent: 100 })
     l = agregarLinea(l, { productoId: 'p1', colorId: 'c1', cantidad: 2, precioCent: 100 })
     expect(l).toHaveLength(2)
-    expect(l.find((x) => x.colorId === 'c1').cantidad).toBe(3)
+    expect(l.find((x) => x.productoId === 'p1').cantidad).toBe(3)
   })
   it('totaliza en enteros', () => {
     expect(totalDeLineas([{ cantidad: 2, precioCent: 1999 }, { cantidad: 1, precioCent: 1 }])).toBe(3999)
   })
-  it('detecta líneas que superan el stock del color', () => {
-    const l = [{ colorId: 'c1', cantidad: 2 }, { colorId: 'c2', cantidad: 1 }]
-    expect(lineasSinStock(l, { c1: 24, c2: 11 }).map((x) => x.colorId)).toEqual(['c2'])
-    expect(lineasSinStock(l, { c1: 24, c2: 12 })).toEqual([])
+  it('detecta líneas que superan el stock del producto', () => {
+    const l = [{ productoId: 'p1', cantidad: 2 }, { productoId: 'p2', cantidad: 1 }]
+    expect(lineasSinStock(l, { p1: 24, p2: 11 }).map((x) => x.productoId)).toEqual(['p2'])
+    expect(lineasSinStock(l, { p1: 24, p2: 12 })).toEqual([])
   })
 })

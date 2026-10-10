@@ -4,7 +4,7 @@ import { agregarLinea, normalizarCantidad } from './calculos.js'
 
 const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null }
 
-// Líneas: { key, productoId, colorId, cantidad (docenas), manualCent }. Solo ids: nombres y fotos se leen del catálogo.
+// Líneas: { key, productoId, colorId (informativo), cantidad (docenas), manualCent }. Una línea por producto. Solo ids: nombres y fotos se leen del catálogo.
 function reductor(estado, accion) {
   switch (accion.tipo) {
     case 'moneda':

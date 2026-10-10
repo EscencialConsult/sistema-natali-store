@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { comisionDeDocenas, comisionesPorVendedor, docenasDe } from './comisiones.js'
-import { esCantidadValida, normalizarCantidad, subtotal } from './docenas.js'
+import { aPrendas, esCantidadValida, leerDocenas, normalizarCantidad, subtotal, textoDocenas } from './docenas.js'
+import { estadoStock } from './stock.js'
 
 const item = (cantidad) => ({ unidad: 'docena', cantidad })
 
@@ -30,5 +31,24 @@ describe('medias docenas', () => {
     expect(normalizarCantidad(1.3)).toBe(1.5)
     expect(normalizarCantidad(0)).toBe(0.5)
     expect(subtotal(0.5, 10001)).toBe(5001)
+  })
+})
+
+describe('todo en docenas', () => {
+  it('solo docenas o medias docenas: nada de 0,1 ni unidades sueltas', () => {
+    expect(leerDocenas('1,5')).toEqual({ docenas: 1.5 })
+    expect(leerDocenas('2')).toEqual({ docenas: 2 })
+    expect(leerDocenas('0,1').error).toMatch(/medias docenas/)
+    expect(leerDocenas('1,25').error).toMatch(/medias docenas/)
+    expect(leerDocenas('0').error).toBeTruthy()
+    expect(leerDocenas('0', { permitirCero: true })).toEqual({ docenas: 0 })
+    expect(leerDocenas('-1').error).toBeTruthy()
+    expect(aPrendas(1.5)).toBe(18)
+  })
+  it('el stock se muestra en docenas', () => {
+    expect(textoDocenas(18)).toBe('1,5 doc.')
+    expect(textoDocenas(12, { corto: false })).toBe('1 docena')
+    expect(estadoStock(120, 24).texto).toBe('10 doc.')
+    expect(estadoStock(18, 24).texto).toBe('Quedan 1,5 doc.')
   })
 })

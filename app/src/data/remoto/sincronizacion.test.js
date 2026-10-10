@@ -12,7 +12,6 @@ import { clienteDe, crearServidor, USUARIOS as U } from './servidorPrueba.js'
 const CAT = '10000000-0000-4000-8000-000000000001'
 const PROD = '20000000-0000-4000-8000-000000000001'
 const ROJO = '30000000-0000-4000-8000-000000000001'
-const AZUL = '30000000-0000-4000-8000-000000000002'
 
 let servidor
 const q = async (sql, params) => (await servidor.db.query(sql, params)).rows
@@ -28,8 +27,9 @@ const enviar = (usuario) => {
 }
 const bajar = (usuario) => descargar(clienteDe(servidor, usuario.id))
 const pendientes = () => db.cola_sync.where('estado').anyOf('pendiente', 'error').toArray()
-const stockServidor = async (color) => (await q('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where color_id = $1', [color]))[0].s
-const itemVenta = (color, cantidad, precio) => ({ producto_id: PROD, color_id: color, cantidad, unidad: 'docena', precio_cent: precio })
+// El stock es del producto (no del color). En la venta no se elige color: va el del producto.
+const stockServidor = async () => (await q('select coalesce(sum(delta), 0)::int as s from naty_movimientos_stock where producto_id = $1', [PROD]))[0].s
+const itemVenta = (cantidad, precio) => ({ producto_id: PROD, cantidad, unidad: 'docena', precio_cent: precio })
 
 beforeAll(async () => {
   servidor = await crearServidor()
@@ -38,13 +38,14 @@ beforeAll(async () => {
   const r = await admin.rpc('naty_guardar_producto', {
     p: {
       id: PROD, codigo: 'MN-001', nombre: 'Blusa', categoria: { id: CAT, nombre: 'BLUSAS', orden: 1 }, descripcion: 'x', precio_docena_usd_cent: 10000, nuevo: true, activo: true,
-      colores: [{ id: ROJO, nombre: 'Rojo', hex: '#c00', orden: 0 }, { id: AZUL, nombre: 'Azul', hex: '#00c', orden: 1 }],
+      colores: [{ id: ROJO, nombre: 'Rojo', hex: '#c00', orden: 0 }],
       fotos: [{ id: '40000000-0000-4000-8000-000000000001', orden: 0, ruta: 'MN-001/a.jpg' }],
     },
   })
   expect(r.error).toBeNull()
   const maria = clienteDe(servidor, U.maria.id)
-  for (const [i, color] of [ROJO, AZUL].entries()) {
+  // Uno con color y otro sin (los dos suman al producto).
+  for (const [i, color] of [ROJO, null].entries()) {
     const { error } = await maria.from('naty_movimientos_stock').upsert({ id: `50000000-0000-4000-8000-00000000000${i}`, producto_id: PROD, color_id: color, tipo: 'entrada', delta: 100, motivo: 'inicial', usuario_id: U.maria.id, creado_en: '2026-10-01T10:00:00Z' }, { onConflict: 'id', ignoreDuplicates: true })
     expect(error).toBeNull()
   }
@@ -59,9 +60,9 @@ describe('un dispositivo nuevo se llena con lo del servidor', () => {
     expect(r).toMatchObject({ perfiles: 5, categorias: 1, productos: 1, movimientos: 2 })
     const [p] = await productos.listar()
     expect(p).toMatchObject({ id: PROD, codigo: 'MN-001', precio_docena_usd_cent: 10000 })
-    expect(p.colores.map((c) => c.nombre)).toEqual(['Rojo', 'Azul'])
+    expect(p.colores.map((c) => c.nombre)).toEqual(['Rojo'])
     expect(p.fotos[0].ruta).toBe('https://prueba.supabase.co/storage/v1/object/public/naty_productos/MN-001/a.jpg')
-    expect(await stock.stockActual(PROD, ROJO)).toBe(100)
+    expect(await stock.stockDe(PROD)).toBe(200)
     expect((await config.obtener('tipo_cambio')).bs).toBe(6.96)
   })
 
@@ -70,22 +71,22 @@ describe('un dispositivo nuevo se llena con lo del servidor', () => {
     expect(r.ventas).toBe(0)
     expect(await db.productos.count()).toBe(1)
     expect(await db.movimientos_stock.count()).toBe(2)
-    expect(await db.producto_colores.count()).toBe(2)
+    expect(await db.producto_colores.count()).toBe(1)
   })
 })
 
 describe('una venta hecha en el dispositivo llega al servidor', () => {
   let venta
   it('se envía, descuenta stock en el servidor y queda sincronizada', async () => {
-    venta = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', cliente_nombre: 'Ana', items: [itemVenta(ROJO, 2, 10000), itemVenta(AZUL, 1, 10000)] })
+    venta = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', cliente_nombre: 'Ana', items: [itemVenta(2, 10000), itemVenta(1, 10000)] })
     expect(venta.numero).toBe('NV-AM-0001')
     expect((await pendientes()).length).toBe(1)
     const r = await enviar(U.ariel)
     expect(r).toEqual({ enviadas: 1, errores: 0 })
     expect(await pendientes()).toHaveLength(0)
     expect((await ventas.obtener(venta.id)).sync_status).toBe('synced')
-    expect(await stockServidor(ROJO)).toBe(100 - 24)
-    expect(await stockServidor(AZUL)).toBe(100 - 12)
+    expect(await stockServidor()).toBe(200 - 36)
+    expect(await q('select distinct color_id from naty_venta_items where venta_id = $1', [venta.id])).toEqual([{ color_id: ROJO }])
     const [v] = await q('select numero, total_cent::int as total, vendedor_id from naty_ventas where id = $1', [venta.id])
     expect(v).toEqual({ numero: 'NV-AM-0001', total: 30000, vendedor_id: U.ariel.id })
   })
@@ -96,12 +97,12 @@ describe('una venta hecha en el dispositivo llega al servidor', () => {
     await enviarRemoto(sb, item)
     await enviarRemoto(sb, item)
     expect((await q('select count(*)::int as c from naty_ventas'))[0].c).toBe(1)
-    expect(await stockServidor(ROJO)).toBe(100 - 24)
+    expect(await stockServidor()).toBe(200 - 36)
   })
 
   it('al bajar, las ventas propias y sus movimientos no se cuentan dos veces', async () => {
     await bajar(U.ariel)
-    expect(await stock.stockActual(PROD, ROJO)).toBe(100 - 24)
+    expect(await stock.stockDe(PROD)).toBe(200 - 36)
     expect(await db.ventas.count()).toBe(1)
     expect(await db.venta_items.count()).toBe(2)
   })
@@ -111,7 +112,7 @@ describe('lo que ve cada persona al bajar', () => {
   it('otro vendedor ve el stock descontado pero no la venta ajena', async () => {
     await dispositivoNuevo()
     await bajar(U.brayan)
-    expect(await stock.stockActual(PROD, ROJO)).toBe(76)
+    expect(await stock.stockDe(PROD)).toBe(164)
     expect(await db.ventas.count()).toBe(0)
   })
 
@@ -122,7 +123,7 @@ describe('lo que ve cada persona al bajar', () => {
       const [v] = await ventas.listar()
       expect(v).toMatchObject({ numero: 'NV-AM-0001', moneda: 'usd', total_cent: 30000, estado: 'activa', sync_status: 'synced' })
       expect(typeof v.tipo_cambio).toBe('number')
-      expect((await ventas.obtener(v.id)).items.map((i) => i.color_nombre).sort()).toEqual(['Azul', 'Rojo'])
+      expect((await ventas.obtener(v.id)).items.map((i) => i.color_nombre)).toEqual(['Rojo', 'Rojo'])
     }
   })
 })
@@ -134,7 +135,7 @@ describe('anular', () => {
     const [v] = await ventas.listar()
     await ventas.anular(v.id, { motivo: 'Error de carga', usuario_id: U.admin.id })
     expect(await enviar(U.admin)).toEqual({ enviadas: 1, errores: 0 })
-    expect(await stockServidor(ROJO)).toBe(100)
+    expect(await stockServidor()).toBe(200)
     const [fila] = await q('select estado, anulacion_motivo from naty_ventas where id = $1', [v.id])
     expect(fila).toEqual({ estado: 'anulada', anulacion_motivo: 'Error de carga' })
 
@@ -142,14 +143,14 @@ describe('anular', () => {
     await bajar(U.ariel)
     const [propia] = await ventas.listar()
     expect(propia.estado).toBe('anulada')
-    expect(await stock.stockActual(PROD, ROJO)).toBe(100)
+    expect(await stock.stockDe(PROD)).toBe(200)
   })
 
   it('un vendedor no puede anular: el servidor lo rechaza y la cola lo marca con problema', async () => {
     await dispositivoNuevo()
     await bajar(U.ariel)
     const [v] = await ventas.listar()
-    const nueva = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'bs', tipo_cambio: 6.96, metodo_pago: 'transferencia', items: [itemVenta(ROJO, 1, 69600)] })
+    const nueva = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'bs', tipo_cambio: 6.96, metodo_pago: 'transferencia', items: [itemVenta(1, 69600)] })
     await enviar(U.ariel)
     await ventas.anular(nueva.id, { motivo: 'quiero anularla', usuario_id: U.ariel.id })
     const r = await enviar(U.ariel)
@@ -178,26 +179,29 @@ describe('catálogo, stock y ajustes', () => {
     expect((await q('select nombre, precio_docena_usd_cent as precio from naty_productos where id = $1', [PROD]))[0]).toEqual({ nombre: 'Blusa renovada', precio: 11000 })
   })
 
-  it('quitar un color en el dispositivo lo marca eliminado en el servidor y desaparece al bajar', async () => {
+  it('cambiar el color por otro marca el anterior eliminado en el servidor; al bajar se ve solo el nuevo', async () => {
     const p = (await productos.listar())[0]
-    await productos.actualizar(p.id, { ...p, fotos: p.fotos.map((f) => ({ ruta: f.ruta })), colores: p.colores.filter((c) => c.nombre === 'Rojo').map(({ id, nombre, hex }) => ({ id, nombre, hex })) })
+    const antes = await stockServidor()
+    await productos.actualizar(p.id, { ...p, fotos: p.fotos.map((f) => ({ ruta: f.ruta })), colores: [{ nombre: 'Azul', hex: '#00c' }] })
     await enviar(U.maria)
-    expect((await q('select nombre, eliminado from naty_producto_colores where producto_id = $1 order by nombre', [PROD]))).toEqual([{ nombre: 'Azul', eliminado: true }, { nombre: 'Rojo', eliminado: false }])
+    expect((await q('select nombre, eliminado from naty_producto_colores where producto_id = $1 order by nombre', [PROD]))).toEqual([{ nombre: 'Azul', eliminado: false }, { nombre: 'Rojo', eliminado: true }])
     await dispositivoNuevo()
     await bajar(U.ariel)
-    expect((await productos.listar())[0].colores.map((c) => c.nombre)).toEqual(['Rojo'])
+    expect((await productos.listar())[0].colores.map((c) => c.nombre)).toEqual(['Azul'])
+    // El stock es del producto: cambiar el color no lo toca.
+    expect(await stock.stockDe(PROD)).toBe(antes)
   })
 
   it('un movimiento de stock manual se envía una sola vez aunque se reenvíe', async () => {
     await dispositivoNuevo()
     await bajar(U.maria)
-    const antes = await stockServidor(ROJO)
-    const m = await stock.registrarMovimiento({ producto_id: PROD, color_id: ROJO, tipo: 'entrada', delta: 36, motivo: 'reposición', usuario_id: U.maria.id })
+    const antes = await stockServidor()
+    const m = await stock.registrarMovimiento({ producto_id: PROD, tipo: 'entrada', delta: 36, motivo: 'reposición', usuario_id: U.maria.id })
     await enviar(U.maria)
     await enviarRemoto(clienteDe(servidor, U.maria.id), { entidad: 'movimiento', operacion: 'registrar', entidad_id: m.id })
-    expect(await stockServidor(ROJO)).toBe(antes + 36)
+    expect(await stockServidor()).toBe(antes + 36)
     await bajar(U.maria)
-    expect(await stock.stockActual(PROD, ROJO)).toBe(antes + 36)
+    expect(await stock.stockDe(PROD)).toBe(antes + 36)
   })
 
   it('un vendedor que edita el catálogo es rechazado por el servidor; el pedido queda con problema', async () => {
@@ -242,7 +246,7 @@ describe('contrato entre la app y la base', () => {
   it('lo que arma la app para registrar una venta es aceptado tal cual por la función SQL', async () => {
     await dispositivoNuevo()
     await bajar(U.brayan)
-    const v = await ventas.crear({ vendedor_id: U.brayan.id, moneda: 'ars', tipo_cambio: 1500, metodo_pago: 'efectivo', cliente_nombre: '', items: [itemVenta(ROJO, 3, 1_500_000)] })
+    const v = await ventas.crear({ vendedor_id: U.brayan.id, moneda: 'ars', tipo_cambio: 1500, metodo_pago: 'efectivo', cliente_nombre: '', items: [itemVenta(3, 1_500_000)] })
     expect(await enviar(U.brayan)).toEqual({ enviadas: 1, errores: 0 })
     const [fila] = await q('select numero, moneda, tipo_cambio::float as tc, total_cent::bigint::int as total from naty_ventas where id = $1', [v.id])
     expect(fila).toEqual({ numero: 'NV-BA-0001', moneda: 'ars', tc: 1500, total: 4_500_000 })

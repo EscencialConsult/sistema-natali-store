@@ -38,7 +38,7 @@ export default function TarjetaProductoAdmin({ producto: p, categoria, onEditar,
             {!p.activo && <Badge tono="neutro">De baja</Badge>}
           </span>
           <span className="truncate font-medium group-hover:text-tinta">{p.nombre}</span>
-          <span className="truncate text-xs text-texto-suave">{categoria ?? 'Sin categoría'} · {p.colores.length} colores · {p.fotos.length} fotos</span>
+          <span className="truncate text-xs text-texto-suave">{categoria ?? 'Sin categoría'} · {p.colores[0]?.nombre ?? 'Sin color'} · {p.fotos.length} fotos</span>
           <span className="text-sm font-semibold tabular-nums">{formatear(p.precio_docena_usd_cent, 'usd')} <span className="font-normal text-texto-suave">/ docena</span></span>
         </span>
       </Link>

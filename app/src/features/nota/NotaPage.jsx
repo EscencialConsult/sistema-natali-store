@@ -142,7 +142,7 @@ export default function NotaPage() {
 
       <Modal abierto={anulando} onCerrar={() => setAnulando(false)} titulo="¿Anular esta venta?">
         <form onSubmit={anular} noValidate className="flex flex-col gap-3">
-          <p className="text-sm text-texto-suave">La nota queda marcada como anulada (no se borra) y las prendas vuelven al inventario. Esto no se puede deshacer.</p>
+          <p className="text-sm text-texto-suave">La nota queda marcada como anulada (no se borra) y la mercadería vuelve al inventario. Esto no se puede deshacer.</p>
           <Input etiqueta="Motivo (obligatorio)" value={motivo} onChange={(e) => setMotivo(e.target.value)} error={errorAnular} autoFocus />
           <div className="flex gap-2">
             <Button type="submit" variante="peligro" cargando={enCurso} deshabilitado={!motivo.trim()}>Sí, anular</Button>
