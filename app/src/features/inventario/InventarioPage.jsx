@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { PackageSearch, PackageX, Shirt, TrendingDown, Upload } from 'lucide-react'
+import { PackagePlus, PackageSearch, PackageX, Shirt, TrendingDown, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, CampoBusqueda, Chip, Dato, Encabezado, EmptyState, ErrorState, Skeleton } from '../../components/ui/index.js'
 import ExportarExcel from '../../components/ExportarExcel.jsx'
@@ -8,6 +8,7 @@ import { etiquetaDe, nombreArchivo } from '../../lib/excel.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import Foto from '../catalogo/Foto.jsx'
+import { ModalImportarProductos } from '../catalogo/admin/ImportarProductos.jsx'
 import { libroInventario } from './exportarInventario.js'
 import MovimientoSheet from './MovimientoSheet.jsx'
 
@@ -21,6 +22,7 @@ export default function InventarioPage() {
   const [filtro, setFiltro] = useState('todos')
   const [abierto, setAbierto] = useState(null)
   const [visibles, setVisibles] = useState(TANDA)
+  const [importando, setImportando] = useState(false)
   const prods = useProductos()
   const stock = useStockResumen()
   const cfg = useConfig()
@@ -75,10 +77,12 @@ export default function InventarioPage() {
         acciones={
           <>
             <ExportarExcel titulo="Exportar inventario a Excel" campos={camposExportar} generar={generarExcel} deshabilitado={!prods.datos || !stock.datos} />
-            {puede(usuario.rol, 'stock.mover') && <Link to="/stock/importar"><Button variante="secundario" icono={Upload}>Cargar desde Excel</Button></Link>}
+            {puede(usuario.rol, 'stock.mover') && <Link to="/stock/importar"><Button variante="secundario" icono={Upload}>Cargar stock desde Excel</Button></Link>}
+            {puede(usuario.rol, 'catalogo.editar') && <Button variante="secundario" icono={PackagePlus} onClick={() => setImportando(true)}>Carga de productos</Button>}
           </>
         }
       />
+      <ModalImportarProductos abierto={importando} onCerrar={() => setImportando(false)} />
 
       {cargando && <Skeleton className="h-64" />}
       {error && <ErrorState mensaje="No pudimos cargar el inventario." onReintentar={() => { prods.reintentar(); stock.reintentar(); cfg.reintentar() }} />}

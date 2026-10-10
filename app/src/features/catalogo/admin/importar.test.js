@@ -26,6 +26,13 @@ describe('plantilla y lectura de Excel', () => {
     expect(await productos.listar({ soloActivos: false })).toHaveLength(CANTIDAD_PRODUCTOS)
   }, 120_000)
 
+  it('la planilla de ejemplo se lee sin errores: sus 3 filas serían productos nuevos', async () => {
+    const filas = await leerExcel(await (await crearPlantilla()).arrayBuffer())
+    const plan = planificar(filas, new Map())
+    expect(plan.map((p) => [p.accion, p.datos.codigo])).toEqual([['crear', 'MN-001'], ['crear', 'MN-002'], ['crear', 'MN-003']])
+    expect(plan[1].datos.precio_docena_usd_cent).toBe(15050)
+  })
+
   it('pide la plantilla si faltan columnas', async () => {
     const { default: ExcelJS } = await import('exceljs')
     const wb = new ExcelJS.Workbook()

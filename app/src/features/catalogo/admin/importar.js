@@ -25,7 +25,24 @@ function textoCelda(v) {
   return String(v)
 }
 
-export async function crearPlantilla(ejemplos = []) {
+// Filas de ejemplo de la plantilla (genéricas: se reemplazan por los productos reales).
+export const EJEMPLOS = [
+  { codigo: 'MN-001', nombre: 'Blusa de lino manga corta', categoria: 'BLUSAS Y CAMISAS', precio: 120, colores: 'Negro, Blanco, Rojo' },
+  { codigo: 'MN-002', nombre: 'Pantalón palazzo', categoria: 'PANTALONES', precio: 150.5, colores: 'Beige, Azul marino' },
+  { codigo: 'MN-003', nombre: 'Vestido largo estampado', categoria: 'VESTIDOS', precio: 210, colores: 'Verde' },
+]
+
+// Qué va en cada columna (hoja "Cómo llenarla" y modal de carga).
+export const AYUDA_COLUMNAS = [
+  ['codigo', 'Obligatorio. Único por producto (ej. MN-001). Si ya existe, el producto se actualiza.'],
+  ['nombre', 'Obligatorio.'],
+  ['categoria', 'Si no existe, se crea.'],
+  ['precio_docena_usd', 'Obligatorio. Precio por docena en dólares (ej. 120 o 150,50).'],
+  ['colores', 'Separados por coma (ej. Negro, Blanco, Rojo).'],
+]
+
+// filas: por defecto, los ejemplos genéricos.
+export async function crearPlantilla(filas = EJEMPLOS) {
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Productos')
@@ -37,10 +54,13 @@ export async function crearPlantilla(ejemplos = []) {
     { header: 'colores', key: 'colores', width: 50 },
   ]
   ws.getRow(1).font = { bold: true }
-  const filas = ejemplos.length
-    ? ejemplos
-    : [{ codigo: 'MN-001', nombre: 'Blusa de ejemplo', categoria: 'BLUSAS Y CAMISAS', precio: 120, colores: 'Negro, Blanco, Rojo' }]
   filas.forEach((f) => ws.addRow(f))
+  const ayuda = wb.addWorksheet('Cómo llenarla')
+  ayuda.columns = [{ header: 'Columna', width: 20 }, { header: 'Qué va', width: 80 }]
+  ayuda.getRow(1).font = { bold: true }
+  AYUDA_COLUMNAS.forEach((f) => ayuda.addRow(f))
+  ayuda.addRow([])
+  ayuda.addRow(['', 'Reemplazá las filas de ejemplo de la hoja "Productos" por tus productos (una fila por producto) y subí el archivo.'])
   return new Blob([await wb.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
