@@ -8,14 +8,14 @@ Registro de lo que llegó por WhatsApp y dónde quedó. **No incluye datos banca
 |---|---|
 | Datos de transferencia: titular, CUIT o CUIL, alias, CBU y número de cuenta | Recibidos. Guardados fuera del repo. Falta el **banco** |
 | Dos locales con dirección | Recibidos |
-| Horario de cada local | Recibidos. **Falta confirmar los días** |
+| Horario de cada local | Recibidos. **Días confirmados: lunes a sábado en los dos** |
 
 ### Locales (datos públicos)
 
 | Local | Dirección | Horario |
 |---|---|---|
-| Local 27 de Mayo | Calle sin nombre, esquina Colorados | 6:00 a 12:00 y 14:00 a 16:00 |
-| Local Chalanitas | Calle 23 de Marzo, esquina Colorados | 6:00 a 13:00 y 14:00 a 17:00 |
+| Local 27 de Mayo | Calle sin nombre, esquina Colorados | Lunes a sábado: 6:00 a 12:00 y 14:00 a 16:00 |
+| Local Chalanitas | Calle 23 de Marzo, esquina Colorados | Lunes a sábado: 6:00 a 13:00 y 14:00 a 17:00 |
 
 ## Respuestas del 15/10 (19:44 a 19:50)
 
@@ -41,11 +41,10 @@ Registro de lo que llegó por WhatsApp y dónde quedó. **No incluye datos banca
 
 | Dato | Para qué |
 |---|---|
-| Días de atención | Se toma **lunes a sábado en los dos locales**, cada uno con su horario. Confirmar |
 | Enlace de Google Maps de cada local | Los tiene Facundo: cargarlos |
 | Contactos de vendedores y encargadas | Se toman de **naty_perfiles** al publicar (nombre y teléfono). Esos teléfonos ya salen impresos en la nota. Confirmar con Natali cuáles aparecen |
 | WhatsApp principal | Será el de las encargadas de tienda. La tienda usa el primero de la lista de contactos si no hay uno cargado |
-| Activar "Mostrar precios en el catálogo público" | La clienta lo quiere visible. Hoy está en falso en el sistema; lo activa la administración en Ajustes |
+| Activar "Mostrar precios en el catálogo público" | **Confirmado: se muestran.** Hoy está en falso en el sistema; lo activa la administración en Ajustes al publicar |
 | Textos de "Cómo comprar" con sus palabras | Si no, se usan los pasos por defecto |
 
-Resuelto el 15/10: banco (Brubank), moneda de transferencia (pesos argentinos), quién actualiza la cuenta (superadmin), y no hace falta "cómo llegar a pie".
+Resuelto el 15/10: banco (Brubank), moneda de transferencia (pesos argentinos), quién actualiza la cuenta (superadmin), días de atención (lunes a sábado en los dos locales), que los precios se muestran, y no hace falta "cómo llegar a pie".
