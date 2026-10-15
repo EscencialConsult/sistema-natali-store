@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MessageCircle, ServerCrash } from 'lucide-react'
+import { MessageCircle, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
 import { useAjustes } from './data/catalogo.js'
+import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
-import { BASE_TIENDA } from './rutas.js'
+import { BASE_TIENDA, RUTA_PEDIDO } from './rutas.js'
 import CatalogoPage from './CatalogoPage.jsx'
+import PedidoPage from './PedidoPage.jsx'
 import ProductoPage from './ProductoPage.jsx'
 
 function Marco({ children }) {
@@ -14,6 +16,7 @@ function Marco({ children }) {
   const ajustes = a.datos
   const nombre = ajustes?.negocio_nombre || 'Modas Naty'
   const wa = enlaceWhatsApp(ajustes?.whatsapp_tienda)
+  const cantidadModelos = useCarrito().lineas.length
 
   useEffect(() => {
     document.title = `Catálogo mayorista · ${nombre}`
@@ -30,11 +33,17 @@ function Marco({ children }) {
             <Link to={BASE_TIENDA} aria-label={`${nombre}: ir al catálogo`} className="inline-flex items-center">
               <img src="/brand/isotipo.png" width="240" height="134" alt={nombre} className="h-9 w-auto" />
             </Link>
-            {wa && (
-              <a href={wa} rel="noopener noreferrer" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-pildora bg-whatsapp px-4 text-sm font-medium text-sobre-tinta shadow-boton hover:brightness-95">
-                <MessageCircle size={18} strokeWidth={1.75} aria-hidden /> Consultar
-              </a>
-            )}
+            <div className="flex items-center gap-2">
+              <Link to={RUTA_PEDIDO} className="relative inline-flex min-h-11 items-center gap-2 rounded-pildora bg-superficie px-4 text-sm font-medium">
+                <ShoppingBag size={18} strokeWidth={1.75} aria-hidden /> Mi pedido
+                {cantidadModelos > 0 && <span className="rounded-full bg-tinta px-2 text-xs text-sobre-tinta" aria-label={`${cantidadModelos} modelos`}>{cantidadModelos}</span>}
+              </Link>
+              {wa && (
+                <a href={wa} rel="noopener noreferrer" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-pildora bg-whatsapp px-4 text-sm font-medium text-sobre-tinta shadow-boton hover:brightness-95">
+                  <MessageCircle size={18} strokeWidth={1.75} aria-hidden /> Consultar
+                </a>
+              )}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 md:px-8 md:pt-12">{children}</main>
@@ -61,6 +70,7 @@ export default function TiendaApp() {
       <Routes>
         <Route path={BASE_TIENDA} element={<CatalogoPage />} />
         <Route path={`${BASE_TIENDA}/p/:id`} element={<ProductoPage />} />
+        <Route path={RUTA_PEDIDO} element={<PedidoPage />} />
         <Route path={`${BASE_TIENDA}/*`} element={<Navigate to={BASE_TIENDA} replace />} />
       </Routes>
     </Marco>

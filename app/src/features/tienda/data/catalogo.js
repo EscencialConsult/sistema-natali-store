@@ -29,6 +29,21 @@ export async function pedirProducto(id) {
   return data
 }
 
+// Los productos del carrito, con el precio y la publicación VIGENTES (lo que no vuelve ya no está disponible).
+export async function pedirProductos(ids) {
+  if (!ids.length) return []
+  const { data, error } = await (await cliente()).from('tienda_catalogo_publico').select(COLUMNAS).in('id', ids.slice(0, 200))
+  if (error) throw error
+  return data
+}
+
+// Configuración editable de la tienda: la base solo devuelve las claves marcadas públicas.
+export async function pedirConfig() {
+  const { data, error } = await (await cliente()).from('tienda_config').select('clave,valor')
+  if (error) throw error
+  return Object.fromEntries(data.map((f) => [f.clave, f.valor]))
+}
+
 export async function pedirAjustes() {
   const { data, error } = await (await cliente()).from('tienda_ajustes_publicos').select('*').maybeSingle()
   if (error) throw error
@@ -65,6 +80,24 @@ function useConCache(clave, pedir) {
 }
 
 export const useAjustes = () => useConCache('ajustes', pedirAjustes)
+export const useConfigTienda = () => useConCache('config', pedirConfig)
+
+// Productos del carrito al día. `listo` es falso mientras se consulta o si la consulta falló (no se confía en datos viejos).
+export function useVigentes(ids) {
+  const clave = [...ids].sort().join(',')
+  const [estado, setEstado] = useState({ clave: null, mapa: new Map(), error: null })
+  useEffect(() => {
+    let vigente = true
+    pedirProductos(clave ? clave.split(',') : [])
+      .then((filas) => vigente && setEstado({ clave, mapa: new Map(filas.map((f) => [f.id, f])), error: null }))
+      .catch((error) => vigente && setEstado({ clave, mapa: new Map(), error }))
+    return () => {
+      vigente = false
+    }
+  }, [clave])
+  const listo = estado.clave === clave && !estado.error
+  return { vigentes: estado.mapa, listo, cargando: estado.clave !== clave, error: estado.clave === clave ? estado.error : null }
+}
 export const useCategorias = () => useConCache('categorias', pedirCategorias)
 
 // El estado guarda para QUÉ pedido es (id): si no coincide con el actual, se considera "cargando" sin tocar estado en el efecto.

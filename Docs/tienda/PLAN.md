@@ -126,18 +126,22 @@ Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total
 Criterio: un navegador limpio carga `/tienda` sin tocar la base local de Renzo (cumplido por construcción), y el precio coincide con la nota (cumplido en pruebas; falta verlo en pantalla con datos reales).
 
 ## Etapa E3 · Pedido y contacto con el vendedor (8 h)
-- [ ] E3.1 Carrito propio en `localStorage` con versión (nada de tablas Dexie de Renzo).
-- [ ] E3.2 Reconciliación: al abrir el carrito se resuelven los IDs contra el catálogo vigente; si un producto desapareció o cambió el precio, se avisa y se pide revisar.
-- [ ] E3.3 Pantalla "Tu pedido": líneas, totales en las tres monedas o "a consultar", aviso "el precio final lo confirma tu vendedor".
-- [ ] E3.4 Selector "¿Con qué vendedor hablás?" desde `tienda_config` (D7). Verifica que el contacto siga publicado.
-- [ ] E3.5 Pago: Transferencia (datos y botón copiar) o Efectivo en el local.
-- [ ] E3.6 Entrega: retiro en uno de los dos locales o recibir, "a coordinar con tu vendedor".
-- [ ] E3.7 Botón "Enviar por WhatsApp" y "Copiar pedido" (D14).
-- [ ] E3.8 Texto posterior: "Mandá el comprobante al mismo vendedor". Aclarar que enviar no reserva ni confirma.
-- [ ] E3.9 Sin conexión: se pueden ver cantidades sin importe y se indica que no hay confirmación.
-- [ ] E3.10 Tests: texto armado con tildes, emojis y 40 líneas, contacto sin teléfono, teléfono mal formado.
+Estado 15/10: **hecha en código y verificada** (17 pruebas nuevas, 172 en total, lint limpio, build OK, el chunk de la tienda pasó a 31 kB). Igual que E2, falta verla en un navegador con datos reales, que depende de aplicar el esquema (E9).
 
-Criterio: un pedido de ejemplo llega por WhatsApp completo, correcto y sin escribir nada en la base.
+- [x] E3.1 (15/10) Carrito propio en `localStorage` con versión y clave propia, compartido entre pestañas. Nada de tablas Dexie de Renzo. Un almacenamiento roto da un carrito vacío.
+- [x] E3.2 (15/10) Reconciliación: al abrir "Mi pedido" se consultan los productos vigentes. Un modelo que ya no está bloquea el envío, y si cambió el precio se avisa.
+- [x] E3.3 (15/10) "Tu pedido": líneas con cantidad en pasos de media docena, total en la moneda elegida o "a confirmar". El total solo existe si TODAS las líneas tienen precio vigente.
+- [x] E3.4 (15/10) Selector de vendedor desde `tienda_config.contactos`, validado. Si no hay lista cae en `whatsapp_tienda`. Con más de un vendedor hay que elegir uno.
+- [x] E3.5 (15/10) Pago: transferencia (banco, titular, cuenta, alias, con botón copiar) o efectivo en el local. Si falta la configuración dice "pedile los datos a tu vendedor".
+- [x] E3.6 (15/10) Entrega: retiro (con elección de local si hay más de uno) o recibir, siempre "a coordinar".
+- [x] E3.7 (15/10) "Enviar por WhatsApp" y "Copiar pedido completo". **Nunca se recorta**: si no entra en el enlace, sale un mensaje breve y la persona pega el detalle completo.
+- [x] E3.8 (15/10) Aclaración visible: enviar no reserva ni cobra, y después de transferir se manda el comprobante al mismo vendedor.
+- [x] E3.9 (15/10) Sin conexión: se conservan las cantidades y los importes quedan "a confirmar", sin usar precios viejos como vigentes.
+- [x] E3.10 (15/10) Pruebas: almacenamiento manipulado, duplicados, máximo, producto que desaparece, precio oculto, cambio de precio, tasa inválida, texto con tildes, pedido de 40 modelos, teléfono inválido.
+
+**Para que funcione con datos reales** hace falta que alguien cargue en `tienda_config` (claves públicas): `contactos` (lista de nombre y teléfono), `transferencia` (banco, titular, cuenta, alias, nota) y `locales` (lista de nombre). Eso lo hace la pantalla de edición de E4.
+
+Criterio: un pedido de ejemplo sale por WhatsApp con todos los datos correctos y sin escribir nada en la base (cumplido en pruebas).
 
 ## Etapa E4 · Información del negocio y edición (5 h)
 - [ ] E4.1 "Cómo comprar" desde `tienda_config`.

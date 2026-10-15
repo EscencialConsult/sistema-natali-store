@@ -3,16 +3,20 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, MessageCircle, SearchX, WifiOff } from 'lucide-react'
 import { EmptyState, Skeleton } from '../../components/ui/index.js'
 import { useProducto } from './data/catalogo.js'
+import { guardarCarrito, useCarrito } from './data/carritoStore.js'
 import { supabaseUrl } from './data/clientePublico.js'
 import { enlaceWhatsApp, useAjustesTienda } from './contexto.js'
+import { agregarLinea } from './lib/carrito.js'
 import { fotosDe } from './lib/fotos.js'
-import { BASE_TIENDA } from './rutas.js'
+import { BASE_TIENDA, RUTA_PEDIDO } from './rutas.js'
 import PrecioBloque from './PrecioBloque.jsx'
 
 export default function ProductoPage() {
   const { id } = useParams()
   const { producto, cargando, error } = useProducto(id)
   const { ajustes } = useAjustesTienda()
+  const carrito = useCarrito()
+  const [agregado, setAgregado] = useState(null)
   // La foto elegida es de un producto concreto: al cambiar de producto vuelve a la primera sin tocar estado en un efecto.
   const [eleccion, setEleccion] = useState({ id, i: 0 })
   const actual = eleccion.id === id ? eleccion.i : 0
@@ -68,6 +72,26 @@ export default function ProductoPage() {
           {producto.descripcion && <p className="whitespace-pre-line text-texto-suave">{producto.descripcion}</p>}
           <PrecioBloque producto={producto} ajustes={ajustes} />
           <p className="text-sm text-texto-suave">Se vende por docena o media docena.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            {[0.5, 1].map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  guardarCarrito(agregarLinea(carrito, producto, c))
+                  setAgregado(c)
+                }}
+                className="inline-flex min-h-12 items-center justify-center rounded-pildora bg-tinta px-5 text-sm font-medium text-sobre-tinta"
+              >
+                Agregar {c === 1 ? '1 docena' : 'media docena'}
+              </button>
+            ))}
+          </div>
+          {agregado !== null && (
+            <p role="status" className="text-sm">
+              Agregado al pedido. <Link to={RUTA_PEDIDO} className="font-medium underline">Ver mi pedido</Link>
+            </p>
+          )}
           {wa && (
             <a href={wa} rel="noopener noreferrer" target="_blank" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-pildora bg-whatsapp px-6 font-medium text-sobre-tinta shadow-boton hover:brightness-95">
               <MessageCircle size={18} strokeWidth={1.75} aria-hidden /> Consultar por WhatsApp
