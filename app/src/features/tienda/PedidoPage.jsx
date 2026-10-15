@@ -8,7 +8,7 @@ import { useConfigTienda, useVigentes } from './data/catalogo.js'
 import { guardarCarrito, useCarrito } from './data/carritoStore.js'
 import { useAjustesTienda } from './contexto.js'
 import { cambiarCantidad, quitarLinea } from './lib/carrito.js'
-import { validarContactos, validarLocales, validarTransferencia } from './lib/configTienda.js'
+import { aliasAConfirmar, formatearCuit, validarContactos, validarLocales, validarTransferencia } from './lib/configTienda.js'
 import { armarEnvio, detallePedido } from './lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
 import { soloDigitos } from './lib/whatsapp.js'
@@ -178,17 +178,29 @@ export default function PedidoPage() {
         <section aria-label="Datos de transferencia" className="flex flex-col gap-2 rounded-2xl bg-superficie p-4 text-sm">
           {transferencia ? (
             <>
-              {[['Banco', transferencia.banco], ['Titular', transferencia.titular], ['Cuenta', transferencia.cuenta], ['Alias', transferencia.alias]]
+              {[
+                ['Titular', transferencia.titular, false],
+                ['CUIT/CUIL', formatearCuit(transferencia.cuit), false],
+                ['Banco', transferencia.banco, false],
+                ['CBU', transferencia.cbu, true],
+                ['Alias', transferencia.alias, true],
+                ['Cuenta', transferencia.cuenta, true],
+              ]
                 .filter(([, v]) => v)
-                .map(([k, v]) => (
+                .map(([k, v, copiable]) => (
                   <div key={k} className="flex items-center justify-between gap-3">
-                    <span><span className="text-texto-suave">{k}: </span><span className="font-medium">{v}</span></span>
-                    {(k === 'Cuenta' || k === 'Alias') && (
-                      <button type="button" onClick={() => copiar(v)} aria-label={`Copiar ${k}`} className="inline-flex size-11 items-center justify-center rounded-full bg-fondo"><Copy size={16} aria-hidden /></button>
+                    <span className="min-w-0 break-words"><span className="text-texto-suave">{k}: </span><span className="font-medium">{v}</span></span>
+                    {copiable && (
+                      <button type="button" onClick={() => copiar(v)} aria-label={`Copiar ${k}`} className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-fondo"><Copy size={16} aria-hidden /></button>
                     )}
                   </div>
                 ))}
               {transferencia.nota && <p className="text-texto-suave">{transferencia.nota}</p>}
+              {transferencia.alias && aliasAConfirmar(transferencia.actualizado_en) && (
+                <p role="note" className="rounded-xl bg-fondo p-3 font-medium">
+                  El alias cambia cada tanto: antes de transferir, confirmalo con tu vendedor.
+                </p>
+              )}
             </>
           ) : (
             <p>Pedile los datos de transferencia a tu vendedor.</p>

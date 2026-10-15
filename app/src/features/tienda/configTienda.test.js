@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_CONTACTOS, PASOS_POR_DEFECTO, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from './lib/configTienda.js'
+import { aliasAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from './lib/configTienda.js'
 
 describe('urlMapaSegura', () => {
   it('acepta enlaces https de Google Maps', () => {
@@ -81,6 +81,56 @@ describe('validarTransferencia', () => {
   })
 })
 
+describe('transferencia con CBU y CUIT', () => {
+  const COMPLETA = { titular: 'Titular de Prueba', cuit: '20-12345678-6', cbu: '0140000000000000000001', alias: 'alias.prueba', cuenta: '0000000000001' }
+
+  it('acepta los datos completos y normaliza CUIT y CBU a dígitos', () => {
+    const r = validarTransferencia({ ...COMPLETA, cbu: '0140000 0000000 0000 0001', actualizado_en: '2026-10-15T12:00:00Z' })
+    expect(r.errores).toEqual([])
+    expect(r.valor).toMatchObject({ titular: 'Titular de Prueba', cuit: '20123456786', cbu: '0140000000000000000001', alias: 'alias.prueba', cuenta: '0000000000001' })
+    expect(r.valor.actualizado_en).toBe('2026-10-15T12:00:00.000Z')
+    expect(formatearCuit(r.valor.cuit)).toBe('20-12345678-6')
+  })
+
+  it('un CBU o CUIT con la cantidad de números equivocada es un error y no se conserva', () => {
+    const r = validarTransferencia({ ...COMPLETA, cbu: '12345', cuit: '2028' })
+    expect(r.errores).toEqual(['El CBU tiene 22 números.', 'El CUIT o CUIL tiene 11 números.'])
+    expect(r.valor.cbu).toBe('')
+    expect(r.valor.cuit).toBe('')
+  })
+
+  it('alcanza con CBU, cuenta o alias', () => {
+    expect(validarTransferencia({ titular: 'X', cbu: '0140000000000000000001' }).errores).toEqual([])
+    expect(validarTransferencia({ titular: 'X' }).errores).toHaveLength(1)
+  })
+
+  it('una fecha inválida se descarta y una fecha sola no cuenta como dato', () => {
+    expect(validarTransferencia({ alias: 'a.b', actualizado_en: 'mañana' }).valor.actualizado_en).toBe('')
+    expect(validarTransferencia({ actualizado_en: '2026-10-15T00:00:00Z' }).valor).toBeNull()
+  })
+})
+
+describe('alias que se cambia cada 2 meses', () => {
+  const hoy = Date.parse('2026-10-15T12:00:00Z')
+  const hace = (d) => new Date(hoy - d * 86400000).toISOString()
+
+  it('vigente hasta 60 días; después, o sin fecha, queda "a confirmar"', () => {
+    expect(DIAS_ALIAS_VIGENTE).toBe(60)
+    expect(aliasAConfirmar(hace(0), hoy)).toBe(false)
+    expect(aliasAConfirmar(hace(60), hoy)).toBe(false)
+    expect(aliasAConfirmar(hace(61), hoy)).toBe(true)
+    expect(aliasAConfirmar('', hoy)).toBe(true)
+    expect(aliasAConfirmar(undefined, hoy)).toBe(true)
+    expect(aliasAConfirmar('no es fecha', hoy)).toBe(true)
+  })
+
+  it('diasDesde tolera entradas raras y nunca da negativo', () => {
+    expect(diasDesde(hace(10), hoy)).toBe(10)
+    expect(diasDesde(new Date(hoy + 5 * 86400000).toISOString(), hoy)).toBe(0)
+    expect(diasDesde(null, hoy)).toBeNull()
+  })
+})
+
 describe('validarLocales', () => {
   it('conserva solo mapas seguros y avisa del resto', () => {
     const ok = validarLocales([{ nombre: 'Centro', direccion: 'Calle 1', indicaciones: 'Pasando la chalana', mapa: 'https://maps.app.goo.gl/x' }])
@@ -93,6 +143,15 @@ describe('validarLocales', () => {
   })
   it('al LEER tampoco deja pasar un enlace peligroso guardado a mano en la base', () => {
     expect(validarLocales([{ nombre: 'X', mapa: 'https://evil.com/maps/x' }]).valor[0].mapa).toBe('')
+  })
+  it('conserva el horario propio de cada local', () => {
+    const r = validarLocales([
+      { nombre: 'Local 27 de Mayo', direccion: 'Esquina Colorados', horario: '6:00 a 12:00 y 14:00 a 16:00' },
+      { nombre: 'Local Chalanitas', direccion: 'Calle 23 de Marzo', horario: 'x'.repeat(500) },
+    ])
+    expect(r.errores).toEqual([])
+    expect(r.valor[0].horario).toBe('6:00 a 12:00 y 14:00 a 16:00')
+    expect(r.valor[1].horario).toHaveLength(160)
   })
   it('un local sin nombre no se acepta', () => {
     const r = validarLocales([{ direccion: 'Calle 2' }])

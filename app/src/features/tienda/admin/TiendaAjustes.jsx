@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input, useToast } from '../../../components/ui/index.js'
 import { obtenerSupabase } from '../../../data/supabase.js'
-import { validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { DIAS_AVISO_EN_AJUSTES, diasDesde, formatearCuit, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
 
 const sinTabla = (e) => e?.code === '42P01' || e?.code === 'PGRST205' || /tienda_config/.test(e?.message ?? '') && /does not exist|schema cache/i.test(e?.message ?? '')
 
@@ -109,7 +109,9 @@ function Contactos({ config, soloLectura }) {
 
 function Transferencia({ config, soloLectura }) {
   const t = validarTransferencia(config.transferencia).valor ?? {}
-  const [v, setV] = useState({ banco: t.banco ?? '', titular: t.titular ?? '', cuenta: t.cuenta ?? '', alias: t.alias ?? '', nota: t.nota ?? '' })
+  const [v, setV] = useState({ banco: t.banco ?? '', titular: t.titular ?? '', cuit: t.cuit ?? '', cbu: t.cbu ?? '', cuenta: t.cuenta ?? '', alias: t.alias ?? '', nota: t.nota ?? '' })
+  const dias = diasDesde(t.actualizado_en)
+  const viejo = t.alias && (dias === null || dias >= DIAS_AVISO_EN_AJUSTES)
   const cambiar = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.value }))
   return (
     <Tarjeta
@@ -119,15 +121,23 @@ function Transferencia({ config, soloLectura }) {
       onGuardar={async () => {
         const { valor, errores } = validarTransferencia(v)
         if (errores.length) return errores
-        await guardarClave('transferencia', valor ?? {})
+        // La fecha de guardado le permite a la tienda avisar cuando el alias lleva mucho sin revisarse.
+        await guardarClave('transferencia', valor ? { ...valor, actualizado_en: new Date().toISOString() } : {})
         return []
       }}
     >
+      {viejo && (
+        <p role="note" className="rounded-control bg-alerta-fondo p-3 text-sm text-alerta">
+          El alias se cambia cada 2 meses y hace {dias === null ? 'mucho' : `${dias} días`} que no se revisa. Confirmá que siga vigente y guardá de nuevo.
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Input etiqueta="Banco" value={v.banco} onChange={cambiar('banco')} maxLength={60} />
         <Input etiqueta="Titular" value={v.titular} onChange={cambiar('titular')} maxLength={80} />
+        <Input etiqueta="CUIT o CUIL" inputMode="numeric" value={v.cuit} onChange={cambiar('cuit')} maxLength={16} ayuda={v.cuit.replace(/\D/g, '').length === 11 ? formatearCuit(v.cuit.replace(/\D/g, '')) : '11 números'} />
+        <Input etiqueta="Banco" value={v.banco} onChange={cambiar('banco')} maxLength={60} />
+        <Input etiqueta="CBU" inputMode="numeric" value={v.cbu} onChange={cambiar('cbu')} maxLength={30} ayuda="22 números" />
+        <Input etiqueta="Alias (cambia cada 2 meses)" value={v.alias} onChange={cambiar('alias')} maxLength={60} />
         <Input etiqueta="Número de cuenta" value={v.cuenta} onChange={cambiar('cuenta')} maxLength={60} />
-        <Input etiqueta="Alias" value={v.alias} onChange={cambiar('alias')} maxLength={60} />
       </div>
       <Input etiqueta="Nota (opcional)" value={v.nota} onChange={cambiar('nota')} maxLength={300} ayuda="Ej.: indicá tu nombre y el modelo en el comprobante." />
     </Tarjeta>
@@ -137,7 +147,7 @@ function Transferencia({ config, soloLectura }) {
 function LocalesYTextos({ config, soloLectura }) {
   const [locales, setLocales] = useState(() => {
     const v = validarLocales(config.locales).valor
-    return v.length ? v : [{ nombre: '', direccion: '', indicaciones: '', mapa: '' }]
+    return v.length ? v : [{ nombre: '', direccion: '', indicaciones: '', horario: '', mapa: '' }]
   })
   const [horarios, setHorarios] = useState(() => validarHorarios(config.horarios).valor.join('\n'))
   const [pasos, setPasos] = useState(() => validarComoComprar(config.como_comprar).valor.join('\n'))
@@ -158,11 +168,12 @@ function LocalesYTextos({ config, soloLectura }) {
         return []
       }}
     >
-      <Filas filas={locales} setFilas={setLocales} nueva={() => ({ nombre: '', direccion: '', indicaciones: '', mapa: '' })} max={6} etiquetaAgregar="Agregar local">
+      <Filas filas={locales} setFilas={setLocales} nueva={() => ({ nombre: '', direccion: '', indicaciones: '', horario: '', mapa: '' })} max={6} etiquetaAgregar="Agregar local">
         {(f, set) => (
           <>
             <Input etiqueta="Nombre del local" value={f.nombre} onChange={(e) => set('nombre', e.target.value)} maxLength={60} />
             <Input etiqueta="Dirección" value={f.direccion} onChange={(e) => set('direccion', e.target.value)} maxLength={160} />
+            <Input etiqueta="Horario de este local" value={f.horario ?? ''} onChange={(e) => set('horario', e.target.value)} maxLength={160} placeholder="6:00 a 12:00 y 14:00 a 16:00" ayuda="Si el local tiene un horario distinto del general." />
             <Input etiqueta="Cómo llegar (opcional)" value={f.indicaciones} onChange={(e) => set('indicaciones', e.target.value)} maxLength={300} ayuda="Ej.: pasando la chalana, caminá derecho hasta la esquina." />
             <Input etiqueta="Enlace de Google Maps (opcional)" inputMode="url" value={f.mapa} onChange={(e) => set('mapa', e.target.value)} maxLength={500} placeholder="https://maps.app.goo.gl/…" />
           </>

@@ -9,7 +9,7 @@ Mandanos estos datos por WhatsApp. Sin ellos la tienda sale, pero con partes vac
 
 | Dato | Para qué sirve |
 |---|---|
-| Banco, nombre del titular, número de cuenta y alias | Que la clienta sepa a dónde transferir |
+| Titular, CUIT o CUIL, banco, CBU, alias y número de cuenta | Que la clienta sepa a dónde transferir. **Ya llegaron**, falta el banco |
 | Nombre y WhatsApp de cada vendedor y de las encargadas | Que la clienta elija con quién hablar. **Cada persona tiene que estar de acuerdo en que su número se publique** |
 | Dirección de los dos locales | La clienta ve dónde estás |
 | Horarios (por ejemplo, lunes a sábado de tal hora a tal hora) | Idem |
@@ -26,10 +26,25 @@ Entrá a **Ajustes**. Vas a encontrar estas tarjetas:
 1. **Catálogo y código QR**: la dirección de la tienda (`https://modas-naty.netlify.app/`), el WhatsApp de la tienda y la casilla "Mostrar precios en el catálogo público". Esa dirección es la que sale como QR en cada nota.
 2. **Tienda online · vendedores y contactos**: nombre y WhatsApp, con código de país y solo números (por ejemplo `59171234567`).
 3. **Tienda online · datos de transferencia**: banco, titular, cuenta y alias.
-4. **Tienda online · locales, horarios y «Cómo comprar»**: dirección, cómo llegar y el enlace de Google Maps de cada local.
+4. **Tienda online · locales, horarios y «Cómo comprar»**: cada local con su dirección, su horario, cómo llegar y el enlace de Google Maps. Hay un campo de horario general por si alguna vez hace falta.
 5. **Tienda online · modelos visibles**: tildá o destildá cada modelo para que se vea o no en la tienda.
 
 Cada tarjeta tiene su botón **Guardar**. Los cambios se ven en la tienda enseguida.
+
+## El alias cambia cada 2 meses
+
+La cuenta de transferencia cambia de alias cada dos meses. Cada vez que cambie:
+
+1. Entrá a **Ajustes** y buscá la tarjeta **Tienda online · datos de transferencia**.
+2. Escribí el alias nuevo en el campo **Alias**.
+3. Tocá **Guardar**.
+
+Para que no se pase por alto, el sistema te ayuda de dos formas:
+
+- A los 50 días de la última vez que lo guardaste, la tarjeta te muestra un aviso para que lo revises.
+- Si pasan 60 días, la tienda le dice a la clienta "el alias cambia cada tanto: confirmalo con tu vendedor antes de transferir".
+
+El CBU y el CUIT no suelen cambiar, así que la clienta siempre los tiene como respaldo.
 
 ## Preguntas que van a surgir
 
@@ -46,7 +61,7 @@ Deja de verse en la tienda. Sigue en tu inventario y en las notas de venta. Lo p
 Cuando cambiás el tipo de cambio en Ajustes. Los precios se guardan en dólares.
 
 **¿La clienta compra y paga desde la tienda?**
-No. Arma su pedido y se lo manda al vendedor por WhatsApp con todo el detalle. El vendedor confirma disponibilidad y precio final, y la clienta transfiere. Enviar el pedido no reserva ni cobra nada.
+No. Arma su pedido y se lo manda al vendedor por WhatsApp con todo el detalle. El vendedor confirma disponibilidad y precio final, y la clienta transfiere o paga en efectivo en el local. Enviar el pedido no reserva ni cobra nada. No hay pago con tarjeta ni Mercado Pago.
 
 **¿Veo los pedidos en algún lado?**
 Por ahora llegan por WhatsApp al vendedor. No se guardan en el sistema.

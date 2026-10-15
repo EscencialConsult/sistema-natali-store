@@ -37,6 +37,17 @@ node Docs\tienda\herramientas\comparar-linea-base.mjs <antes>.json <despues>.jso
 
 Debe decir "Objetos naty_*: SIN CAMBIOS". Las filas que cambien por ventas legítimas se informan aparte.
 
+## 1b. Datos iniciales de la tienda
+
+Carga la transferencia y los locales con sus horarios en `tienda_config`. Escribe solo en esa tabla, valida con las mismas reglas que el editor de Ajustes, y por defecto prueba y revierte. El archivo con los datos vive **fuera del repo** porque tiene datos bancarios.
+
+```powershell
+node app\scripts\cargar-config-tienda.mjs C:\Users\PERSONAL\.claude\secretos\modas-naty-tienda-config-inicial.json            # prueba
+node app\scripts\cargar-config-tienda.mjs C:\Users\PERSONAL\.claude\secretos\modas-naty-tienda-config-inicial.json --aplicar  # guarda
+```
+
+Antes de aplicar, completar en ese archivo lo que falte (banco y enlaces de mapa). Después, quien administre actualiza todo desde Ajustes.
+
 ## 2. Publicar el código
 
 1. Pasar `feature/tienda-online` por un PR a `main` para que lo revise Renzo.

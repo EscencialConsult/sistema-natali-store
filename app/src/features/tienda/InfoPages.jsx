@@ -51,6 +51,7 @@ export function DondeEstamosPage() {
             <li key={l.nombre} className="flex flex-col gap-2 rounded-2xl bg-superficie p-5">
               <h2 className="flex items-center gap-2 text-lg font-semibold"><MapPin size={18} aria-hidden /> {l.nombre}</h2>
               {l.direccion && <p>{l.direccion}</p>}
+              {l.horario && <p className="text-sm"><span className="t-suave">Horario: </span>{l.horario}</p>}
               {l.indicaciones && <p className="text-sm text-texto-suave">{l.indicaciones}</p>}
               {l.mapa && (
                 <a href={l.mapa} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center self-start rounded-pildora bg-tinta px-5 text-sm font-medium text-sobre-tinta">

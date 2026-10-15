@@ -44,12 +44,43 @@ export function validarContactos(filas) {
   return { valor: valor.slice(0, MAX_CONTACTOS), errores }
 }
 
+// El alias de la cuenta se cambia cada 2 meses: pasado ese plazo la tienda avisa que se confirme con el vendedor.
+export const DIAS_ALIAS_VIGENTE = 60
+export const DIAS_AVISO_EN_AJUSTES = 50
+
+export function diasDesde(iso, ahora = Date.now()) {
+  const t = typeof iso === 'string' ? Date.parse(iso) : NaN
+  return Number.isFinite(t) ? Math.max(0, Math.floor((ahora - t) / 86400000)) : null
+}
+
+// Sin datos de fecha, o con más de 60 días, el alias se considera "a confirmar".
+export const aliasAConfirmar = (actualizadoEn, ahora = Date.now()) => {
+  const d = diasDesde(actualizadoEn, ahora)
+  return d === null || d > DIAS_ALIAS_VIGENTE
+}
+
+export const formatearCuit = (digitos) => (/^\d{11}$/.test(digitos ?? '') ? `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos.slice(10)}` : digitos ?? '')
+
 export function validarTransferencia(obj) {
   const o = obj && typeof obj === 'object' ? obj : {}
-  const valor = { banco: cortar(o.banco, 60), titular: cortar(o.titular, 80), cuenta: cortar(o.cuenta, 60), alias: cortar(o.alias, 60), nota: cortar(o.nota, 300) }
+  const cbu = soloDigitos(o.cbu)
+  const cuit = soloDigitos(o.cuit)
   const errores = []
-  const hayAlgo = Object.values(valor).some(Boolean)
-  if (hayAlgo && !valor.cuenta && !valor.alias) errores.push('Cargá al menos la cuenta o el alias.')
+  if (cbu && cbu.length !== 22) errores.push('El CBU tiene 22 números.')
+  if (cuit && cuit.length !== 11) errores.push('El CUIT o CUIL tiene 11 números.')
+  const fecha = typeof o.actualizado_en === 'string' && Number.isFinite(Date.parse(o.actualizado_en)) ? new Date(o.actualizado_en).toISOString() : ''
+  const valor = {
+    banco: cortar(o.banco, 60),
+    titular: cortar(o.titular, 80),
+    cuit: cuit.length === 11 ? cuit : '',
+    cbu: cbu.length === 22 ? cbu : '',
+    cuenta: cortar(o.cuenta, 60),
+    alias: cortar(o.alias, 60),
+    nota: cortar(o.nota, 300),
+    actualizado_en: fecha,
+  }
+  const hayAlgo = Object.entries(valor).some(([k, v]) => k !== 'actualizado_en' && Boolean(v))
+  if (hayAlgo && !valor.cbu && !valor.cuenta && !valor.alias) errores.push('Cargá al menos el CBU, la cuenta o el alias.')
   return { valor: hayAlgo ? valor : null, errores }
 }
 
@@ -60,15 +91,16 @@ export function validarLocales(filas) {
     const nombre = cortar(f?.nombre, 60)
     const direccion = cortar(f?.direccion, 160)
     const indicaciones = cortar(f?.indicaciones, 300)
+    const horario = cortar(f?.horario, 160)
     const mapaCrudo = typeof f?.mapa === 'string' ? f.mapa.trim() : ''
-    if (!nombre && !direccion && !indicaciones && !mapaCrudo) continue
+    if (!nombre && !direccion && !indicaciones && !horario && !mapaCrudo) continue
     if (!nombre) {
       errores.push(`Local ${i + 1}: falta el nombre.`)
       continue
     }
     const mapa = mapaCrudo ? urlMapaSegura(mapaCrudo) : null
     if (mapaCrudo && !mapa) errores.push(`${nombre}: el enlace del mapa tiene que ser de Google Maps (https://maps.app.goo.gl/… o https://www.google.com/maps/…).`)
-    valor.push({ nombre, direccion, indicaciones, mapa: mapa ?? '' })
+    valor.push({ nombre, direccion, indicaciones, horario, mapa: mapa ?? '' })
   }
   if (valor.length > MAX_LOCALES) errores.push(`Como máximo ${MAX_LOCALES} locales.`)
   return { valor: valor.slice(0, MAX_LOCALES), errores }

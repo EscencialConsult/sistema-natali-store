@@ -262,7 +262,8 @@ E4b va antes de E7 porque el diseño final usa la marca real. E7 arranca cuando 
 | La tienda borra o envía la cola local de Renzo | D2 y regla 8: montaje antes del arranque interno, sin `SyncRunner` |
 | Teléfonos publicados sin permiso | D7 y E8: autorización explícita antes de E9 |
 | Enlaces editables maliciosos | D13: validación con `new URL()` y allowlist |
-| Natali pide cobro online más adelante | `tienda-origen` conserva Mercado Pago. Entra como etapa nueva |
+| Natali pide cobro online más adelante | **Mercado Pago quedó descartado** (la clienta confirmó el 15/10 que ya no funciona): el cobro es solo por transferencia o efectivo. `tienda-origen` conserva ese código como referencia, pero cualquier cobro online sería una etapa nueva con otro proveedor |
+| El alias de la cuenta cambia cada 2 meses y un cliente transfiere a uno viejo | La tienda guarda la fecha en que se actualizó, avisa en Ajustes a los 50 días y le dice a la clienta que lo confirme si pasaron más de 60. El CBU y el CUIT quedan siempre como respaldo |
 | El diseño de referencia exige otra estructura | Se construye en `features/tienda/` con tokens propios |
 | Gemini no pudo dar la pasada de UX (503, sigue caído el 15/10) | Pendiente: repetirla cuando haya servicio, antes de E7. Si no vuelve, la revisión de UX la hace Natali con un celular real en E9.4 |
 | **No hay backup de producción** y no hay credenciales de su base en esta máquina | Nada se aplica a producción hasta correr `respaldo.mjs` y `linea-base.sql` y guardar los resultados (E0.3 y E0.5). Hasta entonces todo es staging local |
