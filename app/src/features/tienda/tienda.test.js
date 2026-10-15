@@ -21,14 +21,6 @@ vi.mock('./data/clientePublico.js', () => ({
           llamadas.push(['limit', n])
           return q
         },
-        or: (f) => {
-          llamadas.push(['or', f])
-          return q
-        },
-        eq: (c, v) => {
-          llamadas.push(['eq', c, v])
-          return q
-        },
         then: (res) => res({ data: filasDevueltas, error: null }),
       }
       return q
@@ -36,13 +28,12 @@ vi.mock('./data/clientePublico.js', () => ({
   }),
 }))
 
-const { esRutaAdmin, esRutaTienda, rutaProducto } = await import('./rutas.js')
+const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria } = await import('./rutas.js')
 const { precioPublico } = await import('./lib/precioPublico.js')
 const { urlDeFoto, fotosDe } = await import('./lib/fotos.js')
-const { limpiarTexto, filtroKeyset, filtroTexto, TAMANO_PAGINA } = await import('./lib/consulta.js')
 const { guardarCache, leerCache } = await import('./lib/cache.js')
 const { enlaceWhatsApp } = await import('./contexto.js')
-const { pedirPagina } = await import('./data/catalogo.js')
+const { pedirTodo } = await import('./data/catalogo.js')
 
 describe('rutas', () => {
   it('/admin y sus subrutas son del sistema interno; todo lo demás es la tienda', () => {
@@ -51,11 +42,12 @@ describe('rutas', () => {
       expect(esRutaTienda(r), r).toBe(false)
     }
     // Parecidas pero NO son del sistema: no deben abrir el sistema interno por error.
-    for (const r of ['/', '/p/abc', '/pedido', '/como-comprar', '/donde-estamos', '/c', '/administracion', '/admin-viejo', '/administrador/x']) {
+    for (const r of ['/', '/catalogo', '/p/abc', '/pedido', '/como-comprar', '/donde-estamos', '/c', '/administracion', '/admin-viejo', '/administrador/x']) {
       expect(esRutaAdmin(r), r).toBe(false)
       expect(esRutaTienda(r), r).toBe(true)
     }
     expect(rutaProducto('x')).toBe('/p/x')
+    expect(rutaCategoria('a b&c')).toBe('/catalogo?categoria=a%20b%26c')
   })
 })
 
@@ -125,41 +117,19 @@ describe('fotos', () => {
   })
 })
 
-describe('consulta', () => {
-  it('limpia el texto de lo que rompería un filtro', () => {
-    expect(limpiarTexto('  blusa,(rib)*%"x\\_y  ')).toBe('blusa rib x y')
-    expect(limpiarTexto('a'.repeat(200))).toHaveLength(60)
-    expect(limpiarTexto(null)).toBe('')
-  })
-  it('arma el filtro por clave y el de texto', () => {
-    expect(filtroKeyset(null)).toBeNull()
-    expect(filtroKeyset({ codigo: 'F0032', id: 'u1' })).toBe('codigo.gt."F0032",and(codigo.eq."F0032",id.gt.u1)')
-    expect(filtroKeyset({ codigo: 'a",b', id: 'u1' })).not.toMatch(/a",b/)
-    expect(filtroTexto('')).toBeNull()
-    expect(filtroTexto('rib')).toBe('codigo.ilike.*rib*,nombre.ilike.*rib*')
-  })
-})
-
-describe('pedirPagina', () => {
+describe('pedirTodo', () => {
   beforeEach(() => {
     llamadas.length = 0
   })
-  it('pide una fila de más para saber si hay otra página y la descarta', async () => {
-    filasDevueltas = Array.from({ length: TAMANO_PAGINA + 1 }, (_, i) => ({ id: `i${i}`, codigo: `C${i}` }))
-    const r = await pedirPagina({})
-    expect(r.items).toHaveLength(TAMANO_PAGINA)
-    expect(r.hayMas).toBe(true)
-    expect(llamadas).toContainEqual(['limit', TAMANO_PAGINA + 1])
-    expect(llamadas).toContainEqual(['order', 'codigo'])
+  it('trae el catálogo completo de la vista pública, ordenado y con tope de seguridad', async () => {
+    filasDevueltas = [{ id: 'a', codigo: 'A1' }, { id: 'b', codigo: 'B1' }]
+    const r = await pedirTodo()
+    expect(r).toHaveLength(2)
     expect(llamadas).toContainEqual(['from', 'tienda_catalogo_publico'])
-  })
-  it('última página: hayMas en falso, y aplica clave, texto y categoría', async () => {
-    filasDevueltas = [{ id: 'z', codigo: 'Z1' }]
-    const r = await pedirPagina({ despues: { codigo: 'F1', id: 'u1' }, texto: 'rib', categoriaId: 'cat1' })
-    expect(r.hayMas).toBe(false)
-    expect(llamadas).toContainEqual(['or', 'codigo.gt."F1",and(codigo.eq."F1",id.gt.u1)'])
-    expect(llamadas).toContainEqual(['or', 'codigo.ilike.*rib*,nombre.ilike.*rib*'])
-    expect(llamadas).toContainEqual(['eq', 'categoria_id', 'cat1'])
+    expect(llamadas).toContainEqual(['order', 'codigo'])
+    expect(llamadas).toContainEqual(['limit', 1000])
+    // Solo las columnas de la lista blanca: nunca stock ni costos.
+    expect(llamadas.find(([k]) => k === 'select')[1]).toBe('id,codigo,nombre,categoria_id,categoria,descripcion,nuevo,precio_docena_usd_cent,fotos')
   })
 })
 
@@ -177,7 +147,14 @@ describe('caché propia', () => {
     expect(leerCache('ajustes', 'https://otro.supabase.co')).toBeNull()
   })
   it('tolera almacenamiento roto o bloqueado', () => {
-    globalThis.localStorage = { getItem: () => { throw new Error('bloqueado') }, setItem: () => { throw new Error('lleno') } }
+    globalThis.localStorage = {
+      getItem: () => {
+        throw new Error('bloqueado')
+      },
+      setItem: () => {
+        throw new Error('lleno')
+      },
+    }
     expect(() => guardarCache('x', 1)).not.toThrow()
     expect(leerCache('x')).toBeNull()
     globalThis.localStorage = { getItem: () => '{no json', setItem: () => {} }

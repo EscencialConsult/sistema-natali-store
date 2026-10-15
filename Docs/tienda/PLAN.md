@@ -115,7 +115,7 @@ Criterio cumplido en local: diff `naty_*` vacío, rollback limpio y matriz de ro
 Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total, lint limpio, build OK, el chunk de la tienda pesa 15 kB y se carga solo en `/tienda`). Todavía **no se vio contra datos reales en un navegador**: las vistas `tienda_*` no existen en producción hasta E9, y el dry-run ya las validó con los 45 productos reales.
 
 - [x] E2.1 (15/10) Edición mínima en `App.jsx`: `/tienda` y subrutas se montan antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (carga diferida). Registrada en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
-- [x] E2.2 (15/10) `features/tienda/data/clientePublico.js` (sin sesión, sin renovación, sin leer la URL) y repositorio con paginación por clave (código, id), páginas de 24, sin conteo exacto.
+- [x] E2.2 (15/10) `features/tienda/data/clientePublico.js` (sin sesión, sin renovación, sin leer la URL) y repositorio. **Ajustado en E7**: el catálogo se trae completo en una consulta (tope de 1000 modelos) y se filtra, cuenta y ordena en el navegador, porque la referencia pide total de modelos, conteos por categoría y orden. Con unas decenas o pocas centenas de modelos es más simple y rápido que paginar.
 - [x] E2.3 (15/10) Fotos absolutas y relativas al bucket. Solo se aceptan `https`; el resto se descarta.
 - [x] E2.4 (15/10) `precioPublico()` importa las funciones de Renzo y hereda su redondeo. Precio oculto es "a consultar", tasa inválida deja solo USD, tasa de ejemplo muestra solo USD.
 - [x] E2.5 (15/10) Catálogo y ficha: búsqueda con espera, filtro por categoría, "Ver más", galería, sin color. Usa los componentes y colores de Renzo; el diseño final llega en E7.
@@ -190,13 +190,26 @@ Estado 15/10: **hecha en código**. Falta verlo con datos reales (E9).
 - [ ] E6.5 Dejar claro a Natali la diferencia: "oculto" saca el modelo de la tienda, pero sigue en `/admin/c` y en el bucket público.
 
 ## Etapa E7 · Diseño final con las imágenes de referencia (8 h)
-- [ ] E7.1 Guardar referencias en `Docs/tienda/referencias/` (`01-inicio-390.png`, `01-inicio-1440.png`, …).
-- [ ] E7.2 Kit de marca (skill `kit-de-marca`): tokens nuevos aparte, sin pisar los de Renzo.
-- [ ] E7.3 Por pantalla: referencia + kit al skill `ingeniero-react`.
-- [ ] E7.4 Verificación visual con Playwright en 390 y 1440 px, lado a lado, con tabla de diferencias.
-- [ ] E7.5 Pasada `embellece_mi_frontend` y `anti-ia`.
-- [ ] E7.6 Accesibilidad (axe en 0), foco por teclado, 320 px.
-- [ ] E7.7 Rendimiento en celular con datos lentos: fotos con dimensiones reservadas y `loading="lazy"`. Meta: Lighthouse móvil mayor a 80.
+Estado 15/10: **hecha para portada, catálogo, ficha y pedido** a partir de `Docs/tienda/referencias/00-referencia-inicio-y-catalogo-1440.png`. Capturas del resultado en `Docs/tienda/referencias/resultado/`. Solo hay referencia de escritorio de portada y catálogo; el resto de las pantallas hereda su estilo.
+
+- [x] E7.1 (15/10) Referencia guardada en el repo.
+- [x] E7.2 (15/10) Paleta tomada de la imagen por muestreo de píxeles: vino `#631B36`, terracota `#C26F4F`, coral `#D4958A`, rosa `#F6CBCB`, beige `#E3D6BF`, crema `#FBF4F1`. Acotada a `.tienda`: los colores del sistema interno no cambian.
+- [x] E7.3 (15/10) Se construyó directo sobre los componentes existentes, sin copiar la referencia pixel a pixel:
+  - encabezado con menú a la izquierda, logo al centro y búsqueda y pedido a la derecha;
+  - portada con "Nueva temporada", modelo destacado y categorías con foto;
+  - catálogo con barra lateral de categorías con conteos, buscador, total de modelos y orden;
+  - tarjetas con "NUEVO" en vino, nombre, código y precio por docena;
+  - formas orgánicas y hojas, en una capa a todo el ancho de la pantalla, por detrás del contenido.
+- [x] E7.4 (15/10) Verificación visual con datos de ejemplo interceptados (80 modelos, sin tocar ninguna base) en 1440 y 390 px. Encontró y corrigió: fotos rechazadas por la validación estricta `https` (correcto), mancha vino pisando el menú y el título, manchas recortadas al ancho del contenido, grilla del celular más ancha que la pantalla.
+- [x] E7.5 (15/10) Los colores del sistema de notas que usan el pedido y la ficha se reasignan a la paleta de la tienda, solo dentro de `.tienda`.
+- [ ] E7.6 Accesibilidad con axe, foco por teclado y 320 px.
+- [ ] E7.7 Rendimiento en celular con datos lentos (Lighthouse mayor a 80).
+- [ ] E7.8 Revisión de Facundo y Natali sobre las capturas. Pendiente decidir sobre lo que la referencia muestra y no está en el plan:
+  - "Quiénes somos" y "Contacto" en el menú: se reemplazaron por "Cómo comprar" y "Dónde estamos", que sí tienen contenido. Falta un texto de la historia de Modas Naty si lo quieren.
+  - "Pagá en línea": no hay pago online en la V1 (transferencia y WhatsApp), se reescribió el texto.
+  - Precios: la referencia muestra Bs y pesos; el sistema trabaja en dólares, así que la tarjeta muestra US$ y Bs, y la ficha las tres monedas.
+
+Criterio: las pantallas se ven como la referencia en celular y escritorio (cumplido en capturas; falta la revisión visual de ustedes).
 
 ## Etapa E8 · Pulido y datos pendientes (3 h, más espera)
 | Dato | Para qué | Quién |

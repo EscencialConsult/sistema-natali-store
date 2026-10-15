@@ -13,6 +13,7 @@ import { armarEnvio, detallePedido } from './lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
 import { soloDigitos } from './lib/whatsapp.js'
 import { RUTA_CATALOGO, rutaProducto } from './rutas.js'
+import { useVolverArriba } from './useVolverArriba.js'
 
 const telefonoValido = (t) => soloDigitos(t).length >= 8
 
@@ -39,6 +40,7 @@ function Cantidad({ valor, onCambiar }) {
 }
 
 export default function PedidoPage() {
+  useVolverArriba()
   const carrito = useCarrito()
   const { ajustes } = useAjustesTienda()
   const config = useConfigTienda().datos

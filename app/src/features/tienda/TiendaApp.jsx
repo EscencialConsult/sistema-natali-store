@@ -1,16 +1,31 @@
 import { useEffect } from 'react'
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { MessageCircle, ServerCrash, ShoppingBag } from 'lucide-react'
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
 import { useAjustes } from './data/catalogo.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
-import { BASE_ADMIN, RUTA_CATALOGO, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_PEDIDO, RUTA_PRODUCTO } from './rutas.js'
+import { BASE_ADMIN, RUTA_CATALOGO, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO } from './rutas.js'
 import CatalogoPage from './CatalogoPage.jsx'
+import { DecorCatalogo, DecorInicio } from './Decoraciones.jsx'
+import HomePage from './HomePage.jsx'
 import { ComoComprarPage, DondeEstamosPage } from './InfoPages.jsx'
 import PedidoPage from './PedidoPage.jsx'
 import ProductoPage from './ProductoPage.jsx'
+import './tienda.css'
+
+const ENLACES = [
+  { a: RUTA_INICIO, texto: 'Inicio', fin: true },
+  { a: RUTA_CATALOGO, texto: 'Catálogo' },
+  { a: RUTA_COMO_COMPRAR, texto: 'Cómo comprar' },
+  { a: RUTA_DONDE_ESTAMOS, texto: 'Dónde estamos' },
+]
+
+const claseEnlace = ({ isActive }) =>
+  `inline-flex min-h-11 shrink-0 items-center border-b-2 text-sm transition-colors ${
+    isActive ? 'border-(--t-vino) font-medium text-(--t-tinta)' : 'border-transparent t-suave hover:text-(--t-tinta)'
+  }`
 
 function Marco({ children }) {
   const a = useAjustes()
@@ -18,6 +33,7 @@ function Marco({ children }) {
   const nombre = ajustes?.negocio_nombre || 'Modas Naty'
   const wa = enlaceWhatsApp(ajustes?.whatsapp_tienda)
   const cantidadModelos = useCarrito().lineas.length
+  const { pathname } = useLocation()
 
   useEffect(() => {
     document.title = `Catálogo mayorista · ${nombre}`
@@ -33,38 +49,56 @@ function Marco({ children }) {
 
   return (
     <AjustesTienda.Provider value={{ ajustes, cargando: a.cargando, enCache: a.enCache, error: a.error }}>
-      <div className="min-h-dvh bg-fondo">
-        <p className="bg-pie px-4 py-2 text-center text-[0.6875rem] font-medium uppercase tracking-[0.18em] text-sobre-tinta/80">
-          Venta mayorista · Precios por docena
-        </p>
-        <header className="sticky top-0 z-20 border-b border-borde/80 bg-fondo/85 backdrop-blur-md">
-          <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 md:px-8">
-            <Link to={RUTA_CATALOGO} aria-label={`${nombre}: ir al catálogo`} className="inline-flex items-center">
-              <img src="/brand/isotipo.png" width="240" height="134" alt={nombre} className="h-9 w-auto" />
+      <div className="tienda relative flex min-h-dvh flex-col overflow-x-clip">
+        {/* Capa decorativa a todo el ancho, por detrás de todo: las manchas se pegan a los bordes de la pantalla. */}
+        <div className="t-decor absolute inset-x-0 top-0 z-0 h-[44rem] overflow-hidden" aria-hidden="true">
+          {pathname === RUTA_INICIO && <DecorInicio />}
+          {pathname === RUTA_CATALOGO && <DecorCatalogo />}
+        </div>
+        <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">
+          Ir al contenido
+        </a>
+        <header className="relative z-30">
+          <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-2 md:grid-cols-[1fr_auto_1fr] md:px-8">
+            <nav aria-label="Principal" className="hidden gap-6 md:flex">
+              {ENLACES.map((e) => <NavLink key={e.a} to={e.a} end={e.fin} className={claseEnlace}>{e.texto}</NavLink>)}
+            </nav>
+            <Link to={RUTA_INICIO} aria-label={`${nombre}: ir a la portada`} className="inline-flex items-center gap-2 justify-self-start md:justify-self-center">
+              <img src="/brand/isotipo.png" width="240" height="134" alt="" className="h-9 w-auto" />
+              <span className="font-titulo text-lg font-semibold tracking-tight">{nombre}</span>
             </Link>
-            <div className="flex items-center gap-2">
-              <Link to={RUTA_PEDIDO} className="relative inline-flex min-h-11 items-center gap-2 rounded-pildora bg-superficie px-4 text-sm font-medium">
-                <ShoppingBag size={18} strokeWidth={1.75} aria-hidden /> Mi pedido
-                {cantidadModelos > 0 && <span className="rounded-full bg-tinta px-2 text-xs text-sobre-tinta" aria-label={`${cantidadModelos} modelos`}>{cantidadModelos}</span>}
+            <div className="flex items-center justify-end gap-1">
+              <Link to={`${RUTA_CATALOGO}?foco=1`} aria-label="Buscar en el catálogo" className="inline-flex size-11 items-center justify-center rounded-full hover:bg-(--t-beige)/60">
+                <Search size={19} strokeWidth={1.75} aria-hidden />
               </Link>
-              {wa && (
-                <a href={wa} rel="noopener noreferrer" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-pildora bg-whatsapp px-4 text-sm font-medium text-sobre-tinta shadow-boton hover:brightness-95">
-                  <MessageCircle size={18} strokeWidth={1.75} aria-hidden /> Consultar
-                </a>
-              )}
+              <Link to={RUTA_PEDIDO} aria-label={`Mi pedido${cantidadModelos ? `, ${cantidadModelos} modelos` : ''}`} className="relative inline-flex size-11 items-center justify-center rounded-full hover:bg-(--t-beige)/60">
+                <ShoppingBag size={19} strokeWidth={1.75} aria-hidden />
+                {cantidadModelos > 0 && (
+                  <span className="absolute right-0.5 top-0.5 flex min-w-5 items-center justify-center rounded-full bg-(--t-vino) px-1 text-[0.6875rem] font-semibold text-white">{cantidadModelos}</span>
+                )}
+              </Link>
             </div>
           </div>
+          <nav aria-label="Principal (celular)" className="-mb-px flex gap-6 overflow-x-auto px-4 md:hidden">
+            {ENLACES.map((e) => <NavLink key={e.a} to={e.a} end={e.fin} className={claseEnlace}>{e.texto}</NavLink>)}
+          </nav>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 md:px-8 md:pt-12">{children}</main>
-        <footer className="bg-pie px-4 py-10 text-center text-sm text-sobre-tinta/70">
-          <p className="font-titulo text-lg font-semibold text-sobre-tinta">{nombre}</p>
+
+        <main id="contenido" className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 md:px-8 md:pt-12">{children}</main>
+
+        {wa && (
+          <a href={wa} rel="noopener noreferrer" target="_blank" aria-label="Consultar por WhatsApp" className="fixed bottom-5 right-5 z-40 inline-flex size-14 items-center justify-center rounded-full bg-whatsapp text-sobre-tinta shadow-lg hover:brightness-95">
+            <MessageCircle size={24} strokeWidth={1.75} aria-hidden />
+          </a>
+        )}
+
+        <footer className="bg-(--t-vino) px-4 py-10 text-center text-sm text-white/80">
+          <p className="font-titulo text-lg font-semibold text-white">{nombre}</p>
           <p className="mt-1">Catálogo mayorista</p>
-          <nav aria-label="Información" className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <Link to={RUTA_CATALOGO} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Catálogo</Link>
-            <Link to={RUTA_COMO_COMPRAR} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Cómo comprar</Link>
-            <Link to={RUTA_DONDE_ESTAMOS} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Dónde estamos</Link>
+          <nav aria-label="Información" className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-1">
+            {ENLACES.map((e) => <Link key={e.a} to={e.a} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">{e.texto}</Link>)}
             {/* Enlace normal (no del router): el sistema del equipo es otra aplicación y se carga aparte. */}
-            <a href={`${BASE_ADMIN}/`} className="inline-flex min-h-11 items-center text-sobre-tinta/60 underline-offset-4 hover:underline">Acceso del equipo</a>
+            <a href={`${BASE_ADMIN}/`} className="inline-flex min-h-11 items-center text-white/60 underline-offset-4 hover:underline">Acceso del equipo</a>
           </nav>
         </footer>
       </div>
@@ -76,7 +110,7 @@ function Marco({ children }) {
 export default function TiendaApp() {
   if (!hayBackendPublico) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-6">
+      <main className="tienda flex min-h-dvh items-center justify-center p-6">
         <EmptyState icono={ServerCrash} titulo="El catálogo no está disponible" texto="Volvé a intentar en unos minutos." />
       </main>
     )
@@ -84,13 +118,14 @@ export default function TiendaApp() {
   return (
     <Marco>
       <Routes>
+        <Route path={RUTA_INICIO} element={<HomePage />} />
         <Route path={RUTA_CATALOGO} element={<CatalogoPage />} />
         <Route path={RUTA_PRODUCTO} element={<ProductoPage />} />
         <Route path={RUTA_PEDIDO} element={<PedidoPage />} />
         <Route path={RUTA_COMO_COMPRAR} element={<ComoComprarPage />} />
         <Route path={RUTA_DONDE_ESTAMOS} element={<DondeEstamosPage />} />
-        {/* El catálogo viejo del sistema de notas vivía en /c: los QR ya impresos siguen llevando acá. */}
-        <Route path="*" element={<Navigate to={RUTA_CATALOGO} replace />} />
+        {/* El catálogo viejo del sistema de notas vivía en /c: los QR ya impresos siguen llevando a la tienda. */}
+        <Route path="*" element={<Navigate to={RUTA_INICIO} replace />} />
       </Routes>
     </Marco>
   )

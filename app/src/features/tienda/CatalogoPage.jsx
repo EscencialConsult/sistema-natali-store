@@ -1,129 +1,167 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { SearchX, WifiOff } from 'lucide-react'
-import { CampoBusqueda, EmptyState, Skeleton } from '../../components/ui/index.js'
-import { filtrosGuardados, guardarScroll, leerScroll, useCatalogo, useCategorias } from './data/catalogo.js'
-import { supabaseUrl } from './data/clientePublico.js'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigationType, useSearchParams } from 'react-router-dom'
+import { Search, SearchX, WifiOff } from 'lucide-react'
+import { EmptyState, Skeleton } from '../../components/ui/index.js'
+import { guardarScroll, leerScroll, useCatalogoCompleto } from './data/catalogo.js'
 import { useAjustesTienda } from './contexto.js'
-import { fotosDe } from './lib/fotos.js'
-import { rutaProducto } from './rutas.js'
-import PrecioBloque from './PrecioBloque.jsx'
+import { contarPorCategoria, filtrarYOrdenar, ORDENES, textoModelos } from './lib/catalogo.js'
+import TarjetaProducto from './TarjetaProducto.jsx'
 
-function Tarjeta({ producto, ajustes }) {
-  const foto = fotosDe(producto, supabaseUrl)[0]
-  return (
-    <li>
-      <Link to={rutaProducto(producto.id)} className="group flex flex-col gap-2">
-        <span className="relative block aspect-[3/4] overflow-hidden rounded-2xl bg-superficie">
-          {foto ? (
-            <img src={foto} alt={producto.nombre} loading="lazy" decoding="async" width="600" height="800" className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
-          ) : (
-            <span className="flex size-full items-center justify-center text-sm text-texto-suave">Sin foto</span>
-          )}
-          {producto.nuevo && <span className="absolute left-2 top-2 rounded-pildora bg-tinta px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide text-sobre-tinta">Nuevo</span>}
-        </span>
-        <span className="text-xs uppercase tracking-wide text-texto-suave">{producto.codigo}</span>
-        <span className="-mt-1 line-clamp-2 font-medium leading-snug">{producto.nombre}</span>
-        <PrecioBloque producto={producto} ajustes={ajustes} compacto />
-      </Link>
-    </li>
-  )
-}
-
+// El estado del catálogo vive en la dirección (?q=…&categoria=…&orden=…): el botón "atrás" desde una ficha lo recupera
+// tal cual, y el enlace "Catálogo" del menú siempre arranca limpio.
 export default function CatalogoPage() {
-  // Al volver de una ficha se recuperan la búsqueda, la categoría y la posición.
-  const [texto, setTexto] = useState(filtrosGuardados.texto)
-  const [buscar, setBuscar] = useState(filtrosGuardados.texto.trim())
-  const [categoriaId, setCategoriaId] = useState(filtrosGuardados.categoriaId)
+  const [params, setParams] = useSearchParams()
+  const tipoNavegacion = useNavigationType()
   const { ajustes } = useAjustesTienda()
-  const categorias = useCategorias().datos ?? []
+  const c = useCatalogoCompleto()
 
-  // Espera a que la persona termine de escribir antes de consultar.
+  const q = params.get('q') ?? ''
+  const categoriaId = params.get('categoria') ?? ''
+  const pedido = params.get('orden')
+  const orden = ORDENES.some((o) => o.valor === pedido) ? pedido : 'novedades'
+
+  const actualizar = (cambios) =>
+    setParams(
+      (anterior) => {
+        const nuevo = new URLSearchParams(anterior)
+        for (const [k, v] of Object.entries(cambios)) {
+          if (v) nuevo.set(k, v)
+          else nuevo.delete(k)
+        }
+        nuevo.delete('foco')
+        return nuevo
+      },
+      { replace: true },
+    )
+
+  // Lo que se escribe se refleja en la dirección cuando la persona hace una pausa.
+  const [texto, setTexto] = useState(q)
   useEffect(() => {
-    const t = setTimeout(() => setBuscar(texto.trim()), 300)
+    const t = setTimeout(() => {
+      if (texto.trim() !== q) actualizar({ q: texto.trim() })
+    }, 300)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto])
 
+  const buscador = useRef(null)
   useEffect(() => {
-    filtrosGuardados.texto = texto
-    filtrosGuardados.categoriaId = categoriaId
-  }, [texto, categoriaId])
+    if (params.get('foco')) buscador.current?.focus()
+  }, [params])
 
-  const c = useCatalogo({ texto: buscar, categoriaId })
-  const clave = `${categoriaId}|${buscar}`
-  const lista = c.items.length > 0 && !c.cargando
+  const items = useMemo(() => c.items ?? [], [c.items])
+  const categorias = useMemo(() => contarPorCategoria(items), [items])
+  const lista = useMemo(() => filtrarYOrdenar(items, { texto: q, categoriaId, orden }), [items, q, categoriaId, orden])
+  const visible = !c.cargando && items.length > 0
 
-  // Posición: se guarda mientras se desplaza (solo con la lista visible) y se restaura una vez al volver.
-  const restaurado = useRef(false)
+  // Posición: al volver (atrás) se restaura; al entrar por un enlace se empieza arriba.
+  const resuelto = useRef(false)
   useLayoutEffect(() => {
-    if (restaurado.current || !lista) return
-    restaurado.current = true
-    const y = leerScroll(clave)
-    if (y > 0) window.scrollTo(0, y)
-  }, [lista, clave])
+    if (resuelto.current || c.cargando) return
+    resuelto.current = true
+    window.scrollTo(0, tipoNavegacion === 'POP' ? leerScroll() : 0)
+  }, [c.cargando, tipoNavegacion])
   useEffect(() => {
-    if (!lista) return undefined
-    const guardar = () => guardarScroll(clave, window.scrollY)
+    if (!visible) return undefined
+    const guardar = () => guardarScroll(window.scrollY)
     window.addEventListener('scroll', guardar, { passive: true })
     return () => window.removeEventListener('scroll', guardar)
-  }, [lista, clave])
+  }, [visible])
+
+  const elegirCategoria = (id) => actualizar({ categoria: id })
+  const botonCategoria = (id, nombre, cantidad) => (
+    <button
+      key={id || 'todas'}
+      type="button"
+      aria-pressed={categoriaId === id}
+      onClick={() => elegirCategoria(id)}
+      className={`flex min-h-10 shrink-0 items-center justify-between gap-3 rounded-lg px-3 text-left text-sm font-medium transition-colors md:w-full ${
+        categoriaId === id ? 'bg-(--t-vino) text-white' : 't-suave hover:bg-(--t-beige)/60 hover:text-(--t-tinta)'
+      }`}
+    >
+      <span className="uppercase tracking-wide">{nombre}</span>
+      <span className={`text-xs tabular-nums ${categoriaId === id ? 'text-white/80' : ''}`}>{cantidad}</span>
+    </button>
+  )
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-4xl tracking-tight md:text-5xl">Catálogo</h1>
-        <p className="max-w-md text-texto-suave">Elegí un modelo para ver sus fotos y precios por docena.</p>
-      </div>
+    <div className="relative">
+      <div className="flex flex-col gap-6">
+        <header className="flex flex-col gap-1">
+          <h1 className="font-titulo text-3xl font-semibold tracking-tight md:text-4xl">Catálogo</h1>
+          <p className="t-suave">Elegí un modelo para ver sus fotos y precios por docena.</p>
+        </header>
 
-      <CampoBusqueda id="q-tienda" etiqueta="Buscar modelo" grande valor={texto} onCambiar={setTexto} placeholder="Buscar por código o nombre" className="mx-auto w-full max-w-xl" />
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-8">
+          <aside aria-label="Filtros" className="flex min-w-0 flex-col gap-4">
+            <label className="relative block">
+              <span className="sr-only">Buscar modelo</span>
+              <Search size={16} aria-hidden className="t-suave pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                ref={buscador}
+                type="search"
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder="Buscar modelo"
+                className="min-h-11 w-full rounded-xl border border-(--t-beige) bg-white/70 pl-9 pr-3 text-sm placeholder:text-(--t-suave)"
+              />
+            </label>
+            {categorias.length > 0 && (
+              <nav aria-label="Categorías" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-1 md:overflow-visible md:px-0 md:pb-0">
+                {botonCategoria('', 'Todas', items.length)}
+                {categorias.map((k) => botonCategoria(k.id, k.nombre, k.cantidad))}
+              </nav>
+            )}
+          </aside>
 
-      {categorias.length > 1 && (
-        <div role="group" aria-label="Categorías" className="flex flex-wrap justify-center gap-2">
-          {[{ id: '', nombre: 'Todas' }, ...categorias].map((k) => (
-            <button
-              key={k.id || 'todas'}
-              type="button"
-              aria-pressed={categoriaId === k.id}
-              onClick={() => setCategoriaId(k.id)}
-              className={`min-h-11 rounded-pildora px-4 text-sm font-medium ${categoriaId === k.id ? 'bg-tinta text-sobre-tinta' : 'bg-superficie text-texto-suave hover:text-tinta'}`}
-            >
-              {k.nombre}
-            </button>
-          ))}
+          <section aria-label="Modelos" className="flex min-w-0 flex-col gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="t-suave text-sm" aria-live="polite">{visible ? textoModelos(lista.length) : ' '}</p>
+              <label className="flex items-center gap-2 text-sm">
+                <span className="t-suave">Ordenar</span>
+                <select
+                  value={orden}
+                  onChange={(e) => actualizar({ orden: e.target.value === 'novedades' ? '' : e.target.value })}
+                  className="min-h-10 rounded-xl border border-(--t-beige) bg-white/70 px-3"
+                >
+                  {ORDENES.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
+                </select>
+              </label>
+            </div>
+
+            {c.desdeCache && (
+              <p role="status" className="flex items-center gap-2 rounded-2xl bg-(--t-beige)/60 px-4 py-3 text-sm">
+                <WifiOff size={16} aria-hidden /> Sin conexión: te mostramos la última lista guardada. Los precios pueden no estar al día.
+              </p>
+            )}
+
+            {c.cargando && (
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4" aria-busy="true">
+                {Array.from({ length: 8 }, (_, i) => <li key={i}><Skeleton className="aspect-[3/4]" /></li>)}
+              </ul>
+            )}
+
+            {!c.cargando && c.error && <EmptyState icono={WifiOff} titulo="No pudimos cargar el catálogo" texto="Revisá tu conexión e intentá de nuevo." />}
+
+            {visible && lista.length === 0 && (
+              <EmptyState
+                icono={SearchX}
+                titulo={q ? `No encontramos “${q}”` : 'No hay modelos en esta categoría'}
+                texto="Probá con otra búsqueda o mirá todas las categorías."
+              />
+            )}
+            {!c.cargando && !c.error && items.length === 0 && (
+              <EmptyState icono={SearchX} titulo="Todavía no hay modelos publicados" texto="Volvé pronto." />
+            )}
+
+            {lista.length > 0 && (
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                {lista.map((p) => <TarjetaProducto key={p.id} producto={p} ajustes={ajustes} />)}
+              </ul>
+            )}
+          </section>
         </div>
-      )}
-
-      {c.desdeCache && (
-        <p role="status" className="mx-auto flex max-w-xl items-center gap-2 rounded-2xl bg-superficie px-4 py-3 text-sm text-texto-suave">
-          <WifiOff size={16} aria-hidden /> Sin conexión: te mostramos la última lista guardada. Los precios pueden no estar al día.
-        </p>
-      )}
-
-      {c.cargando && (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4" aria-busy="true">
-          {Array.from({ length: 8 }, (_, i) => <li key={i}><Skeleton className="aspect-[3/4]" /></li>)}
-        </ul>
-      )}
-
-      {!c.cargando && c.error && !c.items.length && (
-        <EmptyState icono={WifiOff} titulo="No pudimos cargar el catálogo" texto="Revisá tu conexión e intentá de nuevo." />
-      )}
-
-      {!c.cargando && !c.error && c.items.length === 0 && (
-        <EmptyState icono={SearchX} titulo={buscar ? `No encontramos “${buscar}”` : 'Todavía no hay modelos publicados'} texto={buscar ? 'Probá con otro código o con parte del nombre.' : 'Volvé pronto.'} />
-      )}
-
-      {c.items.length > 0 && (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4">
-          {c.items.map((p) => <Tarjeta key={p.id} producto={p} ajustes={ajustes} />)}
-        </ul>
-      )}
-
-      {c.hayMas && (
-        <button type="button" onClick={c.cargarMas} disabled={c.cargandoMas} className="mx-auto min-h-11 rounded-pildora bg-tinta px-6 text-sm font-medium text-sobre-tinta disabled:opacity-60">
-          {c.cargandoMas ? 'Cargando…' : 'Ver más modelos'}
-        </button>
-      )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, MessageCircle, SearchX, WifiOff } from 'lucide-react'
 import { EmptyState, Skeleton } from '../../components/ui/index.js'
 import { useProducto } from './data/catalogo.js'
@@ -10,8 +10,13 @@ import { agregarLinea } from './lib/carrito.js'
 import { fotosDe } from './lib/fotos.js'
 import { RUTA_CATALOGO, RUTA_PEDIDO } from './rutas.js'
 import PrecioBloque from './PrecioBloque.jsx'
+import { useVolverArriba } from './useVolverArriba.js'
 
 export default function ProductoPage() {
+  useVolverArriba()
+  const navigate = useNavigate()
+  // Si se llegó desde el catálogo, "volver" es el botón atrás: recupera la búsqueda, la categoría y la posición.
+  const vieneDelCatalogo = useLocation().key !== 'default'
   const { id } = useParams()
   const { producto, cargando, error } = useProducto(id)
   const { ajustes } = useAjustesTienda()
@@ -27,8 +32,13 @@ export default function ProductoPage() {
     if (producto) document.title = `${producto.nombre} · ${producto.codigo}`
   }, [producto])
 
-  const volver = (
-    <Link to={RUTA_CATALOGO} className="inline-flex min-h-11 items-center gap-2 text-sm text-texto-suave hover:text-tinta">
+  const claseVolver = 't-suave inline-flex min-h-11 items-center gap-2 self-start text-sm hover:text-(--t-tinta)'
+  const volver = vieneDelCatalogo ? (
+    <button type="button" onClick={() => navigate(-1)} className={claseVolver}>
+      <ArrowLeft size={16} aria-hidden /> Volver
+    </button>
+  ) : (
+    <Link to={RUTA_CATALOGO} className={claseVolver}>
       <ArrowLeft size={16} aria-hidden /> Volver al catálogo
     </Link>
   )

@@ -4,10 +4,12 @@ import { useConfigTienda } from './data/catalogo.js'
 import { enlaceWhatsApp } from './lib/whatsapp.js'
 import { PASOS_POR_DEFECTO, validarComoComprar, validarContactos, validarHorarios, validarLocales } from './lib/configTienda.js'
 import { RUTA_CATALOGO, RUTA_PEDIDO } from './rutas.js'
+import { useVolverArriba } from './useVolverArriba.js'
 
 // Todo lo que viene de la configuración pasa por las mismas validaciones que al guardar, y se muestra como texto.
 
 export function ComoComprarPage() {
+  useVolverArriba()
   const config = useConfigTienda().datos
   const propios = validarComoComprar(config?.como_comprar).valor
   const pasos = propios.length ? propios : PASOS_POR_DEFECTO
@@ -31,6 +33,7 @@ export function ComoComprarPage() {
 }
 
 export function DondeEstamosPage() {
+  useVolverArriba()
   const config = useConfigTienda().datos
   const locales = validarLocales(config?.locales).valor
   const horarios = validarHorarios(config?.horarios).valor
