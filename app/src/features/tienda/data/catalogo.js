@@ -5,6 +5,22 @@ import { clientePublico, supabaseUrl } from './clientePublico.js'
 
 const COLUMNAS = 'id,codigo,nombre,categoria_id,categoria,descripcion,nuevo,precio_docena_usd_cent,fotos'
 
+// Memoria de la sesión (solo en esta pestaña): al volver de una ficha se recupera la lista, los filtros y la posición.
+// Vence a los 5 minutos para que los precios no queden viejos.
+const TTL_MEMORIA = 5 * 60 * 1000
+const memoria = new Map()
+const fresca = (clave) => {
+  const m = memoria.get(clave)
+  return m && Date.now() - m.t < TTL_MEMORIA ? m : null
+}
+export const filtrosGuardados = { texto: '', categoriaId: '' }
+export const guardarScroll = (clave, y) => {
+  const m = memoria.get(clave)
+  if (m) m.scrollY = y
+}
+export const leerScroll = (clave) => fresca(clave)?.scrollY ?? 0
+export const olvidarMemoria = () => memoria.clear()
+
 async function cliente() {
   const c = await clientePublico()
   if (!c) throw new Error('sin-servidor')
@@ -119,11 +135,15 @@ export function useProducto(id) {
 // Catálogo paginado por clave. Si la red falla y hay primera página en caché, se muestra esa (avisando que no es vigente).
 export function useCatalogo({ texto, categoriaId }) {
   const clave = `${categoriaId}|${texto}`
-  const [estado, setEstado] = useState({ clave: null, items: [], hayMas: false, error: null, desdeCache: false })
+  const [estado, setEstado] = useState(() => {
+    const m = fresca(clave)
+    return m ? { clave, items: m.items, hayMas: m.hayMas, error: null, desdeCache: m.desdeCache } : { clave: null, items: [], hayMas: false, error: null, desdeCache: false }
+  })
   const [cargandoMas, setCargandoMas] = useState(false)
   const claveCache = `pagina1:${categoriaId || '-'}`
 
   useEffect(() => {
+    if (fresca(clave)) return undefined // se volvió a la lista: ya está en memoria
     let vigente = true
     pedirPagina({ texto, categoriaId })
       .then((r) => {
@@ -140,6 +160,15 @@ export function useCatalogo({ texto, categoriaId }) {
       vigente = false
     }
   }, [clave, texto, categoriaId, claveCache])
+
+  // Lo cargado queda en memoria para recuperarlo al volver; se conserva la posición guardada.
+  useEffect(() => {
+    if (estado.clave !== clave || estado.error || estado.desdeCache) return
+    // Si lo que hay en memoria ya es esto mismo (se volvió a la lista), no se renueva el vencimiento:
+    // así los precios no quedan "frescos" para siempre yendo y viniendo de las fichas.
+    if (memoria.get(clave)?.items === estado.items) return
+    memoria.set(clave, { t: Date.now(), items: estado.items, hayMas: estado.hayMas, desdeCache: false, scrollY: memoria.get(clave)?.scrollY ?? 0 })
+  }, [clave, estado])
 
   const listo = estado.clave === clave
   const items = useMemo(() => (listo ? estado.items : []), [listo, estado.items])

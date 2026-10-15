@@ -119,7 +119,7 @@ Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total
 - [x] E2.3 (15/10) Fotos absolutas y relativas al bucket. Solo se aceptan `https`; el resto se descarta.
 - [x] E2.4 (15/10) `precioPublico()` importa las funciones de Renzo y hereda su redondeo. Precio oculto es "a consultar", tasa inválida deja solo USD, tasa de ejemplo muestra solo USD.
 - [x] E2.5 (15/10) Catálogo y ficha: búsqueda con espera, filtro por categoría, "Ver más", galería, sin color. Usa los componentes y colores de Renzo; el diseño final llega en E7.
-- [ ] E2.5b Conservar la posición de scroll al volver de una ficha (`useScrollConservado` de `tienda-origen`).
+- [x] E2.5b (15/10) Al volver de una ficha se recuperan la lista ya cargada, la búsqueda, la categoría y la posición. La memoria es de la pestaña y vence a los 5 minutos para no dejar precios viejos.
 - [x] E2.6 (15/10) Etiquetas "Docena (12)" y "Media docena (6)". El mínimo de media docena se aplica en el carrito (E3).
 - [x] E2.7 (15/10) Caché propia `tienda-v1` por origen, con aviso "sin conexión" y sin presentar la caché como precio vigente.
 - [~] E2.8 Título por producto hecho. **Falta** la vista previa al compartir por WhatsApp: en una SPA necesita una función de servidor o prerender. Decisión pendiente para E7 o E9.

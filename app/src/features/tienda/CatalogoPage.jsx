@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SearchX, WifiOff } from 'lucide-react'
 import { CampoBusqueda, EmptyState, Skeleton } from '../../components/ui/index.js'
-import { useCatalogo, useCategorias } from './data/catalogo.js'
+import { filtrosGuardados, guardarScroll, leerScroll, useCatalogo, useCategorias } from './data/catalogo.js'
 import { supabaseUrl } from './data/clientePublico.js'
 import { useAjustesTienda } from './contexto.js'
 import { fotosDe } from './lib/fotos.js'
@@ -31,9 +31,10 @@ function Tarjeta({ producto, ajustes }) {
 }
 
 export default function CatalogoPage() {
-  const [texto, setTexto] = useState('')
-  const [buscar, setBuscar] = useState('')
-  const [categoriaId, setCategoriaId] = useState('')
+  // Al volver de una ficha se recuperan la búsqueda, la categoría y la posición.
+  const [texto, setTexto] = useState(filtrosGuardados.texto)
+  const [buscar, setBuscar] = useState(filtrosGuardados.texto.trim())
+  const [categoriaId, setCategoriaId] = useState(filtrosGuardados.categoriaId)
   const { ajustes } = useAjustesTienda()
   const categorias = useCategorias().datos ?? []
 
@@ -43,7 +44,29 @@ export default function CatalogoPage() {
     return () => clearTimeout(t)
   }, [texto])
 
+  useEffect(() => {
+    filtrosGuardados.texto = texto
+    filtrosGuardados.categoriaId = categoriaId
+  }, [texto, categoriaId])
+
   const c = useCatalogo({ texto: buscar, categoriaId })
+  const clave = `${categoriaId}|${buscar}`
+  const lista = c.items.length > 0 && !c.cargando
+
+  // Posición: se guarda mientras se desplaza (solo con la lista visible) y se restaura una vez al volver.
+  const restaurado = useRef(false)
+  useLayoutEffect(() => {
+    if (restaurado.current || !lista) return
+    restaurado.current = true
+    const y = leerScroll(clave)
+    if (y > 0) window.scrollTo(0, y)
+  }, [lista, clave])
+  useEffect(() => {
+    if (!lista) return undefined
+    const guardar = () => guardarScroll(clave, window.scrollY)
+    window.addEventListener('scroll', guardar, { passive: true })
+    return () => window.removeEventListener('scroll', guardar)
+  }, [lista, clave])
 
   return (
     <div className="flex flex-col gap-6">
