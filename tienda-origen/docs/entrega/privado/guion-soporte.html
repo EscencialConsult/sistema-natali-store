@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guion de entrega — Modas Naty</title>
+<style>
+  :root { --fondo:#fbf7f3; --tarjeta:#fff; --texto:#2a2230; --suave:#5c5663; --linea:#e8e0d8; --acento:#8a3a63; --tinte:#f4ece6; --aviso:#fff4d6; --base:24px; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+  body { margin:0; background:var(--fondo); color:var(--texto); font:var(--base)/1.5 "Segoe UI", system-ui, Arial, sans-serif; }
+  header { position:sticky; top:0; z-index:5; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 20px; background:var(--tarjeta); border-bottom:1px solid var(--linea); font-size:16px; }
+  header strong { font:20px Georgia, serif; }
+  header .esp { flex:1; }
+  header a { color:var(--suave); text-decoration:none; padding:6px 10px; border-radius:8px; }
+  header a:hover { background:var(--tinte); color:var(--texto); }
+  button { font:inherit; font-size:15px; min-height:40px; padding:0 14px; border:1px solid var(--linea); border-radius:8px; background:var(--tinte); color:var(--texto); cursor:pointer; }
+  main { max-width:900px; margin:0 auto; padding:24px 20px 80px; }
+  .escena { background:var(--tarjeta); border:1px solid var(--linea); border-radius:14px; padding:28px; margin:0 0 22px; }
+  .parte { margin:44px 0 18px; padding:18px 22px; border-radius:12px; background:var(--acento); color:#fff; }
+  .parte h2 { color:#fff; margin:0; font-size:36px; }
+  .parte p { margin:4px 0 0; opacity:.92; font-size:.8em; }
+  .num { display:inline-block; font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--acento); font-weight:600; }
+  h1 { font:normal 44px/1.15 Georgia, serif; margin:0 0 8px; }
+  h2 { font:normal 34px/1.2 Georgia, serif; margin:2px 0 14px; }
+  h3 { font-size:16px; letter-spacing:.1em; text-transform:uppercase; color:var(--suave); margin:20px 0 6px; }
+  p { margin:0 0 12px; }
+  ol, ul { margin:6px 0 12px; padding-left:30px; }
+  li { margin:8px 0; }
+  .decir { border-left:4px solid var(--acento); padding:2px 0 2px 18px; margin:14px 0; }
+  .decir p:last-child { margin-bottom:0; }
+  .aviso { background:var(--aviso); border-radius:10px; padding:14px 16px; margin:14px 0; }
+  .nota { background:var(--tinte); border-radius:10px; padding:12px 16px; margin:14px 0; font-size:.85em; }
+  .chico { font-size:.8em; color:var(--suave); }
+  code { font:.85em Consolas, monospace; background:var(--tinte); padding:2px 8px; border-radius:6px; }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:.85em; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--linea); vertical-align:top; }
+  th { font-size:.7em; letter-spacing:.08em; text-transform:uppercase; color:var(--suave); }
+  .lista { list-style:none; padding:0; }
+  .lista li { display:flex; gap:14px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--linea); }
+  .lista input { width:24px; height:24px; margin-top:5px; accent-color:var(--acento); flex:none; }
+  .grande { font-size:1.1em; }
+  .flujo { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+  .flujo span { background:var(--tinte); border:1px solid var(--linea); border-radius:999px; padding:6px 14px; font-size:.75em; }
+  .flujo i { color:var(--suave); font-style:normal; }
+  body.sin-notas .nota { display:none; }
+  @media print { header, button { display:none !important; } .escena { border:none; break-inside:avoid; } body { --base:14px; background:#fff; } .parte { background:#eee; color:#000; } .parte h2 { color:#000; } }
+</style>
+</head>
+<body>
+<header>
+  <strong>Modas Naty · Guion</strong>
+  <a href="#A">A · La clienta</a><a href="#B">B · El panel</a><a href="#C">C · Mercado Pago</a><a href="#D">D · Antes de entregar</a><a href="#E">E · Si falla</a>
+  <span class="esp"></span>
+  <button id="menos" aria-label="Achicar letra">A−</button>
+  <button id="mas" aria-label="Agrandar letra">A+</button>
+  <button id="notas">Ocultar notas</button>
+</header>
+<main>
+
+<section class="escena">
+  <span class="num">Inicio</span>
+  <h1>La tienda online de Modas Naty</h1>
+  <div class="decir"><p>Hola equipo. Les voy a mostrar la tienda en cuatro partes: primero lo que ve la clienta, que es muy simple; después el panel donde administramos; después cómo se conecta con Mercado Pago; y al final qué hacer si algo falla.</p></div>
+  <div class="flujo"><span>A · La clienta compra</span><i>→</i><span>B · Lo vemos en el panel</span><i>→</i><span>C · Cómo llega la plata</span><i>→</i><span>E · Si falla</span></div>
+</section>
+
+<section class="escena">
+  <span class="num">Antes de empezar</span>
+  <h2>Las cuentas para entrar</h2>
+  
+      <table>
+        <thead><tr><th>Para qué</th><th>Correo</th><th>Contraseña</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Panel de administración</strong><br><span class="chico">Rol: Administradora (ve todo)</span></td><td><code>desarrolloiaescencial@gmail.com</code></td><td><code>NbFWhVTrBjKd-40</code></td></tr>
+        </tbody>
+      </table>
+      <p class="chico">Entrar en: <code>modasnaty-tienda.netlify.app/administracion</code></p>
+
+  <div class="aviso"><strong>Importante:</strong> para pagar una compra de prueba usen <strong>su propia</strong> tarjeta o cuenta de Mercado Pago, no la de la dueña de la tienda: Mercado Pago no deja que una cuenta se pague a sí misma.</div>
+</section>
+
+<!-- ============ A ============ -->
+<div class="parte" id="A"><h2>A · Lo que ve la clienta</h2><p>Es simple: elegir, pagar y listo. Mostrar desde el celular.</p></div>
+
+<section class="escena">
+  <span class="num">A1</span>
+  <h2>Entrar a la tienda y elegir</h2>
+  <p class="chico">Abrir <code>modasnaty-tienda.netlify.app</code></p>
+  <ol class="grande">
+    <li><strong>Inicio:</strong> la portada con la marca. Tocar <em>Ver catálogo</em>.</li>
+    <li><strong>Catálogo:</strong> todas las prendas con su foto y su precio.</li>
+    <li><strong>Producto:</strong> elegir el color y la cantidad, y tocar <em>Agregar</em>.</li>
+  </ol>
+  <div class="decir"><p>Cada prenda muestra el precio en bolivianos y en pesos argentinos.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">A2</span>
+  <h2>Comprar</h2>
+  <ol class="grande">
+    <li><strong>Carrito:</strong> ver lo elegido y tocar <em>Finalizar compra</em>.</li>
+    <li><strong>Datos:</strong> nombre, teléfono y <u>correo real</u>.</li>
+    <li><strong>Entrega:</strong> retirar en la tienda o recibir en casa.</li>
+    <li><strong>Forma de pago:</strong> Mercado Pago.</li>
+    <li><strong>Pagar</strong> con tarjeta o con la cuenta de Mercado Pago.</li>
+  </ol>
+  <div class="decir"><p>Con Mercado Pago se suma un recargo chico: es la comisión que cobra Mercado Pago. Se ve claro antes de pagar.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">A3</span>
+  <h2>Después de pagar</h2>
+  <ol class="grande">
+    <li><strong>Aparece “¡Gracias por tu compra!”</strong> con lo que compró y los datos de entrega.</li>
+    <li><strong>El correo llega en un minuto</strong> con el comprobante y un PDF.</li>
+    <li><strong>El botón “Seguir mi pedido”</strong> del correo vuelve a esa misma página.</li>
+  </ol>
+  <div class="nota"><strong>Si sigue “Pendiente” 1 o 2 minutos:</strong> tocar <em>“Ya pagué, verificar ahora”</em>. Y si no se paga en 30 minutos, el pedido se cancela solo.</div>
+</section>
+
+<!-- ============ B ============ -->
+<div class="parte" id="B"><h2>B · El panel de administración</h2><p>Acá sí hay más cosas. Se explica cada sección.</p></div>
+
+<section class="escena">
+  <span class="num">B1</span>
+  <h2>Entrar y moverse</h2>
+  <ol class="grande">
+    <li><strong>Entrar</strong> con el correo y la contraseña.</li>
+    <li><strong>El menú de la izquierda</strong> tiene todas las secciones. El botón de arriba lo achica a íconos para tener más lugar.</li>
+  </ol>
+  <div class="decir"><p>Cada persona ve solo lo que le corresponde según su rol: la administración ve todo; las encargadas, pedidos o productos.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">B2</span>
+  <h2>Cada sección, en una línea</h2>
+  <table>
+    <thead><tr><th>Sección</th><th>Para qué sirve</th><th>Qué se hace ahí</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Inicio</strong></td><td>Resumen del día</td><td>Ver cuánto se vendió y qué pagos esperan confirmación.</td></tr>
+      <tr><td><strong>Pedidos</strong></td><td>Todas las compras</td><td>Abrir un pedido, ver qué compró, cambiar el estado, avisar por WhatsApp.</td></tr>
+      <tr><td><strong>Productos</strong></td><td>El catálogo</td><td>Crear y editar productos, fotos, colores, precio y publicarlos.</td></tr>
+      <tr><td><strong>Stock</strong></td><td>Las existencias</td><td>Ver qué queda de cada prenda y cargar stock.</td></tr>
+      <tr><td><strong>Gastos</strong></td><td>Lo que gasta el negocio</td><td>Anotar un gasto por categoría.</td></tr>
+      <tr><td><strong>Reportes</strong></td><td>Ventas y gastos</td><td>Ver totales por período y bajarlos a Excel.</td></tr>
+      <tr><td><strong>Cobros</strong></td><td>La plata de Mercado Pago</td><td>Ver cuánto pagó la clienta, cuánto descontó Mercado Pago y cuánto llegó.</td></tr>
+      <tr><td><strong>Usuarios</strong></td><td>Quién entra al panel</td><td>Crear personas y asignarles un rol.</td></tr>
+      <tr><td><strong>Configuración</strong></td><td>Los ajustes</td><td>Datos de la tienda, conversión de moneda, envíos, pagos y kiosco.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="escena">
+  <span class="num">B3</span>
+  <h2>Pedidos: el día a día</h2>
+  <div class="flujo"><span>Pagado</span><i>→</i><span>En preparación</span><i>→</i><span>Listo para retirar / Enviado</span><i>→</i><span>Entregado</span></div>
+  <ol class="grande">
+    <li><strong>Abrir el pedido</strong> tocándolo en la lista.</li>
+    <li><strong>Cambiar el estado</strong> con los botones de arriba. La clienta lo ve en su pedido.</li>
+    <li><strong>Efectivo en el local:</strong> la encargada toca <em>Confirmar pago</em> cuando cobra.</li>
+    <li><strong>Cancelar o reembolsar</strong> piden un motivo.</li>
+  </ol>
+  <div class="decir"><p>El stock se descuenta solo cuando el pago se confirma. Mientras tanto queda reservado para esa clienta.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">B4</span>
+  <h2>Productos: cargar uno nuevo</h2>
+  <ol class="grande">
+    <li><strong>Nuevo producto:</strong> el código ya viene puesto solo.</li>
+    <li><strong>Completar:</strong> nombre, categoría, y el precio por unidad en bolivianos (el que ve la clienta).</li>
+    <li><strong>Agregar colores y fotos.</strong></li>
+    <li><strong>Marcar “Publicado en la tienda”</strong> y guardar.</li>
+  </ol>
+  <div class="decir"><p>En menos de un minuto el producto aparece en la tienda.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">B5</span>
+  <h2>Configuración: lo que se puede cambiar</h2>
+  <ul class="grande">
+    <li><strong>Tienda:</strong> nombre, logo y WhatsApp.</li>
+    <li><strong>Moneda:</strong> la conversión de bolivianos a pesos. Si se cambia, todo el sitio se actualiza solo.</li>
+    <li><strong>Sitio:</strong> textos, dirección y horarios.</li>
+    <li><strong>Envíos:</strong> ciudades y costos.</li>
+    <li><strong>Pagos:</strong> el recargo de Mercado Pago.</li>
+    <li><strong>Kiosco:</strong> la pantalla táctil del local.</li>
+  </ul>
+  <div class="aviso">Los cambios de moneda y de recargo valen para los pedidos nuevos. Los que ya se hicieron quedan como estaban.</div>
+</section>
+
+<section class="escena">
+  <span class="num">B6</span>
+  <h2>Cobros y la guía de Mercado Pago</h2>
+  <div class="decir">
+    <p>En <em>Cobros</em> está cada pago de Mercado Pago con tres números: lo que pagó la clienta, lo que descontó Mercado Pago y lo que llegó de verdad.</p>
+    <p>Arriba hay un botón <em>“Guía: retenciones y descuentos”</em> que explica con palabras simples qué es cada descuento y cuándo conviene ajustar el recargo.</p>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<div class="parte" id="C"><h2>C · Cómo se conecta con Mercado Pago</h2><p>¿Se vincula solo? ¿Hay que hacer algo cada vez?</p></div>
+
+<section class="escena">
+  <span class="num">C1</span>
+  <h2>La respuesta corta</h2>
+  <div class="decir">
+    <p><strong>Se conecta una sola vez</strong>, con las claves de la cuenta de Mercado Pago. Después todo es automático: cada pago se detecta solo, el pedido pasa a “Pagado”, se descuenta el stock y sale el comprobante.</p>
+    <p>No hay un botón de “vincular” ni nadie tiene que iniciar sesión en Mercado Pago dentro del sistema.</p>
+  </div>
+</section>
+
+<section class="escena">
+  <span class="num">C2</span>
+  <h2>Cómo funciona</h2>
+  <ol class="grande">
+    <li><strong>La clienta paga</strong> en la pantalla de Mercado Pago.</li>
+    <li><strong>Mercado Pago le avisa</strong> a la tienda en el mismo momento.</li>
+    <li><strong>La tienda confirma</strong> con Mercado Pago que el pago es real y por el monto correcto.</li>
+    <li><strong>Marca el pedido como pagado</strong> y manda el correo.</li>
+  </ol>
+  <div class="nota"><strong>Respaldo:</strong> si el aviso se demora, la propia pantalla del pedido pregunta cada pocos segundos, y hay una revisión automática cada 10 minutos. Por eso no se pierde ningún pago.</div>
+</section>
+
+<section class="escena">
+  <span class="num">C3</span>
+  <h2>Qué hace falta para conectarla</h2>
+  <ul class="grande">
+    <li>La <strong>cuenta de Mercado Pago</strong> de la dueña.</li>
+    <li>Una <strong>aplicación</strong> creada en el panel de desarrolladores de Mercado Pago.</li>
+    <li>Las <strong>claves de producción</strong> de esa aplicación.</li>
+    <li>La <strong>dirección de aviso</strong> de la tienda cargada en Mercado Pago, con su clave secreta.</li>
+  </ul>
+  <div class="decir"><p>Eso lo hace el equipo técnico una vez. Si algún día cambia la cuenta, alcanza con reemplazar las claves.</p></div>
+  <div class="aviso"><strong>Cuenta personal o de negocio:</strong> el flujo funciona igual con las dos. Pero para tener más detalle y retenciones más bajas, <strong>la cuenta debe estar como negocio</strong> (inscripta). Que la dueña lo consulte con su contador.</div>
+</section>
+
+<!-- ============ D ============ -->
+<div class="parte" id="D"><h2>D · Antes de entregar</h2><p>Lo que hay que pedirle a la clienta. Marcar cada ítem cuando esté listo.</p></div>
+
+<section class="escena">
+  <span class="num">Para Facundo</span>
+  <h2>La lista</h2>
+  <h3>Mercado Pago</h3>
+  <ul class="lista">
+    <li><input type="checkbox" id="m1"><label for="m1"><strong>La cuenta de Mercado Pago de la titular</strong>, de tipo <strong>negocio</strong> si es posible, con sus datos de retiro cargados.</label></li>
+    <li><input type="checkbox" id="m2"><label for="m2"><strong>Las claves de producción</strong>: el <em>Access Token</em> y la <em>Public Key</em> (por un canal seguro, no por chat).</label></li>
+    <li><input type="checkbox" id="m3"><label for="m3"><strong>La clave secreta del aviso</strong>, que sale del mismo panel de Mercado Pago.</label></li>
+    <li><input type="checkbox" id="m4"><label for="m4"><strong>El contador:</strong> confirmar la situación fiscal (monotributo o CUIT).</label></li>
+  </ul>
+  <h3>Correo</h3>
+  <ul class="lista">
+    <li><input type="checkbox" id="c1"><label for="c1"><strong>Cuenta de Brevo</strong> con su clave y el <strong>correo remitente verificado</strong>.</label></li>
+  </ul>
+  <h3>Datos del negocio</h3>
+  <ul class="lista">
+    <li><input type="checkbox" id="n1"><label for="n1"><strong>Logo, nombre, WhatsApp y dirección real</strong> del local, con horarios.</label></li>
+    <li><input type="checkbox" id="n2"><label for="n2"><strong>Productos definitivos:</strong> fotos, precios en bolivianos y stock.</label></li>
+    <li><input type="checkbox" id="n3"><label for="n3"><strong>Envíos:</strong> ciudades, costos y plazos (o solo retiro).</label></li>
+    <li><input type="checkbox" id="n4"><label for="n4"><strong>Personas del panel:</strong> nombre, correo y rol de cada una.</label></li>
+    <li><input type="checkbox" id="n5"><label for="n5"><strong>Textos legales:</strong> términos de compra, envíos y cambios, privacidad.</label></li>
+  </ul>
+  <h3>Antes de abrir</h3>
+  <ul class="lista">
+    <li><input type="checkbox" id="x1"><label for="x1"><strong>Restaurar los precios reales</strong> (hoy son de prueba) y <strong>limpiar los pedidos de prueba</strong>.</label></li>
+    <li><input type="checkbox" id="x2"><label for="x2"><strong>Cambiar las claves</strong> usadas en las pruebas y las contraseñas iniciales.</label></li>
+  </ul>
+</section>
+
+<!-- ============ E ============ -->
+<div class="parte" id="E"><h2>E · Si algo falla</h2><p>Tres casos y qué hacer.</p></div>
+
+<section class="escena">
+  <span class="num">E1</span>
+  <h2>Lo más común</h2>
+  <ul class="grande">
+    <li><strong>Pagué y sigue “Pendiente”:</strong> tocar <em>“Ya pagué, verificar ahora”</em>.</li>
+    <li><strong>No llegó el correo:</strong> mirar en <em>Spam</em> o <em>Promociones</em>.</li>
+    <li><strong>No me deja pagar:</strong> es la misma cuenta que la de la tienda; usar otra.</li>
+  </ul>
+  <div class="decir"><p>Si pasa otra cosa, nos mandan una captura, el número de pedido (por ejemplo TN-000031) y la hora.</p></div>
+</section>
+
+<section class="escena">
+  <span class="num">Prueba final</span>
+  <h2>Qué tienen que probar</h2>
+  <ul class="lista grande">
+    <li><input type="checkbox" id="a1"><label for="a1"><strong>Comprar</strong> un producto con Mercado Pago: tiene que decir <em>Gracias por tu compra</em> y llegar el correo.</label></li>
+    <li><input type="checkbox" id="a2"><label for="a2"><strong>Ver el pedido en el panel</strong> y cambiarle el estado.</label></li>
+    <li><input type="checkbox" id="a3"><label for="a3"><strong>Mirar el cobro</strong> en la sección Cobros.</label></li>
+  </ul>
+</section>
+
+</main>
+<script>
+(function () {
+  var tam = 24
+  function g(k, v) { try { localStorage.setItem('guion3.' + k, v) } catch (e) {} }
+  function l(k) { try { return localStorage.getItem('guion3.' + k) } catch (e) { return null } }
+  var t = Number(l('tam')); if (t >= 16 && t <= 34) tam = t
+  function ap() { document.documentElement.style.setProperty('--base', tam + 'px'); g('tam', String(tam)) }
+  ap()
+  document.getElementById('mas').onclick = function () { tam = Math.min(34, tam + 2); ap() }
+  document.getElementById('menos').onclick = function () { tam = Math.max(16, tam - 2); ap() }
+  var bn = document.getElementById('notas')
+  function notas(o) { document.body.classList.toggle('sin-notas', o); bn.textContent = o ? 'Mostrar notas' : 'Ocultar notas'; g('sn', o ? '1' : '0') }
+  notas(l('sn') === '1')
+  bn.onclick = function () { notas(!document.body.classList.contains('sin-notas')) }
+  document.querySelectorAll('.lista input[type=checkbox]').forEach(function (c) {
+    c.checked = l('c.' + c.id) === '1'
+    c.addEventListener('change', function () { g('c.' + c.id, c.checked ? '1' : '0') })
+  })
+})()
+</script>
+</body>
+</html>
