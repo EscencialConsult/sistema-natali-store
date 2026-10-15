@@ -1,0 +1,2171 @@
+{
+    "base": "postgres",
+    "enums": {
+        "naty_moneda": [
+            "usd",
+            "ars",
+            "bs"
+        ],
+        "naty_metodo_pago": [
+            "efectivo",
+            "transferencia"
+        ],
+        "naty_rol_usuario": [
+            "admin",
+            "vendedor",
+            "enc_tienda",
+            "enc_ventas",
+            "enc_deposito",
+            "superadmin"
+        ],
+        "naty_estado_venta": [
+            "activa",
+            "anulada"
+        ],
+        "naty_unidad_venta": [
+            "docena",
+            "unidad"
+        ],
+        "naty_tipo_movimiento": [
+            "entrada",
+            "salida",
+            "venta",
+            "anulacion",
+            "ajuste",
+            "saldo"
+        ]
+    },
+    "filas": {
+        "proyectos": 1,
+        "naty_config": 8,
+        "naty_ventas": 48,
+        "naty_perfiles": 7,
+        "naty_limpiezas": 13,
+        "naty_productos": 45,
+        "naty_categorias": 1,
+        "naty_venta_items": 154,
+        "naty_producto_fotos": 45,
+        "naty_producto_colores": 0,
+        "naty_movimientos_stock": 212
+    },
+    "indices": [
+        {
+            "md5": "8baccb3c47711b6d6b51bed18c0347b7",
+            "tabla": "naty_categorias",
+            "indice": "naty_categorias_nombre_key"
+        },
+        {
+            "md5": "c2fefc61effffcac9c781f940b3eec43",
+            "tabla": "naty_categorias",
+            "indice": "naty_categorias_pkey"
+        },
+        {
+            "md5": "3ffdf2f80ad0c36bffea4d6ca800f06a",
+            "tabla": "naty_config",
+            "indice": "naty_config_pkey"
+        },
+        {
+            "md5": "1c60c25c357a72c21d62b4fbee88c0c7",
+            "tabla": "naty_limpiezas",
+            "indice": "idx_naty_limpiezas_updated"
+        },
+        {
+            "md5": "b6699a3993f75a2658141e9b0cbbf8d4",
+            "tabla": "naty_limpiezas",
+            "indice": "naty_limpiezas_pkey"
+        },
+        {
+            "md5": "cb16d425054c4fcace0085e68524eedb",
+            "tabla": "naty_movimientos_stock",
+            "indice": "idx_naty_mov_color"
+        },
+        {
+            "md5": "0e1939dbb9166e3a1480b9ead9ffd83d",
+            "tabla": "naty_movimientos_stock",
+            "indice": "idx_naty_mov_producto"
+        },
+        {
+            "md5": "26164781f1e85f4338b2cd359d6f573d",
+            "tabla": "naty_movimientos_stock",
+            "indice": "idx_naty_mov_updated"
+        },
+        {
+            "md5": "84bb7bebce9925b92b5456cb91605563",
+            "tabla": "naty_movimientos_stock",
+            "indice": "idx_naty_mov_venta"
+        },
+        {
+            "md5": "66df8e5c54c1acad2ca9d43eb17d2e89",
+            "tabla": "naty_movimientos_stock",
+            "indice": "naty_movimientos_stock_pkey"
+        },
+        {
+            "md5": "3bc1fa8d3bdc981205427f36e2c2c26c",
+            "tabla": "naty_perfiles",
+            "indice": "naty_perfiles_iniciales_key"
+        },
+        {
+            "md5": "4444b749cfb307ae04b2ab8b6486de91",
+            "tabla": "naty_perfiles",
+            "indice": "naty_perfiles_pkey"
+        },
+        {
+            "md5": "78652d6a25263f00b7bd8fea287de81e",
+            "tabla": "naty_perfiles",
+            "indice": "naty_perfiles_usuario_uq"
+        },
+        {
+            "md5": "b33907ae176753af01d9afe3d07ee4dc",
+            "tabla": "naty_producto_colores",
+            "indice": "idx_naty_colores_producto"
+        },
+        {
+            "md5": "6248e6e9f45e43bf4e748ba1f1859875",
+            "tabla": "naty_producto_colores",
+            "indice": "naty_producto_colores_pkey"
+        },
+        {
+            "md5": "0873b066b840447b0940806f0e1a2ff9",
+            "tabla": "naty_producto_fotos",
+            "indice": "idx_naty_fotos_producto"
+        },
+        {
+            "md5": "c5de2e422fc7e593101c194fd0665be8",
+            "tabla": "naty_producto_fotos",
+            "indice": "naty_producto_fotos_pkey"
+        },
+        {
+            "md5": "cb2c4fd62767756ebf1b887c330126a2",
+            "tabla": "naty_productos",
+            "indice": "idx_naty_productos_updated"
+        },
+        {
+            "md5": "e8499bd74000b00f89905a8a0809fc6e",
+            "tabla": "naty_productos",
+            "indice": "naty_productos_codigo_key"
+        },
+        {
+            "md5": "171504066d22517c6923ddf8103f8ff8",
+            "tabla": "naty_productos",
+            "indice": "naty_productos_pkey"
+        },
+        {
+            "md5": "3e294a622b43e7d5f775ce6f178a4262",
+            "tabla": "naty_venta_items",
+            "indice": "idx_naty_items_venta"
+        },
+        {
+            "md5": "20a967d3bf10e693fd20ca9500e7373c",
+            "tabla": "naty_venta_items",
+            "indice": "naty_venta_items_pkey"
+        },
+        {
+            "md5": "ac7235a08437333589a1bc67f4d4f766",
+            "tabla": "naty_ventas",
+            "indice": "idx_naty_ventas_numero"
+        },
+        {
+            "md5": "01c2334de58f60bfca0c074d9462d6be",
+            "tabla": "naty_ventas",
+            "indice": "idx_naty_ventas_updated"
+        },
+        {
+            "md5": "11eb2ef81c0b4ed617f66d653796a1d7",
+            "tabla": "naty_ventas",
+            "indice": "idx_naty_ventas_vendedor_fecha"
+        },
+        {
+            "md5": "d72ec55f6d984137ca1dd57be5c234ac",
+            "tabla": "naty_ventas",
+            "indice": "naty_ventas_pkey"
+        },
+        {
+            "md5": "c3387a5870f0852b4ff67fd7581fb8d8",
+            "tabla": "proyectos",
+            "indice": "idx_proyectos_estado"
+        },
+        {
+            "md5": "5b7939313f64e692ceebd8db5bf5ae4e",
+            "tabla": "proyectos",
+            "indice": "idx_proyectos_identificador"
+        },
+        {
+            "md5": "da60902ab7a8bb3e4b25e0419bb48453",
+            "tabla": "proyectos",
+            "indice": "proyectos_identificador_key"
+        },
+        {
+            "md5": "c1c3dea66a424c7fce914d48e9cca348",
+            "tabla": "proyectos",
+            "indice": "proyectos_pkey"
+        }
+    ],
+    "columnas": [
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_catalogo_publico",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_catalogo_publico",
+            "columna": "codigo",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_catalogo_publico",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_catalogo_publico",
+            "columna": "categoria",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_catalogo_publico",
+            "columna": "descripcion",
+            "default": null
+        },
+        {
+            "udt": "bool",
+            "nulo": "YES",
+            "tipo": "boolean",
+            "tabla": "naty_catalogo_publico",
+            "columna": "nuevo",
+            "default": null
+        },
+        {
+            "udt": "int4",
+            "nulo": "YES",
+            "tipo": "integer",
+            "tabla": "naty_catalogo_publico",
+            "columna": "precio_docena_usd_cent",
+            "default": null
+        },
+        {
+            "udt": "jsonb",
+            "nulo": "YES",
+            "tipo": "jsonb",
+            "tabla": "naty_catalogo_publico",
+            "columna": "colores",
+            "default": null
+        },
+        {
+            "udt": "jsonb",
+            "nulo": "YES",
+            "tipo": "jsonb",
+            "tabla": "naty_catalogo_publico",
+            "columna": "fotos",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_categorias",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_categorias",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_categorias",
+            "columna": "orden",
+            "default": "0"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_categorias",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_config",
+            "columna": "clave",
+            "default": null
+        },
+        {
+            "udt": "jsonb",
+            "nulo": "NO",
+            "tipo": "jsonb",
+            "tabla": "naty_config",
+            "columna": "valor",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_config",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_limpiezas",
+            "columna": "id",
+            "default": "gen_random_uuid()"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_limpiezas",
+            "columna": "tipo",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "YES",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_limpiezas",
+            "columna": "antes_de",
+            "default": null
+        },
+        {
+            "udt": "_uuid",
+            "nulo": "NO",
+            "tipo": "ARRAY",
+            "tabla": "naty_limpiezas",
+            "columna": "ids",
+            "default": "'{}'::uuid[]"
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_limpiezas",
+            "columna": "cantidad",
+            "default": "0"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_limpiezas",
+            "columna": "por",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_limpiezas",
+            "columna": "creado_en",
+            "default": "now()"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_limpiezas",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_movimientos_stock",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_movimientos_stock",
+            "columna": "producto_id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_movimientos_stock",
+            "columna": "color_id",
+            "default": null
+        },
+        {
+            "udt": "naty_tipo_movimiento",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_movimientos_stock",
+            "columna": "tipo",
+            "default": null
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_movimientos_stock",
+            "columna": "delta",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_movimientos_stock",
+            "columna": "motivo",
+            "default": "''::text"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_movimientos_stock",
+            "columna": "usuario_id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_movimientos_stock",
+            "columna": "venta_id",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_movimientos_stock",
+            "columna": "creado_en",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_movimientos_stock",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_perfiles",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_perfiles",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_perfiles",
+            "columna": "iniciales",
+            "default": null
+        },
+        {
+            "udt": "naty_rol_usuario",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_perfiles",
+            "columna": "rol",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_perfiles",
+            "columna": "telefono",
+            "default": null
+        },
+        {
+            "udt": "bool",
+            "nulo": "NO",
+            "tipo": "boolean",
+            "tabla": "naty_perfiles",
+            "columna": "activo",
+            "default": "true"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_perfiles",
+            "columna": "creado_en",
+            "default": "now()"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_perfiles",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_perfiles",
+            "columna": "usuario",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_producto_colores",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_producto_colores",
+            "columna": "producto_id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_producto_colores",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_producto_colores",
+            "columna": "hex",
+            "default": "'#cccccc'::text"
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_producto_colores",
+            "columna": "orden",
+            "default": "0"
+        },
+        {
+            "udt": "bool",
+            "nulo": "NO",
+            "tipo": "boolean",
+            "tabla": "naty_producto_colores",
+            "columna": "eliminado",
+            "default": "false"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_producto_colores",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_producto_fotos",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_producto_fotos",
+            "columna": "producto_id",
+            "default": null
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_producto_fotos",
+            "columna": "orden",
+            "default": "0"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_producto_fotos",
+            "columna": "ruta",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_producto_fotos",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_productos",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_productos",
+            "columna": "codigo",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_productos",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_productos",
+            "columna": "categoria_id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_productos",
+            "columna": "descripcion",
+            "default": "''::text"
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_productos",
+            "columna": "precio_docena_usd_cent",
+            "default": null
+        },
+        {
+            "udt": "bool",
+            "nulo": "NO",
+            "tipo": "boolean",
+            "tabla": "naty_productos",
+            "columna": "nuevo",
+            "default": "false"
+        },
+        {
+            "udt": "bool",
+            "nulo": "NO",
+            "tipo": "boolean",
+            "tabla": "naty_productos",
+            "columna": "activo",
+            "default": "true"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_productos",
+            "columna": "creado_en",
+            "default": "now()"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_productos",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_venta_items",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_venta_items",
+            "columna": "venta_id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_venta_items",
+            "columna": "producto_id",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "YES",
+            "tipo": "uuid",
+            "tabla": "naty_venta_items",
+            "columna": "color_id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_venta_items",
+            "columna": "codigo",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_venta_items",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_venta_items",
+            "columna": "color_nombre",
+            "default": null
+        },
+        {
+            "udt": "numeric",
+            "nulo": "NO",
+            "tipo": "numeric",
+            "tabla": "naty_venta_items",
+            "columna": "cantidad",
+            "default": null
+        },
+        {
+            "udt": "naty_unidad_venta",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_venta_items",
+            "columna": "unidad",
+            "default": "'docena'::naty_unidad_venta"
+        },
+        {
+            "udt": "int4",
+            "nulo": "NO",
+            "tipo": "integer",
+            "tabla": "naty_venta_items",
+            "columna": "unidades",
+            "default": null
+        },
+        {
+            "udt": "int8",
+            "nulo": "NO",
+            "tipo": "bigint",
+            "tabla": "naty_venta_items",
+            "columna": "precio_cent",
+            "default": null
+        },
+        {
+            "udt": "int8",
+            "nulo": "NO",
+            "tipo": "bigint",
+            "tabla": "naty_venta_items",
+            "columna": "subtotal_cent",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_ventas",
+            "columna": "id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "numero",
+            "default": null
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "naty_ventas",
+            "columna": "vendedor_id",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "vendedor_nombre",
+            "default": "''::text"
+        },
+        {
+            "udt": "naty_moneda",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_ventas",
+            "columna": "moneda",
+            "default": null
+        },
+        {
+            "udt": "numeric",
+            "nulo": "NO",
+            "tipo": "numeric",
+            "tabla": "naty_ventas",
+            "columna": "tipo_cambio",
+            "default": null
+        },
+        {
+            "udt": "naty_metodo_pago",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_ventas",
+            "columna": "metodo_pago",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "cliente_nombre",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "cliente_telefono",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "cliente_email",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "cliente_direccion",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "metodo_entrega",
+            "default": null
+        },
+        {
+            "udt": "int8",
+            "nulo": "NO",
+            "tipo": "bigint",
+            "tabla": "naty_ventas",
+            "columna": "total_cent",
+            "default": null
+        },
+        {
+            "udt": "naty_estado_venta",
+            "nulo": "NO",
+            "tipo": "USER-DEFINED",
+            "tabla": "naty_ventas",
+            "columna": "estado",
+            "default": "'activa'::naty_estado_venta"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "YES",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_ventas",
+            "columna": "anulada_en",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "YES",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "anulacion_motivo",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_ventas",
+            "columna": "creada_en",
+            "default": null
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "naty_ventas",
+            "columna": "updated_at",
+            "default": "clock_timestamp()"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "naty_ventas",
+            "columna": "retira_nombre",
+            "default": "''::text"
+        },
+        {
+            "udt": "uuid",
+            "nulo": "NO",
+            "tipo": "uuid",
+            "tabla": "proyectos",
+            "columna": "id",
+            "default": "gen_random_uuid()"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "identificador",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "nombre",
+            "default": null
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "descripcion",
+            "default": "''::text"
+        },
+        {
+            "udt": "jsonb",
+            "nulo": "NO",
+            "tipo": "jsonb",
+            "tabla": "proyectos",
+            "columna": "tablas",
+            "default": "'[]'::jsonb"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "link_github",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "link_web",
+            "default": "''::text"
+        },
+        {
+            "udt": "text",
+            "nulo": "NO",
+            "tipo": "text",
+            "tabla": "proyectos",
+            "columna": "estado",
+            "default": "'en_desarrollo'::text"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "proyectos",
+            "columna": "fecha_alta",
+            "default": "now()"
+        },
+        {
+            "udt": "timestamptz",
+            "nulo": "NO",
+            "tipo": "timestamp with time zone",
+            "tabla": "proyectos",
+            "columna": "actualizado",
+            "default": "now()"
+        }
+    ],
+    "postgres": "PostgreSQL 17.11 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+    "triggers": [
+        {
+            "md5": "1e072afa38d8e6984a9fe49ad31306ae",
+            "tabla": "naty_categorias",
+            "trigger": "trg_naty_categorias_upd"
+        },
+        {
+            "md5": "c023a1aa77d3b20b167d22b3e5dfb7f6",
+            "tabla": "naty_config",
+            "trigger": "trg_naty_config_upd"
+        },
+        {
+            "md5": "fac814d425ba684c0964f16bc02c20fb",
+            "tabla": "naty_movimientos_stock",
+            "trigger": "trg_naty_mov_upd"
+        },
+        {
+            "md5": "fc8be234786a1088cecd0341aaab7067",
+            "tabla": "naty_perfiles",
+            "trigger": "trg_naty_perfiles_upd"
+        },
+        {
+            "md5": "f3511e634e9ab7260dc955562ef03e55",
+            "tabla": "naty_producto_colores",
+            "trigger": "trg_naty_colores_toca"
+        },
+        {
+            "md5": "7ce6f4567330889baccfa0e7b030ba71",
+            "tabla": "naty_producto_colores",
+            "trigger": "trg_naty_colores_upd"
+        },
+        {
+            "md5": "5b525e10e82ab1bd56911547dcbc151f",
+            "tabla": "naty_producto_fotos",
+            "trigger": "trg_naty_fotos_toca"
+        },
+        {
+            "md5": "d6d0738528fd9ca5d74283a56cee917a",
+            "tabla": "naty_producto_fotos",
+            "trigger": "trg_naty_fotos_upd"
+        },
+        {
+            "md5": "06c87de8ecc3a843b67ed450df7ed5db",
+            "tabla": "naty_productos",
+            "trigger": "trg_naty_productos_upd"
+        },
+        {
+            "md5": "f8529027e370b1778e858375a1a159e5",
+            "tabla": "naty_ventas",
+            "trigger": "trg_naty_ventas_upd"
+        },
+        {
+            "md5": "efa4218d5829eb348af927f311f28d48",
+            "tabla": "proyectos",
+            "trigger": "trg_proyectos_actualizado"
+        }
+    ],
+    "funciones": [
+        {
+            "md5": "b39e8bc70c25b8cd35d8cf20c7addbbb",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_anular_venta",
+            "security_definer": true
+        },
+        {
+            "md5": "5e327f3f899a9d89e12359867c3bf8b1",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_borrar_ventas",
+            "security_definer": true
+        },
+        {
+            "md5": "c9a457be9d87c62c996c0f49c798a811",
+            "args": "p_id uuid, p_clave text",
+            "dueno": "postgres",
+            "nombre": "naty_cambiar_clave",
+            "security_definer": true
+        },
+        {
+            "md5": "63945c6e2dd35f0052d350ae38f1242e",
+            "args": "p_email text, p_rol naty_rol_usuario, p_nombre text, p_iniciales text, p_telefono text",
+            "dueno": "postgres",
+            "nombre": "naty_configurar_usuario",
+            "security_definer": true
+        },
+        {
+            "md5": "0905384bcb7d1cd079ea3647ddd71f6f",
+            "args": "p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_clave text, p_telefono text",
+            "dueno": "postgres",
+            "nombre": "naty_crear_usuario",
+            "security_definer": true
+        },
+        {
+            "md5": "0f9034a031a475a38e343074ce7d0100",
+            "args": "p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_clave text, p_telefono text",
+            "dueno": "postgres",
+            "nombre": "naty_crear_usuario_interno",
+            "security_definer": true
+        },
+        {
+            "md5": "7185c00e6c6fdb568ce4e4dc47c979e8",
+            "args": "p_id uuid, p_usuario text, p_nombre text, p_rol naty_rol_usuario, p_telefono text, p_activo boolean",
+            "dueno": "postgres",
+            "nombre": "naty_editar_usuario",
+            "security_definer": true
+        },
+        {
+            "md5": "5ed561fd28a1a38b7e8f7bb5af64d9f3",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_eliminar_productos",
+            "security_definer": true
+        },
+        {
+            "md5": "97d075931c5ddc95ad65ac0e0c57e82a",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_eliminar_productos_de_baja",
+            "security_definer": true
+        },
+        {
+            "md5": "ed32081d39af4be539cb0383abbb783e",
+            "args": "p_usuario text",
+            "dueno": "postgres",
+            "nombre": "naty_email_de_usuario",
+            "security_definer": false
+        },
+        {
+            "md5": "459046310d881aafdf356aeea07ceabc",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "naty_es_miembro",
+            "security_definer": true
+        },
+        {
+            "md5": "d1746e6aaf45160e51f20692436ffc3f",
+            "args": "VARIADIC roles naty_rol_usuario[]",
+            "dueno": "postgres",
+            "nombre": "naty_es_rol",
+            "security_definer": true
+        },
+        {
+            "md5": "e6a314294fe8459a188925a1f65265e8",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_guardar_producto",
+            "security_definer": true
+        },
+        {
+            "md5": "f9b61679e911dad68883315e8375493a",
+            "args": "p_nombre text, p_excepto uuid",
+            "dueno": "postgres",
+            "nombre": "naty_iniciales_libres",
+            "security_definer": true
+        },
+        {
+            "md5": "d98651a66d6c5a81fa3a376160459e48",
+            "args": "p_usuario text",
+            "dueno": "postgres",
+            "nombre": "naty_normalizar_usuario",
+            "security_definer": false
+        },
+        {
+            "md5": "7793de58c29da4cb3bfbcf6fe6c11bb9",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_previsualizar_limpieza",
+            "security_definer": true
+        },
+        {
+            "md5": "5471ff4c5aa1ecad9ffed001d436a91b",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_registrar_venta",
+            "security_definer": true
+        },
+        {
+            "md5": "7ea3e8badf054521a961216ae85c3563",
+            "args": "p jsonb",
+            "dueno": "postgres",
+            "nombre": "naty_resumir_movimientos",
+            "security_definer": true
+        },
+        {
+            "md5": "d80247a81f6c0e020b7f7f6cd74d236f",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "naty_rol_actual",
+            "security_definer": true
+        },
+        {
+            "md5": "0b3373b491a360cee50b76583f1cee44",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "naty_tocar_producto",
+            "security_definer": false
+        },
+        {
+            "md5": "97ef4b2ad260d9939c4ef9307c0be86d",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "naty_tocar_updated_at",
+            "security_definer": false
+        },
+        {
+            "md5": "862ad945c895f960a42f3805976b7835",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "naty_uso_almacenamiento",
+            "security_definer": true
+        },
+        {
+            "md5": "e237d2b44f8e42cbb07da9f1ad9c1083",
+            "args": "p_usuario text",
+            "dueno": "postgres",
+            "nombre": "naty_validar_usuario",
+            "security_definer": false
+        },
+        {
+            "md5": "5f0a86e473c0ef4e3efcc98da2e4ffbd",
+            "args": "",
+            "dueno": "postgres",
+            "nombre": "set_actualizado",
+            "security_definer": false
+        }
+    ],
+    "politicas": [
+        {
+            "cmd": "UPDATE",
+            "qual": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario, 'enc_deposito'::naty_rol_usuario])",
+            "roles": "{authenticated}",
+            "tabla": "naty_categorias",
+            "politica": "naty_categorias_editar",
+            "with_check": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario, 'enc_deposito'::naty_rol_usuario])"
+        },
+        {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": "{authenticated}",
+            "tabla": "naty_categorias",
+            "politica": "naty_categorias_insertar",
+            "with_check": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario, 'enc_deposito'::naty_rol_usuario])"
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_categorias",
+            "politica": "naty_categorias_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "UPDATE",
+            "qual": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario])",
+            "roles": "{authenticated}",
+            "tabla": "naty_config",
+            "politica": "naty_config_editar",
+            "with_check": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario])"
+        },
+        {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": "{authenticated}",
+            "tabla": "naty_config",
+            "politica": "naty_config_insertar",
+            "with_check": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario])"
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_config",
+            "politica": "naty_config_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_limpiezas",
+            "politica": "naty_limpiezas_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": "{authenticated}",
+            "tabla": "naty_movimientos_stock",
+            "politica": "naty_stock_insertar",
+            "with_check": "(naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario, 'enc_deposito'::naty_rol_usuario]) AND (tipo = ANY (ARRAY['entrada'::naty_tipo_movimiento, 'salida'::naty_tipo_movimiento, 'ajuste'::naty_tipo_movimiento])) AND (usuario_id = auth.uid()))"
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_movimientos_stock",
+            "politica": "naty_stock_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "UPDATE",
+            "qual": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario])",
+            "roles": "{authenticated}",
+            "tabla": "naty_perfiles",
+            "politica": "naty_perfiles_editar",
+            "with_check": "naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario])"
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_perfiles",
+            "politica": "naty_perfiles_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_producto_colores",
+            "politica": "naty_colores_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_producto_fotos",
+            "politica": "naty_fotos_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "naty_es_miembro()",
+            "roles": "{authenticated}",
+            "tabla": "naty_productos",
+            "politica": "naty_productos_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "(EXISTS ( SELECT 1\n   FROM naty_ventas v\n  WHERE (v.id = naty_venta_items.venta_id)))",
+            "roles": "{authenticated}",
+            "tabla": "naty_venta_items",
+            "politica": "naty_items_leer",
+            "with_check": null
+        },
+        {
+            "cmd": "SELECT",
+            "qual": "(naty_es_rol(VARIADIC ARRAY['admin'::naty_rol_usuario, 'enc_tienda'::naty_rol_usuario, 'enc_ventas'::naty_rol_usuario]) OR ((vendedor_id = auth.uid()) AND naty_es_miembro()))",
+            "roles": "{authenticated}",
+            "tabla": "naty_ventas",
+            "politica": "naty_ventas_leer",
+            "with_check": null
+        }
+    ],
+    "relaciones": [
+        {
+            "rls": false,
+            "tipo": "vista",
+            "dueno": "postgres",
+            "nombre": "naty_catalogo_publico",
+            "opciones": "",
+            "md5_vista": "2a86990318d5166f71b39cc2d7f2aa82",
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_categorias",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_config",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_limpiezas",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_movimientos_stock",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_perfiles",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_producto_colores",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_producto_fotos",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_productos",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_venta_items",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "naty_ventas",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        },
+        {
+            "rls": true,
+            "tipo": "tabla",
+            "dueno": "postgres",
+            "nombre": "proyectos",
+            "opciones": "",
+            "md5_vista": null,
+            "rls_forzado": false
+        }
+    ],
+    "extensiones": {
+        "plpgsql": "1.0",
+        "pgcrypto": "1.3",
+        "uuid-ossp": "1.1",
+        "supabase_vault": "0.3.1",
+        "pg_stat_statements": "1.11"
+    },
+    "generado_en": "2026-10-15T20:43:42.371999+00:00",
+    "tamano_bytes": 13350579,
+    "config_claves": [
+        "logo",
+        "mostrar_precios_publico",
+        "negocio",
+        "stock_bajo_unidades",
+        "tipo_cambio",
+        "unidades_por_docena",
+        "url_catalogo",
+        "whatsapp_tienda"
+    ],
+    "restricciones": [
+        {
+            "md5": "626f0988df45f048a99053b99b8d3d1c",
+            "tipo": "c",
+            "tabla": "naty_categorias",
+            "nombre": "naty_categorias_nombre_check"
+        },
+        {
+            "md5": "4a6ec3f09ffbffc9ca4cb4e4876f7f5e",
+            "tipo": "u",
+            "tabla": "naty_categorias",
+            "nombre": "naty_categorias_nombre_key"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_categorias",
+            "nombre": "naty_categorias_pkey"
+        },
+        {
+            "md5": "24afc485589376dbdfe306825a99d611",
+            "tipo": "p",
+            "tabla": "naty_config",
+            "nombre": "naty_config_pkey"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_limpiezas",
+            "nombre": "naty_limpiezas_pkey"
+        },
+        {
+            "md5": "ff79367ae27c7d6db5403c72fa64a158",
+            "tipo": "f",
+            "tabla": "naty_limpiezas",
+            "nombre": "naty_limpiezas_por_fkey"
+        },
+        {
+            "md5": "924c634c67102e636158b7b1a130aa03",
+            "tipo": "c",
+            "tabla": "naty_limpiezas",
+            "nombre": "naty_limpiezas_tipo_check"
+        },
+        {
+            "md5": "eb8d44be3dd2aee1ab2e7fcf656e4ab2",
+            "tipo": "f",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_color_id_fkey"
+        },
+        {
+            "md5": "c5b0730bd58b8f6bc12a06b07b9bc9a0",
+            "tipo": "c",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_delta_check"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_pkey"
+        },
+        {
+            "md5": "9f08253c5100a1a73eb6e5a99d3fce7e",
+            "tipo": "f",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_producto_id_fkey"
+        },
+        {
+            "md5": "3deea2fe9b596e04689f37dec540b097",
+            "tipo": "f",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_usuario_id_fkey"
+        },
+        {
+            "md5": "fc6403e1cdccabc4c8cfb6a9de02e0a1",
+            "tipo": "f",
+            "tabla": "naty_movimientos_stock",
+            "nombre": "naty_movimientos_stock_venta_id_fkey"
+        },
+        {
+            "md5": "0061c9fb3a9abcf2edbcd4a42467a9c3",
+            "tipo": "f",
+            "tabla": "naty_perfiles",
+            "nombre": "naty_perfiles_id_fkey"
+        },
+        {
+            "md5": "b25bfbecaa25e9ac8e833df4a538837d",
+            "tipo": "c",
+            "tabla": "naty_perfiles",
+            "nombre": "naty_perfiles_iniciales_check"
+        },
+        {
+            "md5": "3e0ddea0e73211d25c71c1931427ab59",
+            "tipo": "u",
+            "tabla": "naty_perfiles",
+            "nombre": "naty_perfiles_iniciales_key"
+        },
+        {
+            "md5": "626f0988df45f048a99053b99b8d3d1c",
+            "tipo": "c",
+            "tabla": "naty_perfiles",
+            "nombre": "naty_perfiles_nombre_check"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_perfiles",
+            "nombre": "naty_perfiles_pkey"
+        },
+        {
+            "md5": "626f0988df45f048a99053b99b8d3d1c",
+            "tipo": "c",
+            "tabla": "naty_producto_colores",
+            "nombre": "naty_producto_colores_nombre_check"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_producto_colores",
+            "nombre": "naty_producto_colores_pkey"
+        },
+        {
+            "md5": "455eff333e8c2947a02ae331356d38cc",
+            "tipo": "f",
+            "tabla": "naty_producto_colores",
+            "nombre": "naty_producto_colores_producto_id_fkey"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_producto_fotos",
+            "nombre": "naty_producto_fotos_pkey"
+        },
+        {
+            "md5": "455eff333e8c2947a02ae331356d38cc",
+            "tipo": "f",
+            "tabla": "naty_producto_fotos",
+            "nombre": "naty_producto_fotos_producto_id_fkey"
+        },
+        {
+            "md5": "0145053e6c1063731528d54fc3b112b4",
+            "tipo": "f",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_categoria_id_fkey"
+        },
+        {
+            "md5": "89e635927a53b4523efa92a179f0feb7",
+            "tipo": "c",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_codigo_check"
+        },
+        {
+            "md5": "71cd40930c291836ca3b6a0bcdcbee56",
+            "tipo": "u",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_codigo_key"
+        },
+        {
+            "md5": "626f0988df45f048a99053b99b8d3d1c",
+            "tipo": "c",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_nombre_check"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_pkey"
+        },
+        {
+            "md5": "d10d1517bf6ba69087ca655f3641134d",
+            "tipo": "c",
+            "tabla": "naty_productos",
+            "nombre": "naty_productos_precio_docena_usd_cent_check"
+        },
+        {
+            "md5": "eab95c107abca6b60b150deecc073089",
+            "tipo": "c",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_cantidad_check"
+        },
+        {
+            "md5": "5c98c3b3ef5d53634e748a866c1ede79",
+            "tipo": "f",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_color_id_fkey"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_pkey"
+        },
+        {
+            "md5": "e67f877020262155ee5e061cd5a9ec72",
+            "tipo": "c",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_precio_cent_check"
+        },
+        {
+            "md5": "839238286a340db622544ec988bed0c6",
+            "tipo": "f",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_producto_id_fkey"
+        },
+        {
+            "md5": "2883457a410910c014b2bd8f6dd79504",
+            "tipo": "c",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_subtotal_cent_check"
+        },
+        {
+            "md5": "cbaf1d0a5a1be0b44682fafdbe53fa24",
+            "tipo": "c",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_unidades_check"
+        },
+        {
+            "md5": "29fcc6bdabd4f73fc828f15050caced2",
+            "tipo": "f",
+            "tabla": "naty_venta_items",
+            "nombre": "naty_venta_items_venta_id_fkey"
+        },
+        {
+            "md5": "f0b08b5a1d41777dddaa48dd7a5a67a2",
+            "tipo": "c",
+            "tabla": "naty_ventas",
+            "nombre": "naty_ventas_metodo_entrega_check"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "naty_ventas",
+            "nombre": "naty_ventas_pkey"
+        },
+        {
+            "md5": "91b4b94f8ed23cf529e922ec2c25eb96",
+            "tipo": "c",
+            "tabla": "naty_ventas",
+            "nombre": "naty_ventas_tipo_cambio_check"
+        },
+        {
+            "md5": "7c8c6ced36fa2efbe90afd3579f11324",
+            "tipo": "c",
+            "tabla": "naty_ventas",
+            "nombre": "naty_ventas_total_cent_check"
+        },
+        {
+            "md5": "6e3ecaa12f999f098c4eb28a5fc02226",
+            "tipo": "f",
+            "tabla": "naty_ventas",
+            "nombre": "naty_ventas_vendedor_id_fkey"
+        },
+        {
+            "md5": "6a95cb9010920d5e3a50752524824c09",
+            "tipo": "u",
+            "tabla": "proyectos",
+            "nombre": "proyectos_identificador_key"
+        },
+        {
+            "md5": "4c6419b3704337bbfe50f018842a9ad3",
+            "tipo": "p",
+            "tabla": "proyectos",
+            "nombre": "proyectos_pkey"
+        }
+    ],
+    "permisos_tablas": [
+        {
+            "para": "anon",
+            "tabla": "naty_catalogo_publico",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_catalogo_publico",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_categorias",
+            "permiso": "INSERT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_categorias",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_categorias",
+            "permiso": "UPDATE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_config",
+            "permiso": "INSERT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_config",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_config",
+            "permiso": "UPDATE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_limpiezas",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_movimientos_stock",
+            "permiso": "INSERT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_movimientos_stock",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_perfiles",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_perfiles",
+            "permiso": "UPDATE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_producto_colores",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_producto_fotos",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_productos",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_venta_items",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "naty_ventas",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "DELETE"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "INSERT"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "REFERENCES"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "TRIGGER"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "TRUNCATE"
+        },
+        {
+            "para": "anon",
+            "tabla": "proyectos",
+            "permiso": "UPDATE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "DELETE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "INSERT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "REFERENCES"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "SELECT"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "TRIGGER"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "TRUNCATE"
+        },
+        {
+            "para": "authenticated",
+            "tabla": "proyectos",
+            "permiso": "UPDATE"
+        }
+    ],
+    "storage_buckets": [
+        {
+            "id": "naty_productos",
+            "publico": true
+        }
+    ],
+    "perfiles_por_rol": [
+        {
+            "rol": "enc_tienda",
+            "activo": true,
+            "cantidad": 1
+        },
+        {
+            "rol": "enc_ventas",
+            "activo": true,
+            "cantidad": 1
+        },
+        {
+            "rol": "superadmin",
+            "activo": true,
+            "cantidad": 1
+        },
+        {
+            "rol": "vendedor",
+            "activo": false,
+            "cantidad": 1
+        },
+        {
+            "rol": "vendedor",
+            "activo": true,
+            "cantidad": 3
+        }
+    ],
+    "permisos_funciones": [
+        {
+            "para": "authenticated",
+            "funcion": "naty_anular_venta",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_borrar_ventas",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_cambiar_clave",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_crear_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_editar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_eliminar_productos",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_eliminar_productos_de_baja",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "naty_email_de_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "naty_email_de_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_email_de_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_es_miembro",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_es_rol",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_guardar_producto",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "naty_normalizar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "naty_normalizar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_normalizar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_previsualizar_limpieza",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_registrar_venta",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_resumir_movimientos",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_rol_actual",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "naty_tocar_producto",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "naty_tocar_producto",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_tocar_producto",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "naty_tocar_updated_at",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "naty_tocar_updated_at",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_tocar_updated_at",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_uso_almacenamiento",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "naty_validar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "naty_validar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "naty_validar_usuario",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "PUBLIC",
+            "funcion": "set_actualizado",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "anon",
+            "funcion": "set_actualizado",
+            "permiso": "EXECUTE"
+        },
+        {
+            "para": "authenticated",
+            "funcion": "set_actualizado",
+            "permiso": "EXECUTE"
+        }
+    ],
+    "storage_objetos_por_bucket": {
+        "naty_productos": 47
+    }
+}
