@@ -158,30 +158,36 @@ Estado 15/10: **hecha en código y verificada** (14 pruebas nuevas, 186 en total
 Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en la tienda sin tocar código (cumplido en código; se ve en pantalla recién cuando el esquema esté aplicado).
 
 ## Etapa E4b · Marca coherente en los dos sistemas (3 h)
-Contexto: los logos reales (imagotipo, isotipo e íconos de la app) existen solo en la tienda original. Renzo no los usó. Su app muestra un monograma "MN" sobre fondo oscuro, y su logo se carga desde Ajustes (`useMarca`, clave `logo`), que alimenta el encabezado y la nota de venta.
+Estado 15/10: **hecha en código**. Queda un paso manual de Natali (el logo de Ajustes) y verlo en un celular real.
 
-- [x] E4b.1 (15/10) `imagotipo.png` e `isotipo.png` copiados a `app/public/brand/` (archivos nuevos, no pisan nada).
-- [ ] E4b.2 Mapa completo de dónde aparece la marca en Renzo: `Logo.jsx`, `useMarca`, encabezado de la nota, `favicon.svg`, íconos de `public/icons/`, manifiesto (nombre "Modas Naty · Notas de venta", color `#8a3a63`) y `index.html`.
-- [ ] E4b.3 `/tienda/*` usa `brand/imagotipo.png` e `isotipo.png` con ancho y alto fijos, sin depender de la configuración de Renzo.
-- [ ] E4b.4 Logo de Ajustes: se sube con `imagotipo.png` **desde la pantalla Ajustes** (D19), primero en staging y después en producción por Natali o un admin. Nunca por script.
-- [ ] E4b.5 Íconos de la app instalada: reemplazar los 4 PNG de `app/public/icons/` por los de la tienda (192, 512, maskable y apple-touch) y sumar el favicon PNG de 48 px. Revisar la zona segura del ícono maskable. Registrado en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`, fila 3.
-- [ ] E4b.6 Un solo color de marca: el manifiesto de Renzo ya usa `#8a3a63`. Confirmar que coincide con la ciruela de la tienda y dejar un único valor.
-- [ ] E4b.7 Verificación visual con capturas antes y después en `Docs/tienda/marca/`: nota A5 impresa en PDF con el logo real, PWA instalada en un Android con el ícono nuevo, pestaña con favicon, panel interno y `/tienda` con la misma marca.
-- [ ] E4b.8 Avisar a Natali que el ícono de una app ya instalada tarda en actualizarse y puede requerir reinstalar.
+- [x] E4b.1 (15/10) `imagotipo.png` e `isotipo.png` en `app/public/brand/`.
+- [x] E4b.2 (15/10) Mapa de la marca en Renzo: `Logo.jsx` y `useMarca` (logo de Ajustes, clave `logo`), encabezado de la nota, `FaviconDinamico`, `favicon.svg`, cuatro íconos PWA y el manifiesto. El color `#8a3a63` del manifiesto ya coincide con la ciruela de la tienda.
+- [x] E4b.3 (15/10) La tienda usa `brand/isotipo.png` con ancho y alto fijos, sin depender de la configuración de Renzo.
+- [ ] E4b.4 **Logo de Ajustes** (nota de venta y encabezado interno): lo sube Natali o un admin **desde la pantalla Ajustes** con `imagotipo.png` (D19). Producción ya tiene una clave `logo` cargada: revisar cuál es antes de reemplazarlo.
+- [x] E4b.5 (15/10) Íconos de la app instalada reemplazados por los de la tienda (192, 512, maskable y apple-touch, monograma dorado NM sobre crema). El maskable tiene margen de seguridad. El `favicon.svg` ahora embebe el logo real (48 px), así que `FaviconDinamico` sigue funcionando sin tocarlo.
+- [x] E4b.6 (15/10) Un solo color de marca: `#8a3a63`.
+- [ ] E4b.7 Verificación visual en dispositivos reales: nota A5 impresa con el logo, app instalada en un Android con el ícono nuevo, pestaña con favicon.
+- [ ] E4b.8 Avisar a Natali: el ícono de una app ya instalada tarda en actualizarse y puede requerir reinstalar.
 
 Criterio: misma marca en la nota impresa, el panel, la app instalada y la tienda.
 
 ## Etapa E5 · Enlace con la nota de venta (2 h)
-- [ ] E5.1 En staging, cargar `url_catalogo` **a mano desde Ajustes** (D16) y verificar el QR en la nota A5.
+Estado 15/10: **casi toda ya existe en el sistema de Renzo**. La nota imprime un QR con `url_catalogo` cuando está cargada. Falta cargarla y probar la impresión.
+
+- [x] E5.0 (15/10) El texto de ayuda de Ajustes ahora sugiere `https://modas-naty.netlify.app/`. Los QR ya impresos con `/c` siguen funcionando por la redirección.
+- [ ] E5.1 En staging, cargar `url_catalogo` **a mano desde Ajustes** (D16) y verificar que la nota A5 imprime el QR.
 - [ ] E5.2 Escanear la nota impresa y en PDF con un celular.
-- [ ] E5.3 Documentar para Natali el paso "cargar la dirección del catálogo" con capturas.
+- [ ] E5.3 Documentar para Natali el paso "cargar la dirección del catálogo", con capturas.
 - [ ] E5.4 Backlog: "pasar el pedido de la clienta a una nota" (no V1).
 
 ## Etapa E6 · Un solo lugar de carga (3 h)
-- [ ] E6.1 Un producto nuevo en Inventario de Renzo aparece en `/tienda` sin pasos extra (si tiene foto y está activo).
-- [ ] E6.2 Ocultar y mostrar desde el editor de la tienda (`tienda_oculto`). Sin tocar la ficha de Renzo.
-- [ ] E6.3 Limpiezas del superadmin: sin enlaces rotos. Limpieza independiente de huérfanos de `tienda_oculto`.
-- [ ] E6.4 Documentar la diferencia: "oculto" saca el producto de la tienda pero no de `/c`.
+Estado 15/10: **hecha en código**. Falta verlo con datos reales (E9).
+
+- [x] E6.1 (15/10) Un producto nuevo de Inventario aparece en la tienda sin pasos extra: la vista lee `naty_productos` y `naty_producto_fotos` directo. Con foto y activo, se publica.
+- [x] E6.2 (15/10) Visibilidad por modelo: en Ajustes, lista con buscador y casilla "visible". Escribe solo en `tienda_oculto` y no borra nada (mostrar de nuevo es `oculto = false`). No toca la ficha de Renzo.
+- [x] E6.3 (15/10) Las limpiezas del superadmin no dejan enlaces rotos: la vista filtra por existencia y `tienda_oculto` no tiene clave foránea. Las marcas huérfanas son inofensivas.
+- [x] E6.4 (15/10) Sin conexión: la tienda muestra la última lista guardada con aviso y sin presentarla como precio vigente.
+- [ ] E6.5 Dejar claro a Natali la diferencia: "oculto" saca el modelo de la tienda, pero sigue en `/admin/c` y en el bucket público.
 
 ## Etapa E7 · Diseño final con las imágenes de referencia (8 h)
 - [ ] E7.1 Guardar referencias en `Docs/tienda/referencias/` (`01-inicio-390.png`, `01-inicio-1440.png`, …).

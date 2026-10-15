@@ -148,7 +148,7 @@ function Catalogo({ cfg, soloLectura }) {
         await config.guardar('mostrar_precios_publico', precios)
       }}
     >
-      <Input etiqueta="Dirección del catálogo (para el QR)" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/c" ayuda="Todavía no hay dirección definitiva: cuando se publique, se carga acá." />
+      <Input etiqueta="Dirección del catálogo (para el QR)" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://modas-naty.netlify.app/" ayuda="La dirección de la tienda pública: cuando esté publicada, se carga acá y sale como QR en cada nota." />
       <Input etiqueta="WhatsApp de la tienda (con código de país)" inputMode="tel" value={wsp} onChange={(e) => setWsp(e.target.value)} placeholder="59171234567" />
       <label className="flex min-h-11 items-center gap-3 text-base">
         <input type="checkbox" checked={precios} onChange={(e) => setPrecios(e.target.checked)} className="size-5 accent-tinta" />
