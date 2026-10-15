@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { textoCotizacion } from './lib/cotizacion.js'
+import { textoCotizacion } from '../lib/cotizacion.js'
 
 describe('textoCotizacion', () => {
   it('muestra pesos y bolivianos con la fecha de la cotización', () => {

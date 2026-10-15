@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { agregarLinea, cambiarCantidad, carritoVacio, normalizarCarrito, quitarLinea } from './lib/carrito.js'
-import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
-import { armarEnvio, detallePedido, LIMITE_ENLACE } from './lib/mensaje.js'
+import { agregarLinea, cambiarCantidad, carritoVacio, normalizarCarrito, quitarLinea } from '../lib/carrito.js'
+import { monedasDisponibles, resumirPedido, sinConfirmar } from '../lib/pedido.js'
+import { armarEnvio, detallePedido, LIMITE_ENLACE } from '../lib/mensaje.js'
 
 const AJ = { tipo_cambio_bs: 12, tipo_cambio_ars: 1590, tipo_cambio_es_ejemplo: false }
 const prod = (id, codigo, usd, extra = {}) => ({ id, codigo, nombre: `Modelo ${codigo}`, precio_docena_usd_cent: usd, ...extra })

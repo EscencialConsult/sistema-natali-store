@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // El cliente público se reemplaza por uno falso que registra las llamadas del constructor de consultas.
 const llamadas = []
 let filasDevueltas = []
-vi.mock('./data/clientePublico.js', () => ({
+vi.mock('../data/clientePublico.js', () => ({
   supabaseUrl: 'https://proyecto.supabase.co',
   hayBackendPublico: true,
   clientePublico: async () => ({
@@ -28,12 +28,12 @@ vi.mock('./data/clientePublico.js', () => ({
   }),
 }))
 
-const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria, RUTAS_ANTERIORES, RUTA_AYUDA, RUTA_CONTACTO } = await import('./rutas.js')
-const { precioPublico } = await import('./lib/precioPublico.js')
-const { urlDeFoto, fotosDe } = await import('./lib/fotos.js')
-const { guardarCache, leerCache } = await import('./lib/cache.js')
-const { enlaceWhatsApp } = await import('./contexto.js')
-const { pedirTodo } = await import('./data/catalogo.js')
+const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria, RUTAS_ANTERIORES, RUTA_AYUDA, RUTA_CONTACTO } = await import('../rutas.js')
+const { precioPublico } = await import('../lib/precioPublico.js')
+const { urlDeFoto, fotosDe } = await import('../lib/fotos.js')
+const { guardarCache, leerCache } = await import('../lib/cache.js')
+const { enlaceWhatsApp } = await import('../contexto.js')
+const { pedirTodo } = await import('../data/catalogo.js')
 
 describe('rutas', () => {
   it('/admin y sus subrutas son del sistema interno; todo lo demás es la tienda', () => {

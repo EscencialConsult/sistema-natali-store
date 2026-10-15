@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datosAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from './lib/configTienda.js'
+import { datosAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
 
 describe('urlMapaSegura', () => {
   it('acepta enlaces https de Google Maps', () => {

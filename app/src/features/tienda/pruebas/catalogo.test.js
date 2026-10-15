@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contarPorCategoria, filtrarYOrdenar, normalizar, ORDENES, textoModelos } from './lib/catalogo.js'
+import { contarPorCategoria, filtrarYOrdenar, normalizar, ORDENES, textoModelos } from '../lib/catalogo.js'
 
 const p = (codigo, nombre, extra = {}) => ({ id: `id-${codigo}`, codigo, nombre, categoria_id: null, categoria: null, nuevo: false, precio_docena_usd_cent: 1000, ...extra })
 const LISTA = [

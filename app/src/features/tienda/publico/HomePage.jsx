@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useCatalogoCompleto } from './data/catalogo.js'
-import { supabaseUrl } from './data/clientePublico.js'
-import { useAjustesTienda } from './contexto.js'
-import { contarPorCategoria, textoModelos } from './lib/catalogo.js'
-import { fotosDe } from './lib/fotos.js'
+import { useCatalogoCompleto } from '../data/catalogo.js'
+import { supabaseUrl } from '../data/clientePublico.js'
+import { useAjustesTienda } from '../contexto.js'
+import { contarPorCategoria, textoModelos } from '../lib/catalogo.js'
+import { fotosDe } from '../lib/fotos.js'
 import PrecioBloque from './PrecioBloque.jsx'
-import { RUTA_CATALOGO, rutaCategoria, rutaProducto } from './rutas.js'
+import { RUTA_CATALOGO, rutaCategoria, rutaProducto } from '../rutas.js'
 import { useVolverArriba } from './useVolverArriba.js'
 
 const primeraFoto = (p) => (p ? fotosDe(p, supabaseUrl)[0] : undefined)

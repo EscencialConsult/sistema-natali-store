@@ -1,6 +1,6 @@
-import { formatear, META_MONEDA } from '../../lib/moneda.js'
-import { textoCotizacion } from './lib/cotizacion.js'
-import { precioPublico } from './lib/precioPublico.js'
+import { formatear, META_MONEDA } from '../../../lib/moneda.js'
+import { textoCotizacion } from '../lib/cotizacion.js'
+import { precioPublico } from '../lib/precioPublico.js'
 
 // Precio por docena y por media docena en las monedas disponibles. Precio oculto = "a consultar" (nunca un cero).
 export default function PrecioBloque({ producto, ajustes, compacto = false }) {

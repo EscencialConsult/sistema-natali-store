@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { MapPin, MessageCircle } from 'lucide-react'
-import { useConfigTienda } from './data/catalogo.js'
-import { enlaceWhatsApp } from './lib/whatsapp.js'
+import { useConfigTienda } from '../data/catalogo.js'
+import { enlaceWhatsApp } from '../lib/whatsapp.js'
 import {
   PASOS_POR_DEFECTO,
   PREGUNTAS_FRECUENTES,
@@ -11,8 +11,8 @@ import {
   validarHorarios,
   validarLocales,
   validarQuienesSomos,
-} from './lib/configTienda.js'
-import { RUTA_CATALOGO, RUTA_CONTACTO, RUTA_PEDIDO } from './rutas.js'
+} from '../lib/configTienda.js'
+import { RUTA_CATALOGO, RUTA_CONTACTO, RUTA_PEDIDO } from '../rutas.js'
 import { useVolverArriba } from './useVolverArriba.js'
 
 // Todo lo que viene de la configuración pasa por las mismas validaciones que al guardar, y se muestra como texto.

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { supabaseUrl } from './data/clientePublico.js'
-import { fotosDe } from './lib/fotos.js'
-import { rutaProducto } from './rutas.js'
+import { supabaseUrl } from '../data/clientePublico.js'
+import { fotosDe } from '../lib/fotos.js'
+import { rutaProducto } from '../rutas.js'
 import PrecioBloque from './PrecioBloque.jsx'
 
 // Tarjeta de la referencia: foto vertical con esquinas redondeadas, "NUEVO" en vino, nombre y precio.

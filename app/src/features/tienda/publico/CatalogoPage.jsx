@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigationType, useSearchParams } from 'react-router-dom'
 import { Search, SearchX, WifiOff } from 'lucide-react'
-import { EmptyState, Skeleton } from '../../components/ui/index.js'
-import { guardarScroll, leerScroll, useCatalogoCompleto } from './data/catalogo.js'
-import { useAjustesTienda } from './contexto.js'
-import { contarPorCategoria, filtrarYOrdenar, ORDENES, textoModelos } from './lib/catalogo.js'
+import { EmptyState, Skeleton } from '../../../components/ui/index.js'
+import { guardarScroll, leerScroll, useCatalogoCompleto } from '../data/catalogo.js'
+import { useAjustesTienda } from '../contexto.js'
+import { contarPorCategoria, filtrarYOrdenar, ORDENES, textoModelos } from '../lib/catalogo.js'
 import TarjetaProducto from './TarjetaProducto.jsx'
 
 // El estado del catálogo vive en la dirección (?q=…&categoria=…&orden=…): el botón "atrás" desde una ficha lo recupera
