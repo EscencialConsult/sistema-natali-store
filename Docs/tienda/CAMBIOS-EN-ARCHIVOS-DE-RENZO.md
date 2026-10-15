@@ -7,10 +7,11 @@ Los archivos **nuevos** que no pisan nada de él se anotan en la segunda tabla.
 
 | # | Archivo | Qué cambia | Por qué | Cómo se deshace | Estado |
 |---|---|---|---|---|---|
-| 1 | `app/src/app/App.jsx` | Montar `/tienda/*` antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` | Que la tienda pública no toque su base local ni su cola de sincronización (decisión D2) | Revertir las líneas del selector de ruta | **Hecho 15/10** (E2.1): `lazy` + `Selector` por ruta; el árbol interno quedó igual dentro de `AppInterna` |
+| 1 | `app/src/app/App.jsx` | Montar `/tienda/*` antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` | Que la tienda pública no toque su base local ni su cola de sincronización (decisión D2) | Revertir las líneas del selector de ruta | **Hecho 15/10** (E2.1, ajustado por D20): `BrowserRouter` con `basename="/admin"` si la ruta empieza con `/admin`; el árbol interno quedó igual dentro de `AppInterna` y la tienda se monta en la raíz |
 | 2 | `app/src/features/ajustes/*` | Un acordeón nuevo "Tienda online", sin tocar los existentes | Que Natali edite datos de transferencia, locales y horarios (E4.3) | Quitar el acordeón | **Hecho 15/10** (E4.4): un import y un bloque que renderiza `TiendaAjustes`; no toca sus secciones |
 | 3 | `app/public/icons/*.png` y `favicon` | Reemplazar los íconos "MN" por el logo real de Modas Naty | Coherencia de marca: el logo real nunca llegó al sistema de Renzo (E4b) | Restaurar los 4 PNG desde git | Pendiente (E4b) |
-| 4 | `app/vite.config.js` | Solo si el nombre o color del manifiesto cambian con el logo | Idem | Revertir las líneas | Pendiente (E4b) |
+| 4 | `app/vite.config.js` | Manifiesto de la app instalada: `id`, `start_url` y `scope` pasan de `/` a `/admin/` | D20 y D21: la raíz es la tienda pública | Volver a `'/'` los tres valores | **Hecho 15/10** |
+| 5 | `app/public/_redirects` | Línea `/c  /  301` antes del comodín | Los QR ya impresos apuntaban a `/c` | Quitar la línea | **Hecho 15/10** |
 
 ## Archivos nuevos (no pisan nada)
 

@@ -3,7 +3,7 @@ import { MapPin, MessageCircle } from 'lucide-react'
 import { useConfigTienda } from './data/catalogo.js'
 import { enlaceWhatsApp } from './lib/whatsapp.js'
 import { PASOS_POR_DEFECTO, validarComoComprar, validarContactos, validarHorarios, validarLocales } from './lib/configTienda.js'
-import { BASE_TIENDA, RUTA_PEDIDO } from './rutas.js'
+import { RUTA_CATALOGO, RUTA_PEDIDO } from './rutas.js'
 
 // Todo lo que viene de la configuración pasa por las mismas validaciones que al guardar, y se muestra como texto.
 
@@ -23,7 +23,7 @@ export function ComoComprarPage() {
         ))}
       </ol>
       <div className="flex flex-wrap gap-3">
-        <Link to={BASE_TIENDA} className="inline-flex min-h-12 items-center rounded-pildora bg-tinta px-6 text-sm font-medium text-sobre-tinta">Ver el catálogo</Link>
+        <Link to={RUTA_CATALOGO} className="inline-flex min-h-12 items-center rounded-pildora bg-tinta px-6 text-sm font-medium text-sobre-tinta">Ver el catálogo</Link>
         <Link to={RUTA_PEDIDO} className="inline-flex min-h-12 items-center rounded-pildora bg-superficie px-6 text-sm font-medium">Mi pedido</Link>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { supabaseUrl } from './data/clientePublico.js'
 import { enlaceWhatsApp, useAjustesTienda } from './contexto.js'
 import { agregarLinea } from './lib/carrito.js'
 import { fotosDe } from './lib/fotos.js'
-import { BASE_TIENDA, RUTA_PEDIDO } from './rutas.js'
+import { RUTA_CATALOGO, RUTA_PEDIDO } from './rutas.js'
 import PrecioBloque from './PrecioBloque.jsx'
 
 export default function ProductoPage() {
@@ -28,7 +28,7 @@ export default function ProductoPage() {
   }, [producto])
 
   const volver = (
-    <Link to={BASE_TIENDA} className="inline-flex min-h-11 items-center gap-2 text-sm text-texto-suave hover:text-tinta">
+    <Link to={RUTA_CATALOGO} className="inline-flex min-h-11 items-center gap-2 text-sm text-texto-suave hover:text-tinta">
       <ArrowLeft size={16} aria-hidden /> Volver al catálogo
     </Link>
   )

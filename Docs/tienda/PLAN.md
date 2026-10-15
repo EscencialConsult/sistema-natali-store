@@ -42,6 +42,8 @@ Método: etapas con tareas y pasos tachables. `[ ]` pendiente · `[~]` en curso 
 | D17 | Ejecutor nuevo `app/scripts/aplicar-tienda.mjs`: archivo y destino explícitos, TLS validado, rollback por defecto, `lock_timeout` y `statement_timeout` | `aplicar-schema.mjs` fija `naty_schema.sql` y desactiva la validación TLS |
 | D18 | **Marca real en los dos sistemas** (etapa E4b): los logos de la tienda original se suben al sistema de Renzo | Renzo nunca los usó: su app muestra un monograma "MN" y su logo se carga desde Ajustes |
 | D19 | El logo de Ajustes (nota de venta y panel interno) se sube **desde la pantalla de Ajustes**, no por script. Los íconos de la app instalada sí son archivos y se reemplazan por commit | Es dato de producción en un caso y código versionado en el otro |
+| D20 | **Mapa del sitio**: `modas-naty.netlify.app/` es la tienda pública y `modas-naty.netlify.app/admin` es el sistema de notas y stock de Renzo (pedido de Facundo 15/10). Sustituye a la ruta `/tienda` de D1 y D2 | El equipo y las clientas ven cada cosa en su dirección. El sistema interno pasa a montarse con `basename="/admin"` |
+| D21 | La app instalada (PWA) es la del equipo: `start_url` y `scope` pasan a `/admin/`. Un ícono viejo que abra la raíz en modo instalado redirige a `/admin/`. La tienda no ofrece instalarse. El `/c` viejo redirige a `/` | Renzo y su equipo la usan todos los días: no puede quedar apuntando a la tienda |
 
 ---
 
@@ -215,6 +217,7 @@ Requiere OK de Facundo **y** de Renzo. Antes de arrancar se cierran los cinco pu
 - [ ] E9.0c **Fotos**: formato de rutas y accesibilidad de una muestra. No generar miniaturas.
 - [ ] E9.0d **Capacidad**: volumen real y límites del proyecto. Medir paginación en staging. Sin pruebas de carga contra producción.
 - [ ] E9.0e **Salida y recuperación**: backup recuperable, destino del ejecutor, rollback probado en staging.
+- [ ] E9.0f **Cambio de raíz (D20 y D21)**: avisar al equipo ANTES de publicar y hacerlo fuera del horario de ventas. Verificar en un celular con la app ya instalada: abre `/admin/` y no la tienda; probar `/c`, `/admin`, un enlace profundo `/admin/ventas`, y que una nota abierta sin conexión no se pierde. Confirmar con Renzo en qué sitio de Netlify se publica y que `modas-naty.netlify.app` es ese sitio.
 - [ ] E9.1 Aplicar con `aplicar-tienda.mjs --dry` contra producción y revisar.
 - [ ] E9.2 Aplicación real en ventana sin ventas en curso. Comparar contra la línea base: diff `naty_*` cero (considerando ventas legítimas concurrentes).
 - [ ] E9.3 Deploy preview en Netlify con variables en el panel, nunca en git. Despliegue sin forzar actualización del service worker.

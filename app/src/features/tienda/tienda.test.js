@@ -36,7 +36,7 @@ vi.mock('./data/clientePublico.js', () => ({
   }),
 }))
 
-const { esRutaTienda, rutaProducto } = await import('./rutas.js')
+const { esRutaAdmin, esRutaTienda, rutaProducto } = await import('./rutas.js')
 const { precioPublico } = await import('./lib/precioPublico.js')
 const { urlDeFoto, fotosDe } = await import('./lib/fotos.js')
 const { limpiarTexto, filtroKeyset, filtroTexto, TAMANO_PAGINA } = await import('./lib/consulta.js')
@@ -45,11 +45,17 @@ const { enlaceWhatsApp } = await import('./contexto.js')
 const { pedirPagina } = await import('./data/catalogo.js')
 
 describe('rutas', () => {
-  it('solo /tienda y sus subrutas son de la tienda', () => {
-    expect(esRutaTienda('/tienda')).toBe(true)
-    expect(esRutaTienda('/tienda/p/abc')).toBe(true)
-    for (const r of ['/', '/c', '/tiendas', '/tienda-vieja', '/ventas', '/catalogo/admin']) expect(esRutaTienda(r), r).toBe(false)
-    expect(rutaProducto('x')).toBe('/tienda/p/x')
+  it('/admin y sus subrutas son del sistema interno; todo lo demás es la tienda', () => {
+    for (const r of ['/admin', '/admin/', '/admin/ventas', '/admin/ventas/abc', '/admin/catalogo/admin']) {
+      expect(esRutaAdmin(r), r).toBe(true)
+      expect(esRutaTienda(r), r).toBe(false)
+    }
+    // Parecidas pero NO son del sistema: no deben abrir el sistema interno por error.
+    for (const r of ['/', '/p/abc', '/pedido', '/como-comprar', '/donde-estamos', '/c', '/administracion', '/admin-viejo', '/administrador/x']) {
+      expect(esRutaAdmin(r), r).toBe(false)
+      expect(esRutaTienda(r), r).toBe(true)
+    }
+    expect(rutaProducto('x')).toBe('/p/x')
   })
 })
 

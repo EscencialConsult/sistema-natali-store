@@ -16,8 +16,10 @@ export default defineConfig({
         short_name: 'Modas Naty',
         description: 'Catálogo y notas de venta de Modas Naty. Funciona sin internet.',
         lang: 'es',
-        start_url: '/',
-        scope: '/',
+        // La app instalada es la del equipo y vive en /admin; la raíz (/) es la tienda pública.
+        id: '/admin/',
+        start_url: '/admin/',
+        scope: '/admin/',
         display: 'standalone',
         background_color: '#fbf7f3',
         theme_color: '#8a3a63',

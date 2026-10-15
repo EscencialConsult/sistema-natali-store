@@ -6,7 +6,7 @@ import { useAjustes } from './data/catalogo.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
-import { BASE_TIENDA, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_PEDIDO } from './rutas.js'
+import { BASE_ADMIN, RUTA_CATALOGO, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_PEDIDO, RUTA_PRODUCTO } from './rutas.js'
 import CatalogoPage from './CatalogoPage.jsx'
 import { ComoComprarPage, DondeEstamosPage } from './InfoPages.jsx'
 import PedidoPage from './PedidoPage.jsx'
@@ -23,6 +23,14 @@ function Marco({ children }) {
     document.title = `Catálogo mayorista · ${nombre}`
   }, [nombre])
 
+  useEffect(() => {
+    // La app instalada (PWA) es la del equipo: si alguien la abre desde un ícono viejo que apunta a la raíz, va al sistema.
+    const instalada = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true
+    if (instalada && window.location.pathname === '/') window.location.replace(`${BASE_ADMIN}/`)
+    // El manifiesto es del sistema interno: la tienda pública no se ofrece como app instalable.
+    document.querySelector('link[rel="manifest"]')?.remove()
+  }, [])
+
   return (
     <AjustesTienda.Provider value={{ ajustes, cargando: a.cargando, enCache: a.enCache, error: a.error }}>
       <div className="min-h-dvh bg-fondo">
@@ -31,7 +39,7 @@ function Marco({ children }) {
         </p>
         <header className="sticky top-0 z-20 border-b border-borde/80 bg-fondo/85 backdrop-blur-md">
           <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 md:px-8">
-            <Link to={BASE_TIENDA} aria-label={`${nombre}: ir al catálogo`} className="inline-flex items-center">
+            <Link to={RUTA_CATALOGO} aria-label={`${nombre}: ir al catálogo`} className="inline-flex items-center">
               <img src="/brand/isotipo.png" width="240" height="134" alt={nombre} className="h-9 w-auto" />
             </Link>
             <div className="flex items-center gap-2">
@@ -52,9 +60,11 @@ function Marco({ children }) {
           <p className="font-titulo text-lg font-semibold text-sobre-tinta">{nombre}</p>
           <p className="mt-1">Catálogo mayorista</p>
           <nav aria-label="Información" className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <Link to={BASE_TIENDA} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Catálogo</Link>
+            <Link to={RUTA_CATALOGO} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Catálogo</Link>
             <Link to={RUTA_COMO_COMPRAR} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Cómo comprar</Link>
             <Link to={RUTA_DONDE_ESTAMOS} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Dónde estamos</Link>
+            {/* Enlace normal (no del router): el sistema del equipo es otra aplicación y se carga aparte. */}
+            <a href={`${BASE_ADMIN}/`} className="inline-flex min-h-11 items-center text-sobre-tinta/60 underline-offset-4 hover:underline">Acceso del equipo</a>
           </nav>
         </footer>
       </div>
@@ -74,12 +84,13 @@ export default function TiendaApp() {
   return (
     <Marco>
       <Routes>
-        <Route path={BASE_TIENDA} element={<CatalogoPage />} />
-        <Route path={`${BASE_TIENDA}/p/:id`} element={<ProductoPage />} />
+        <Route path={RUTA_CATALOGO} element={<CatalogoPage />} />
+        <Route path={RUTA_PRODUCTO} element={<ProductoPage />} />
         <Route path={RUTA_PEDIDO} element={<PedidoPage />} />
         <Route path={RUTA_COMO_COMPRAR} element={<ComoComprarPage />} />
         <Route path={RUTA_DONDE_ESTAMOS} element={<DondeEstamosPage />} />
-        <Route path={`${BASE_TIENDA}/*`} element={<Navigate to={BASE_TIENDA} replace />} />
+        {/* El catálogo viejo del sistema de notas vivía en /c: los QR ya impresos siguen llevando acá. */}
+        <Route path="*" element={<Navigate to={RUTA_CATALOGO} replace />} />
       </Routes>
     </Marco>
   )

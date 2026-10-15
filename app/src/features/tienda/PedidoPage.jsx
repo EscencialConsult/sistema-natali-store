@@ -12,7 +12,7 @@ import { validarContactos, validarLocales, validarTransferencia } from './lib/co
 import { armarEnvio, detallePedido } from './lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
 import { soloDigitos } from './lib/whatsapp.js'
-import { BASE_TIENDA, rutaProducto } from './rutas.js'
+import { RUTA_CATALOGO, rutaProducto } from './rutas.js'
 
 const telefonoValido = (t) => soloDigitos(t).length >= 8
 
@@ -85,7 +85,7 @@ export default function PedidoPage() {
         icono={ShoppingBag}
         titulo="Tu pedido está vacío"
         texto="Elegí modelos del catálogo y agregalos por docena o media docena."
-        accion={<Link to={BASE_TIENDA} className="inline-flex min-h-11 items-center rounded-pildora bg-tinta px-5 text-sm font-medium text-sobre-tinta">Ver el catálogo</Link>}
+        accion={<Link to={RUTA_CATALOGO} className="inline-flex min-h-11 items-center rounded-pildora bg-tinta px-5 text-sm font-medium text-sobre-tinta">Ver el catálogo</Link>}
       />
     )
   }
