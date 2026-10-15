@@ -14,7 +14,7 @@ import { createRequire } from 'node:module'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../src/features/tienda/lib/configTienda.js'
+import { validarComoComprar, validarContactos, validarHorarios, validarLocales, validarQuienesSomos, validarTransferencia } from '../src/features/tienda/lib/configTienda.js'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -25,6 +25,7 @@ export const VALIDADORES = {
   horarios: validarHorarios,
   contactos: validarContactos,
   como_comprar: validarComoComprar,
+  quienes_somos: validarQuienesSomos,
 }
 
 /** @returns {{ filas: {clave: string, valor: any}[], errores: string[] }} */

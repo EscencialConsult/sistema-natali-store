@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Compilación de la demostración local (Docs/tienda/herramientas/iniciar-dev.bat demo)
+dist-demo

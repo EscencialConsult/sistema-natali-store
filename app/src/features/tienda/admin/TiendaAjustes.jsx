@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input, useToast } from '../../../components/ui/index.js'
 import { obtenerSupabase } from '../../../data/supabase.js'
-import { DIAS_AVISO_EN_AJUSTES, diasDesde, formatearCuit, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { DIAS_AVISO_EN_AJUSTES, diasDesde, formatearCuit, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarQuienesSomos, validarTransferencia } from '../lib/configTienda.js'
 
 const sinTabla = (e) => e?.code === '42P01' || e?.code === 'PGRST205' || /tienda_config/.test(e?.message ?? '') && /does not exist|schema cache/i.test(e?.message ?? '')
 
@@ -152,6 +152,7 @@ function LocalesYTextos({ config, soloLectura }) {
   })
   const [horarios, setHorarios] = useState(() => validarHorarios(config.horarios).valor.join('\n'))
   const [pasos, setPasos] = useState(() => validarComoComprar(config.como_comprar).valor.join('\n'))
+  const [quienes, setQuienes] = useState(() => validarQuienesSomos(config.quienes_somos).valor.join('\n'))
   return (
     <Tarjeta
       titulo="Tienda online · locales, horarios y «Cómo comprar»"
@@ -161,11 +162,13 @@ function LocalesYTextos({ config, soloLectura }) {
         const l = validarLocales(locales)
         const h = validarHorarios(horarios)
         const p = validarComoComprar(pasos)
-        const errores = [...l.errores, ...h.errores, ...p.errores]
+        const q = validarQuienesSomos(quienes)
+        const errores = [...l.errores, ...h.errores, ...p.errores, ...q.errores]
         if (errores.length) return errores
         await guardarClave('locales', l.valor)
         await guardarClave('horarios', h.valor)
         await guardarClave('como_comprar', p.valor)
+        await guardarClave('quienes_somos', q.valor)
         return []
       }}
     >
@@ -187,6 +190,10 @@ function LocalesYTextos({ config, soloLectura }) {
       <label className="flex flex-col gap-1.5 text-sm font-medium">
         Pasos de «Cómo comprar» (opcional, uno por línea)
         <textarea value={pasos} onChange={(e) => setPasos(e.target.value)} rows={5} className="rounded-control border border-borde-campo bg-fondo p-3 text-base font-normal" />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        «Quiénes somos» (opcional, un párrafo por línea)
+        <textarea value={quienes} onChange={(e) => setQuienes(e.target.value)} rows={5} className="rounded-control border border-borde-campo bg-fondo p-3 text-base font-normal" />
       </label>
     </Tarjeta>
   )
@@ -217,19 +224,25 @@ function Visibilidad({ soloLectura }) {
     }
   }, [])
 
-  const cambiar = async (producto, mostrar) => {
-    const sb = await obtenerSupabase()
-    const { error } = await sb.from('tienda_oculto').upsert({ producto_id: producto.id, oculto: !mostrar }, { onConflict: 'producto_id' })
-    if (error) {
-      avisar('No se pudo guardar. Revisá tu conexión.', 'error')
-      return
-    }
+  // El cambio se ve al instante; si el servidor no lo acepta, la casilla vuelve a como estaba.
+  const marcar = (id, oculto) =>
     setEstado((e) => {
       const ocultos = new Set(e.ocultos)
-      if (mostrar) ocultos.delete(producto.id)
-      else ocultos.add(producto.id)
+      if (oculto) ocultos.add(id)
+      else ocultos.delete(id)
       return { ...e, ocultos }
     })
+
+  const cambiar = async (producto, mostrar) => {
+    marcar(producto.id, !mostrar)
+    try {
+      const sb = await obtenerSupabase()
+      const { error } = await sb.from('tienda_oculto').upsert({ producto_id: producto.id, oculto: !mostrar }, { onConflict: 'producto_id' })
+      if (error) throw error
+    } catch {
+      marcar(producto.id, mostrar)
+      avisar('No se pudo guardar. Revisá tu conexión.', 'error')
+    }
   }
 
   const texto = q.trim().toLowerCase()

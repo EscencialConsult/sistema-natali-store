@@ -28,7 +28,7 @@ vi.mock('./data/clientePublico.js', () => ({
   }),
 }))
 
-const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria } = await import('./rutas.js')
+const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria, RUTAS_ANTERIORES, RUTA_AYUDA, RUTA_CONTACTO } = await import('./rutas.js')
 const { precioPublico } = await import('./lib/precioPublico.js')
 const { urlDeFoto, fotosDe } = await import('./lib/fotos.js')
 const { guardarCache, leerCache } = await import('./lib/cache.js')
@@ -48,6 +48,14 @@ describe('rutas', () => {
     }
     expect(rutaProducto('x')).toBe('/p/x')
     expect(rutaCategoria('a b&c')).toBe('/catalogo?categoria=a%20b%26c')
+  })
+
+  it('las direcciones anteriores siguen funcionando y apuntan a su reemplazo', () => {
+    expect(RUTAS_ANTERIORES).toEqual({ '/como-comprar': RUTA_AYUDA, '/donde-estamos': RUTA_CONTACTO })
+    for (const [desde, hacia] of Object.entries(RUTAS_ANTERIORES)) {
+      expect(esRutaTienda(desde)).toBe(true)
+      expect(esRutaTienda(hacia)).toBe(true)
+    }
   })
 })
 

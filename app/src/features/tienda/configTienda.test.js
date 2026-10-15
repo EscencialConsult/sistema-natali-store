@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datosAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from './lib/configTienda.js'
+import { datosAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from './lib/configTienda.js'
 
 describe('urlMapaSegura', () => {
   it('acepta enlaces https de Google Maps', () => {
@@ -157,6 +157,34 @@ describe('validarLocales', () => {
     const r = validarLocales([{ direccion: 'Calle 2' }])
     expect(r.valor).toEqual([])
     expect(r.errores).toHaveLength(1)
+  })
+})
+
+describe('quiénes somos y preguntas frecuentes', () => {
+  it('acepta párrafos como lista o como texto, los acota y tolera basura', () => {
+    expect(validarQuienesSomos('Uno\n\nDos').valor).toEqual(['Uno', 'Dos'])
+    expect(validarQuienesSomos(['A', 'B']).valor).toEqual(['A', 'B'])
+    expect(validarQuienesSomos(Array.from({ length: 20 }, (_, i) => `p${i}`)).valor).toHaveLength(6)
+    expect(validarQuienesSomos('x'.repeat(2000)).valor[0]).toHaveLength(400)
+    for (const malo of [null, undefined, 5, {}]) expect(() => validarQuienesSomos(malo)).not.toThrow()
+  })
+
+  it('los textos por defecto hablan solo de hechos conocidos y no inventan nada', () => {
+    const todo = QUIENES_SOMOS_POR_DEFECTO.join(' ')
+    expect(todo).toMatch(/Bermejo/)
+    expect(todo).toMatch(/docena/)
+    expect(todo).not.toMatch(/desde 19|fundad|años de experiencia|miles de/i)
+  })
+
+  it('cada pregunta frecuente tiene pregunta y respuesta, y la de pago habla de transferencia en pesos argentinos', () => {
+    expect(PREGUNTAS_FRECUENTES.length).toBeGreaterThanOrEqual(5)
+    for (const f of PREGUNTAS_FRECUENTES) {
+      expect(f.p.length).toBeGreaterThan(5)
+      expect(f.r.length).toBeGreaterThan(10)
+    }
+    const moneda = PREGUNTAS_FRECUENTES.find((f) => /moneda/.test(f.p))
+    expect(moneda.r).toMatch(/transferencia.*pesos argentinos/i)
+    expect(PREGUNTAS_FRECUENTES.map((f) => f.r).join(' ')).not.toMatch(/Mercado Pago|tarjeta/i)
   })
 })
 

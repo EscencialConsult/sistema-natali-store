@@ -59,6 +59,7 @@ Antes de aplicar, completar en ese archivo lo que falte (banco y enlaces de mapa
 - [ ] `/` carga la tienda con los 45 modelos y sin errores en la consola.
 - [ ] `/admin` carga el login de Renzo y se puede iniciar sesión.
 - [ ] En un celular con la app **ya instalada**, abre el sistema y no la tienda.
+- [ ] **Celulares del equipo con la versión vieja**: el service worker viejo sigue mostrando la app anterior hasta que se actualiza. Cada persona tiene que abrir la app **una vez con internet** y tocar "Actualizar" cuando aparezca el aviso. Mientras no lo haga, ve la versión vieja (que sigue funcionando). Conviene mandarles ese paso por WhatsApp el día de la publicación y probarlo antes con un celular real.
 - [ ] `/c` lleva a la tienda. Un QR de una nota vieja funciona.
 - [ ] Una nota de venta nueva se crea y se imprime sin cambios.
 - [ ] Sin conexión, el sistema interno sigue vendiendo.

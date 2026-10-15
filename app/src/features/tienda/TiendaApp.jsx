@@ -7,11 +7,11 @@ import { validarContactos } from './lib/configTienda.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
-import { BASE_ADMIN, RUTA_CATALOGO, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO } from './rutas.js'
+import { BASE_ADMIN, RUTA_AYUDA, RUTA_CATALOGO, RUTA_CONTACTO, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO, RUTA_QUIENES_SOMOS, RUTAS_ANTERIORES } from './rutas.js'
 import CatalogoPage from './CatalogoPage.jsx'
 import { DecorCatalogo, DecorInicio } from './Decoraciones.jsx'
 import HomePage from './HomePage.jsx'
-import { ComoComprarPage, DondeEstamosPage } from './InfoPages.jsx'
+import { AyudaPage, ContactoPage, QuienesSomosPage } from './InfoPages.jsx'
 import PedidoPage from './PedidoPage.jsx'
 import ProductoPage from './ProductoPage.jsx'
 import './tienda.css'
@@ -19,8 +19,9 @@ import './tienda.css'
 const ENLACES = [
   { a: RUTA_INICIO, texto: 'Inicio', fin: true },
   { a: RUTA_CATALOGO, texto: 'Catálogo' },
-  { a: RUTA_COMO_COMPRAR, texto: 'Cómo comprar' },
-  { a: RUTA_DONDE_ESTAMOS, texto: 'Dónde estamos' },
+  { a: RUTA_QUIENES_SOMOS, texto: 'Quiénes somos' },
+  { a: RUTA_CONTACTO, texto: 'Contacto' },
+  { a: RUTA_AYUDA, texto: 'Ayuda' },
 ]
 
 const claseEnlace = ({ isActive }) =>
@@ -126,8 +127,12 @@ export default function TiendaApp() {
         <Route path={RUTA_CATALOGO} element={<CatalogoPage />} />
         <Route path={RUTA_PRODUCTO} element={<ProductoPage />} />
         <Route path={RUTA_PEDIDO} element={<PedidoPage />} />
-        <Route path={RUTA_COMO_COMPRAR} element={<ComoComprarPage />} />
-        <Route path={RUTA_DONDE_ESTAMOS} element={<DondeEstamosPage />} />
+        <Route path={RUTA_QUIENES_SOMOS} element={<QuienesSomosPage />} />
+        <Route path={RUTA_CONTACTO} element={<ContactoPage />} />
+        <Route path={RUTA_AYUDA} element={<AyudaPage />} />
+        {Object.entries(RUTAS_ANTERIORES).map(([desde, hacia]) => (
+          <Route key={desde} path={desde} element={<Navigate to={hacia} replace />} />
+        ))}
         {/* El catálogo viejo del sistema de notas vivía en /c: los QR ya impresos siguen llevando a la tienda. */}
         <Route path="*" element={<Navigate to={RUTA_INICIO} replace />} />
       </Routes>

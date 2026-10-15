@@ -124,6 +124,31 @@ export function validarComoComprar(v) {
   return { valor: todas.slice(0, MAX_PASOS), errores }
 }
 
+// "Quiénes somos": uno o varios párrafos, un párrafo por línea.
+export const MAX_PARRAFOS = 6
+export function validarQuienesSomos(v) {
+  const todas = lineas(v, MAX_PARRAFOS, 400)
+  const errores = todas.length > MAX_PARRAFOS ? [`Como máximo ${MAX_PARRAFOS} párrafos.`] : []
+  return { valor: todas.slice(0, MAX_PARRAFOS), errores }
+}
+
+// Texto por defecto: solo lo que se sabe del negocio. La administración lo reemplaza desde Ajustes.
+export const QUIENES_SOMOS_POR_DEFECTO = [
+  'Modas Naty es un negocio de indumentaria femenina por mayor, en Bermejo, Tarija, a pasos de la frontera con Argentina.',
+  'Vendemos por docena y media docena: blusas, pantalones, faldas, chalecos, vestidos y más, en talles y colores surtidos.',
+  'Atendemos en dos locales y por WhatsApp, con un equipo de ventas que te acompaña desde que elegís hasta que retirás o recibís tu pedido.',
+]
+
+// Preguntas frecuentes de la ayuda. Son hechos del funcionamiento de la tienda: si cambia el funcionamiento, se cambia acá.
+export const PREGUNTAS_FRECUENTES = [
+  { p: '¿Se vende por unidad?', r: 'No. Se vende por docena o por media docena, y cada una viene surtida en talles y colores.' },
+  { p: '¿Cómo pago?', r: 'Por transferencia bancaria (los datos de la cuenta están en tu pedido) o en efectivo en el local.' },
+  { p: '¿En qué moneda pago?', r: 'Los precios están en dólares y se muestran también en pesos argentinos y en bolivianos, con la cotización del día. La transferencia se hace en pesos argentinos.' },
+  { p: '¿Enviar el pedido lo reserva?', r: 'No. Tu vendedor confirma la disponibilidad y el precio final, y recién entonces transferís.' },
+  { p: '¿Cómo retiro o recibo mi pedido?', r: 'Pasás por uno de nuestros locales, o coordinás la entrega con tu vendedor.' },
+  { p: '¿Con quién hablo?', r: 'Elegí un vendedor cuando armás tu pedido, o escribinos por WhatsApp desde Contacto.' },
+]
+
 // Pasos por defecto: salen de lo que pidió la clienta. La administración puede reemplazarlos desde Ajustes.
 export const PASOS_POR_DEFECTO = [
   'Mirá el catálogo y abrí el modelo que te gusta.',
