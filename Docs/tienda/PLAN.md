@@ -110,17 +110,20 @@ Resultado: 19 pruebas nuevas, 137 en total (118 de Renzo más estas), tres corri
 Criterio cumplido en local: diff `naty_*` vacío, rollback limpio y matriz de roles en verde.
 
 ## Etapa E2 · Rutas públicas y catálogo (8 h)
-- [ ] E2.1 Edición mínima en `App.jsx` (D2): `pathname === '/tienda' || startsWith('/tienda/')` con selección reactiva dentro del router. Probar entrada directa, navegación interna y atrás/adelante sin montar el árbol privado.
-- [ ] E2.2 `features/tienda/data/clientePublico.js` (D3) y repositorio público con paginación por clave (código, id), páginas de 24, sin conteos exactos.
-- [ ] E2.3 Normalizar URLs de fotos absolutas y relativas (D12).
-- [ ] E2.4 `precioPublico()` (D10, D11) con tests: precio null, tasa 0 o NaN, el caso 101 centavos × 1,5 media docena (resultado 76, como Renzo).
-- [ ] E2.5 Copiar y adaptar grilla, filtros, ficha y `useScrollConservado` sin color ni Bs minoristas.
-- [ ] E2.6 Etiquetas "Media docena (6)" y "Docena (12)". Mínimo media docena.
-- [ ] E2.7 Caché propia `tienda-v1` (D15) y aviso "precios consultados el ...".
-- [ ] E2.8 SEO y enlace compartible por producto.
-- [ ] E2.9 Tests: cliente sin sesión (aunque haya sesión interna en el mismo navegador), catálogo con 0 productos, producto sin foto, foto rota.
+Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total, lint limpio, build OK, el chunk de la tienda pesa 15 kB y se carga solo en `/tienda`). Todavía **no se vio contra datos reales en un navegador**: las vistas `tienda_*` no existen en producción hasta E9, y el dry-run ya las validó con los 45 productos reales.
 
-Criterio: un navegador limpio carga `/tienda` sin tocar la IndexedDB de Renzo, y el precio de cada producto coincide con la nota de venta, centavo por centavo.
+- [x] E2.1 (15/10) Edición mínima en `App.jsx`: `/tienda` y subrutas se montan antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (carga diferida). Registrada en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
+- [x] E2.2 (15/10) `features/tienda/data/clientePublico.js` (sin sesión, sin renovación, sin leer la URL) y repositorio con paginación por clave (código, id), páginas de 24, sin conteo exacto.
+- [x] E2.3 (15/10) Fotos absolutas y relativas al bucket. Solo se aceptan `https`; el resto se descarta.
+- [x] E2.4 (15/10) `precioPublico()` importa las funciones de Renzo y hereda su redondeo. Precio oculto es "a consultar", tasa inválida deja solo USD, tasa de ejemplo muestra solo USD.
+- [x] E2.5 (15/10) Catálogo y ficha: búsqueda con espera, filtro por categoría, "Ver más", galería, sin color. Usa los componentes y colores de Renzo; el diseño final llega en E7.
+- [ ] E2.5b Conservar la posición de scroll al volver de una ficha (`useScrollConservado` de `tienda-origen`).
+- [x] E2.6 (15/10) Etiquetas "Docena (12)" y "Media docena (6)". El mínimo de media docena se aplica en el carrito (E3).
+- [x] E2.7 (15/10) Caché propia `tienda-v1` por origen, con aviso "sin conexión" y sin presentar la caché como precio vigente.
+- [~] E2.8 Título por producto hecho. **Falta** la vista previa al compartir por WhatsApp: en una SPA necesita una función de servidor o prerender. Decisión pendiente para E7 o E9.
+- [x] E2.9 (15/10) Pruebas: rutas, precios (incluido el caso 101 centavos por 1,5), fotos con protocolos peligrosos, filtros, paginación, caché rota y enlace de WhatsApp.
+
+Criterio: un navegador limpio carga `/tienda` sin tocar la base local de Renzo (cumplido por construcción), y el precio coincide con la nota (cumplido en pruebas; falta verlo en pantalla con datos reales).
 
 ## Etapa E3 · Pedido y contacto con el vendedor (8 h)
 - [ ] E3.1 Carrito propio en `localStorage` con versión (nada de tablas Dexie de Renzo).

@@ -7,7 +7,7 @@ Los archivos **nuevos** que no pisan nada de él se anotan en la segunda tabla.
 
 | # | Archivo | Qué cambia | Por qué | Cómo se deshace | Estado |
 |---|---|---|---|---|---|
-| 1 | `app/src/app/App.jsx` | Montar `/tienda/*` antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` | Que la tienda pública no toque su base local ni su cola de sincronización (decisión D2) | Revertir las líneas del selector de ruta | Pendiente (E2.1) |
+| 1 | `app/src/app/App.jsx` | Montar `/tienda/*` antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` | Que la tienda pública no toque su base local ni su cola de sincronización (decisión D2) | Revertir las líneas del selector de ruta | **Hecho 15/10** (E2.1): `lazy` + `Selector` por ruta; el árbol interno quedó igual dentro de `AppInterna` |
 | 2 | `app/src/features/ajustes/*` | Un acordeón nuevo "Tienda online", sin tocar los existentes | Que Natali edite datos de transferencia, locales y horarios (E4.3) | Quitar el acordeón | Pendiente (E4.3) |
 | 3 | `app/public/icons/*.png` y `favicon` | Reemplazar los íconos "MN" por el logo real de Modas Naty | Coherencia de marca: el logo real nunca llegó al sistema de Renzo (E4b) | Restaurar los 4 PNG desde git | Pendiente (E4b) |
 | 4 | `app/vite.config.js` | Solo si el nombre o color del manifiesto cambian con el logo | Idem | Revertir las líneas | Pendiente (E4b) |

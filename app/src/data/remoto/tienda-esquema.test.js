@@ -83,7 +83,7 @@ describe('tienda_schema.sql sobre el esquema real de Renzo', () => {
     await db.query(`update naty_config set valor = '"+591 7000-0000"'::jsonb where clave = 'whatsapp_tienda'`)
 
     antes = JSON.parse((await db.query(LINEA_BASE)).rows[0].linea_base)
-  })
+  }, 90_000) // cargar el esquema completo en PGlite tarda más cuando corren muchas suites a la vez
   afterAll(async () => db?.close())
 
   it('se aplica dos veces sin error (idempotente)', async () => {
@@ -215,7 +215,7 @@ describe('tienda_schema.sql sobre el esquema real de Renzo', () => {
   })
 })
 
-describe('ejecutor aplicar-tienda', () => {
+describe('ejecutor aplicar-tienda', { timeout: 60_000 }, () => {
   const ejecutores = (d) => ({ consulta: (s) => d.query(s), ejecutar: (s) => d.exec(s), lineaBaseSql: LINEA_BASE })
   const existe = async (d) => (await d.query(`select to_regclass('tienda_config')::text as t`)).rows[0].t
 

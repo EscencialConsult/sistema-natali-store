@@ -13,13 +13,13 @@ for %%I in ("%~dp0..\..\..") do subst S: "%%~fI"
 cd /d S:\
 if "%~1"=="" (
   cd /d S:\app
-  npx vite --root S:\app
+  npx vite S:\app
 ) else if /I "%~1"=="test" (
   cd /d S:\app
   npx vitest run --root S:\app
 ) else if /I "%~1"=="build" (
   cd /d S:\app
-  npx vite build --root S:\app
+  npx vite build S:\app
 ) else (
   %*
 )
