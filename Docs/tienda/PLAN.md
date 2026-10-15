@@ -213,10 +213,10 @@ Estado 15/10: **hecha en código**. Falta verlo con datos reales (E9).
 
 - [ ] E8.1 Completar cada dato y tachar.
 - [ ] E8.2 Revisión de ortografía y tono.
-- [ ] E8.3 Guía de una página para Natali y su equipo.
+- [x] E8.3 (15/10) `Docs/tienda/GUIA-PARA-NATALI.md`: qué datos juntar, dónde cargarlos en Ajustes y preguntas frecuentes, en lenguaje simple.
 
 ## Etapa E9 · Salida a producción (5 h, más espera)
-Requiere OK de Facundo **y** de Renzo. Antes de arrancar se cierran los cinco puntos de evidencia de producción:
+Requiere OK de Facundo **y** de Renzo. El procedimiento paso a paso, con comandos y vuelta atrás, está en `Docs/tienda/PUBLICACION.md`. Antes de arrancar se cierran los cinco puntos de evidencia de producción:
 
 - [ ] E9.0a **Contrato desplegado**: propietario y opciones de las vistas existentes, RLS, grants, privilegios por defecto y esquema expuesto (con `auditor-backend`, en solo lectura).
 - [ ] E9.0b **Service worker y hosting**: scope, versión activa, cachés y headers efectivos en dispositivos reales. Verificar entrada a `/tienda` desde un shell anterior.
