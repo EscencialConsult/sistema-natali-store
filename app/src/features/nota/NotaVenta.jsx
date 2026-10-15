@@ -59,6 +59,7 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                 <div><dt>Vendedor/a: </dt><dd>{venta.vendedor_nombre || '—'}</dd></div>
                 <div><dt>Pago: </dt><dd>{PAGO[venta.metodo_pago]}</dd></div>
                 {venta.metodo_entrega && <div><dt>Entrega: </dt><dd>{METODOS_ENTREGA[venta.metodo_entrega]}</dd></div>}
+                {venta.retira_nombre && <div><dt>Retira: </dt><dd>{venta.retira_nombre}</dd></div>}
                 {venta.estado === 'anulada' && <div><dt>Estado: </dt><dd>ANULADA</dd></div>}
               </dl>
               {/* Espacio reservado para un QR que la clienta va a definir (pedido 2026-10-09). */}

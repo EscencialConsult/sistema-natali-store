@@ -2,7 +2,7 @@ import { useEffect, useReducer, useState } from 'react'
 import { nuevoId } from '../../lib/id.js'
 import { agregarLinea, normalizarCantidad } from './calculos.js'
 
-const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null }
+const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null, retira_nombre: '' }
 
 // Líneas: { key, productoId, colorId (informativo), cantidad (docenas), manualCent }. Una línea por producto. Solo ids: nombres y fotos se leen del catálogo.
 function reductor(estado, accion) {
@@ -46,7 +46,7 @@ export function useCarrito(usuarioId) {
 
   useEffect(() => {
     try {
-      const vacio = estado.lineas.length === 0 && !estado.cliente_nombre && !estado.cliente_telefono && !estado.cliente_email && !estado.cliente_direccion
+      const vacio = estado.lineas.length === 0 && !estado.cliente_nombre && !estado.cliente_telefono && !estado.cliente_email && !estado.cliente_direccion && !estado.retira_nombre
       if (vacio) localStorage.removeItem(clave(usuarioId))
       else localStorage.setItem(clave(usuarioId), JSON.stringify(estado))
     } catch {

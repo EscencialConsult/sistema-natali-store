@@ -175,6 +175,7 @@ create table if not exists naty_ventas (
   cliente_email text not null default '',
   cliente_direccion text not null default '',
   metodo_entrega text check (metodo_entrega in ('personal', 'tienda', 'domicilio', 'envio')),
+  retira_nombre text not null default '',
   total_cent bigint not null check (total_cent >= 0),
   estado naty_estado_venta not null default 'activa',
   anulada_en timestamptz,
@@ -187,6 +188,7 @@ create table if not exists naty_ventas (
 alter table naty_ventas add column if not exists cliente_email text not null default '';
 alter table naty_ventas add column if not exists cliente_direccion text not null default '';
 alter table naty_ventas add column if not exists metodo_entrega text check (metodo_entrega in ('personal', 'tienda', 'domicilio', 'envio'));
+alter table naty_ventas add column if not exists retira_nombre text not null default '';
 
 -- Copia de código, nombre y color al momento de la venta: la nota no cambia si el producto se edita después.
 create table if not exists naty_venta_items (
@@ -472,7 +474,7 @@ end $$;
 -- Registrar una venta. La app la manda desde el dispositivo (a veces horas después de hacerla, por la mala conexión):
 --  · idempotente (reenviar la misma venta no la duplica) · todo o nada (venta + ítems + descuento de stock)
 --  · el servidor revisa permiso, titularidad y que el total coincida con los ítems.
--- p = { id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono, cliente_email, cliente_direccion, metodo_entrega,
+-- p = { id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono, cliente_email, cliente_direccion, metodo_entrega, retira_nombre,
 --       total_cent, creada_en, items: [ { id, producto_id, color_id, codigo, nombre, color_nombre, cantidad, unidad, unidades,
 --       precio_cent, subtotal_cent } ], movimientos: [ { id, producto_id, color_id, delta, motivo, creado_en } ] }
 create or replace function naty_registrar_venta(p jsonb) returns uuid
@@ -507,10 +509,10 @@ begin
   end if;
 
   insert into naty_ventas (id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono,
-                           cliente_email, cliente_direccion, metodo_entrega, total_cent, creada_en)
+                           cliente_email, cliente_direccion, metodo_entrega, retira_nombre, total_cent, creada_en)
   values (v_id, p ->> 'numero', v_vendedor, coalesce(p ->> 'vendedor_nombre', ''), (p ->> 'moneda')::naty_moneda, (p ->> 'tipo_cambio')::numeric,
           (p ->> 'metodo_pago')::naty_metodo_pago, coalesce(p ->> 'cliente_nombre', ''), coalesce(p ->> 'cliente_telefono', ''),
-          coalesce(p ->> 'cliente_email', ''), coalesce(p ->> 'cliente_direccion', ''), nullif(p ->> 'metodo_entrega', ''),
+          coalesce(p ->> 'cliente_email', ''), coalesce(p ->> 'cliente_direccion', ''), nullif(p ->> 'metodo_entrega', ''), coalesce(p ->> 'retira_nombre', ''),
           (p ->> 'total_cent')::bigint, (p ->> 'creada_en')::timestamptz);
 
   -- Un dispositivo sin señal pudo vender un producto que mientras tanto se eliminó: el ítem queda con la copia

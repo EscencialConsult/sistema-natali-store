@@ -104,6 +104,7 @@ export default function NuevaVentaPage() {
         cliente_email: estado.cliente_email,
         cliente_direccion: estado.cliente_direccion,
         metodo_entrega: estado.metodo_entrega,
+        retira_nombre: estado.retira_nombre,
         // Sin color: la venta usa el color del producto (un borrador viejo pudo guardar un color que ya no existe).
         items: lineas.map((l) => ({ producto_id: l.productoId, color_id: null, cantidad: l.cantidad, unidad: 'docena', precio_cent: precios.get(l.key) })),
       })
@@ -193,6 +194,7 @@ export default function NuevaVentaPage() {
                 <Opcion key={valor} icono={ICONO_ENTREGA[valor]} activa={estado.metodo_entrega === valor} onClick={() => despachar({ tipo: 'campo', campo: 'metodo_entrega', valor: estado.metodo_entrega === valor ? null : valor })}>{etiqueta}</Opcion>
               ))}
             </div>
+            <Input etiqueta="Quién retira (opcional)" value={estado.retira_nombre} onChange={(e) => despachar({ tipo: 'campo', campo: 'retira_nombre', valor: e.target.value })} autoComplete="off" placeholder="Nombre de quien retira el pedido" />
           </section>
 
           <section aria-labelledby="cli" className={cn(TARJETA, 'flex flex-col gap-4 p-4 sm:p-5')}>
