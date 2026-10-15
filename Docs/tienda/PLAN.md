@@ -1,33 +1,45 @@
-# Plan de trabajo: catálogo y compra mayorista de Modas Naty dentro del sistema de nota
+# Plan de trabajo: catálogo y pedido mayorista de Modas Naty dentro del sistema de nota
 
-Creado el 2026-10-15. Rama: `feature/tienda-online` (sale de `origin/main`). Material reciclable: `tienda-origen/` (copia literal de la tienda online, commit 3142b20).
+Versión 2, consolidada tras el duelo Claude vs Codex del 2026-10-15 (3 rondas, consenso; sesión `20261015-1700-catalogo-mayorista-en-sistema-de-nota`).
+Rama: `feature/tienda-online` (sale de `origin/main`). Material reciclable: `tienda-origen/` (copia literal de la tienda online, commit 3142b20; no compila).
 Método: etapas con tareas y pasos tachables. `[ ]` pendiente · `[~]` en curso · `[x]` hecho con fecha · `[!]` bloqueado. **Cada etapa nueva arranca solo con OK explícito de Facundo.**
 
 ---
 
 ## 0. Reglas inviolables (la base de Renzo ya tiene datos reales y está en uso)
 
-1. **Cero cambios a objetos `naty_*` existentes**: ni columnas, ni enums, ni funciones, ni políticas, ni datos. Solo se agregan objetos nuevos con prefijo `tienda_`.
-2. **No se corre `naty_schema.sql` ni `tienda-origen/app/supabase/tienda_schema.sql` contra la base real** sin dry-run con rollback, backup previo y OK de Facundo y de Renzo.
-3. **Todo se prueba primero en una copia** (proyecto Supabase de staging o Postgres en memoria con PGlite), nunca contra producción.
-4. **El código de Renzo se toca lo mínimo**: se agregan archivos nuevos y, donde no hay otra forma, se editan líneas puntuales en archivos suyos (rutas, un enlace). Cada edición a un archivo suyo queda listada en `Docs/tienda/CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
-5. **Dueño único por dato**: productos, fotos, stock, precios, tipo de cambio, usuarios y teléfonos son del sistema de nota. La tienda los lee. No se duplican.
-6. **Sin secretos en git**: `.env*` fuera del repo (ya ignorados).
-7. **El commit `0b8899b` de la rama `main` local NO se usa.** Modifica `naty_productos` y reescribe `naty_guardar_producto`, que es justo lo que ahora está prohibido. No se pushea. Esta rama sale de `origin/main`.
+1. **Cero cambios a objetos `naty_*` existentes**: ni columnas, ni enums, ni funciones, ni políticas, ni datos, ni triggers (por eso no hay claves foráneas hacia sus tablas). Solo objetos nuevos con prefijo `tienda_`.
+2. **No se aplica nada a la base real** sin: backup, dry-run con rollback, línea base de objetos y OK de Facundo y de Renzo.
+3. **Todo se prueba primero en staging** (proyecto Supabase aparte y PGlite). Staging se abre en **otro origen web o en un perfil de navegador vacío**: la IndexedDB de Renzo se llama siempre `modas-naty` y puede tener ventas pendientes que se enviarían al backend equivocado.
+4. **El código de Renzo se toca lo mínimo** y cada edición queda en `Docs/tienda/CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`. Previstas solo dos: `App.jsx` (montar la tienda antes del arranque interno) y `Ajustes` (un acordeón nuevo).
+5. **Dueño único por dato**: productos, fotos, precios y tipo de cambio son del sistema de nota. La tienda los lee por vistas `tienda_*`, no los duplica.
+6. **Sin secretos en git.**
+7. **El commit `0b8899b` de `main` local NO se usa** (modifica `naty_productos`). No se pushea.
+8. **La tienda nunca reutiliza** `config.guardar`, `SyncRunner`, `prepararBase`, `obtenerSupabase` ni `aplicar-schema.mjs` de Renzo.
 
 ---
 
-## 1. Lo que cambia el plan (hallazgos al leer el código de Renzo)
+## 1. Decisiones del duelo (cerradas)
 
-| # | Hallazgo | Consecuencia |
+| # | Decisión | Motivo |
 |---|---|---|
-| H1 | Ya existe un catálogo público en `/c` con vista `naty_catalogo_publico`, botón de WhatsApp (`whatsapp_tienda`) y bandera `mostrar_precios_publico` | No se construye "una tienda aparte": se **extiende `/c`** |
-| H2 | El precio base es **USD por docena** y `tipo_cambio` guarda `{bs, ars}` por 1 USD. Orden fijo USD, ARS, Bs | La tienda no necesita precio minorista en Bs. Se convierte con la misma función `convertirDesdeUsd` |
-| H3 | **Ya no hay color** (un color informativo opcional) y todo va en medias docenas | Coincide con el pedido de Natali. No hay selector de color |
-| H4 | La nota de venta ya imprime un **QR con `url_catalogo`** cuando esa clave está cargada | "Que desde la nota se entre al catálogo" ya está hecho. Falta cargar la URL y probar la impresión |
-| H5 | `naty_perfiles` tiene `rol` y `telefono` | Los vendedores y las encargadas con su WhatsApp ya existen. Falta una vista pública mínima (`tienda_contactos_publico`) |
-| H6 | Mercado Pago, kiosco, pedidos online, comprobante PDF y reservas de stock **no se piden** | Se descartan de la V1. La compra es: armar pedido, ver datos de transferencia, escribir al vendedor |
-| H7 | El proyecto Supabase viejo (`aaxrcacoavghapiqhkrn`) era de pruebas | Se abandona. La única base es la de Renzo (`bulcbrgafrfklaejfyjd`) |
+| D1 | **No se extiende `/c`.** Se crean rutas `/tienda/*`. `/c` queda intacto | `/c` depende del caché local y del `SyncRunner` con usuario: un navegador anónimo no obtiene catálogo |
+| D2 | `/tienda/*` se monta **antes** de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (edición mínima en `App.jsx`) | `prepararBase` puede borrar `modas-naty`; `SyncRunner` puede enviar pendientes |
+| D3 | **Cliente Supabase público propio**: `persistSession:false`, `autoRefreshToken:false`, `detectSessionInUrl:false` | El cliente de Renzo hereda la sesión interna |
+| D4 | "Publicado" = producto activo con al menos una foto. Tabla `tienda_oculto(producto_id uuid pk)` **sin FK**, para ocultar | Evita tocar su ficha de producto y evita triggers sobre `naty_productos`. Ocultar es **editorial, no confidencial**: `naty_catalogo_publico` y el bucket siguen públicos |
+| D5 | **Sin disponibilidad ni stock en V1.** El vendedor confirma al responder | El agregado sobre movimientos filtra stock indirecto y agrega costo sin medir |
+| D6 | **Sin pedidos guardados en V1.** Solo mensaje de WhatsApp | Sin escritura anónima, sin superficie de abuso |
+| D7 | Contactos: **lista curada** dentro de `tienda_config`, no vista sobre `naty_perfiles` | `telefono` puede ser personal y no hay bandera "publicar" |
+| D8 | Configuración propia: `tienda_config(clave pk, valor jsonb, publico boolean)`. Lectura `anon` y `authenticated` solo con `publico = true`; admin lee y escribe todo vía `naty_es_rol('admin')` | No se escribe en `naty_config` |
+| D9 | Vistas nuevas: `tienda_catalogo_publico` y `tienda_ajustes_publicos`, con **lista blanca de campos** (incluso dentro de JSON). `REVOKE ALL ... FROM PUBLIC, anon, authenticated` y luego `GRANT SELECT` | Una vista simple sobre `naty_config` puede ser actualizable |
+| D10 | Cálculos: se **importan** `lib/docenas.js` y `features/ventas/calculos.js` de Renzo detrás de `precioPublico()` con guardas | Heredar su orden de redondeo (unitario primero, subtotal después) y las 12 unidades fijas. Se deja de leer `unidades_por_docena` |
+| D11 | Precio oculto (`null`) = "A consultar". Sin totales ni importe de transferencia. Tasas inválidas = solo USD | `convertirDesdeUsd(null)` da cero |
+| D12 | Fotos: URLs existentes, absolutas o relativas al bucket (como `remoto.js:123`). **No se asume `.mini.webp` ni se escribe en `naty_productos`** | No hay generador de miniaturas en Renzo |
+| D13 | Mapa = **enlace https** validado con `new URL()` (protocolo, hostname y pathname por separado, sin credenciales). Sin iframe, sin CSP nueva | Renzo no declara CSP |
+| D14 | WhatsApp: host fijo, teléfono solo dígitos, `encodeURIComponent`. **Nunca se trunca en silencio**: si es largo, "Copiar pedido completo" y mensaje breve. Un envío no es reserva ni pago | Evita total que no coincide con las líneas |
+| D15 | Caché de datos propia (`tienda-v1`, con backend y fecha). Se revalida catálogo, cambio y contacto antes de armar el mensaje. Si falla, no se presenta como precio confirmado | No se toca el service worker compartido |
+| D16 | `url_catalogo` lo carga **Natali a mano** desde Ajustes de Renzo. Nunca en un script ni en una migración | Es uso normal de su producto, no una migración nuestra |
+| D17 | Ejecutor nuevo `app/scripts/aplicar-tienda.mjs`: archivo y destino explícitos, TLS validado, rollback por defecto, `lock_timeout` y `statement_timeout` | `aplicar-schema.mjs` fija `naty_schema.sql` y desactiva la validación TLS |
 
 ---
 
@@ -35,171 +47,173 @@ Método: etapas con tareas y pasos tachables. `[ ]` pendiente · `[~]` en curso 
 
 | # | Pedido | Etapa |
 |---|---|---|
-| P1 | Catálogo para que las clientas vean, elijan y compren. No es una landing ni deja datos | E2, E3 |
-| P2 | Sin color. Se vende por fardo: producto, media docena, docena o cuántas docenas | E2, E3 |
-| P3 | Texto "Cómo comprar": mirá el catálogo, abrí el modelo, elegí cantidad (media docena o docena), pasá por el local o coordiná con tu vendedor | E4 |
-| P4 | Pago: solo transferencia o efectivo. Online siempre transferencia, con los datos de transferencia a la vista | E3 |
-| P5 | Después de transferir, coordinar con la encargada de tienda o con su vendedor (WhatsApp, quizá QR) | E3 |
-| P6 | La clienta elige **"vendedor"** (no "asesor") de una lista. Se usa para saber quién la atiende | E3 |
-| P7 | Retirar o recibir, también coordinado con el vendedor | E3, E4 |
-| P8 | Dirección de **dos locales**, horarios (lunes a sábado), teléfono de Ariel y de las encargadas | E4 |
-| P9 | Ubicación con mapa, para que quien cruza la chalana de Bermejo llegue caminando derecho | E4 |
-| P10 | Precios en **USD** con conversión automática a Bs y ARS según el tipo de cambio que carga ella | E2 |
-| P11 | Unificar con la nota de venta: un solo stock, un solo lugar de carga | E5, E6 |
-| P12 | Desde la nota de venta se pueda entrar al catálogo | E5 (H4) |
+| P1 | Catálogo para ver, elegir y comprar. No es una landing ni deja datos | E2, E3 |
+| P2 | Sin color. Se vende por fardo: media docena, docena o cuántas docenas | E2, E3 |
+| P3 | "Cómo comprar": mirá el catálogo, abrí el modelo, elegí cantidad, pasá por el local o coordiná con tu vendedor | E4 |
+| P4 | Pago solo por transferencia o efectivo. Online siempre transferencia, con los datos a la vista | E3 |
+| P5 | Tras transferir, coordinar con la encargada o el vendedor por WhatsApp | E3 |
+| P6 | La clienta elige **"vendedor"** (no "asesor") | E3 |
+| P7 | Retirar o recibir, coordinado con el vendedor | E3, E4 |
+| P8 | Dos locales con dirección, horarios (lunes a sábado), teléfonos | E4 |
+| P9 | Ubicación para quien cruza la chalana de Bermejo | E4 |
+| P10 | Precios en **USD**, convertidos a Bs y ARS con el tipo de cambio que ella carga | E2 |
+| P11 | Un solo stock y un solo lugar de carga | E6 |
+| P12 | Desde la nota de venta se entra al catálogo | E5 |
 | P13 | Diseño fiel a la referencia hecha con IA | E7 |
 
 ---
 
 ## 3. Qué se recicla de `tienda-origen/` y qué se descarta
 
-| Se recicla (copiar, adaptar en `app/`) | Se descarta en V1 |
+| Se recicla (copiar y adaptar en `app/src/features/tienda/`) | Se descarta en V1 |
 |---|---|
-| Tokens y estética crema y ciruela (`DESIGN.md`, `styles/tokens.css`) | Mercado Pago: `netlify/functions/checkout`, `webhook`, `reembolso`, `reconciliar` |
-| `features/catalogo/tienda/*`: grilla, filtros, ficha, mini carrito, `useScrollConservado` | Kiosco completo (`features/kiosco`, `kiosco-*.js`) |
-| `features/sitio/*`: inicio, quiénes somos, contacto, legales, pie, botón WhatsApp | Panel de pedidos, cobros, gastos, reportes de la tienda |
-| `features/carrito/*` (adaptado a docenas) | Correo con comprobante PDF (`correo.js`, `comprobantePdf.js`) |
-| `lib/seo.js`, `lib/whatsapp.js`, `lib/slug.js`, miniaturas `.mini.webp` | Tablas `tienda_pedidos`, `tienda_pagos`, `tienda_kiosco_*` |
-| `features/ayuda/*` (guía de la clienta, reescrita) | Tipo de cambio versionado de la tienda (se usa el de `naty_config`) |
-| Tests de `carrito`, `seo`, `csp` | Login y usuarios de la tienda |
+| Tokens crema y ciruela (`DESIGN.md`, `styles/tokens.css`) | Mercado Pago (`checkout`, `webhook`, `reembolso`, `reconciliar`) |
+| `catalogo/tienda/*`: grilla, filtros, ficha, `useScrollConservado` | Kiosco completo |
+| `sitio/*`: inicio, quiénes somos, contacto, legales, pie, `BotonWhatsApp` | Panel de pedidos, cobros, gastos, reportes |
+| `carrito/*` (adaptado a docenas) | Comprobante PDF y correo |
+| `lib/whatsapp.js` (con las validaciones de D14), `lib/seo.js`, `lib/slug.js` | Tablas `tienda_pedidos`, `tienda_pagos`, `tienda_kiosco_*` |
+| `ayuda/*` (reescrita) | Tipo de cambio versionado propio |
+| Tests de `carrito` y `seo` | Login y usuarios de la tienda |
+
+Nota de seguridad al reciclar: `ContactoPage.jsx` pasa enlaces editables directo a `href`. Se reemplaza por la validación de D13.
 
 ---
 
-## Etapa E0 · Seguridad y terreno (2 h)
-Objetivo: poder trabajar sin riesgo de tocar datos reales.
+## Etapa E0 · Terreno seguro (3 h)
+- [x] E0.1 (15/10) Rama desde `origin/main`.
+- [x] E0.2 (15/10) Copia literal en `tienda-origen/`, sin secretos ni fotos demo.
+- [ ] E0.3 Confirmar con Renzo que `bulcbrgafrfklaejfyjd` es producción. Pedirle backup o la fecha del último automático.
+- [ ] E0.4 Crear staging: proyecto Supabase nuevo con `naty_schema.sql` de `origin/main` y datos anonimizados o de ejemplo.
+- [ ] E0.5 Línea base de producción **en solo lectura**: conteo por tabla, definición de vistas y funciones `naty_*`, grants, propietario de las vistas, claves de `naty_config`. A `Docs/tienda/linea-base.md`.
+- [ ] E0.6 Crear `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
+- [ ] E0.7 Staging con `.env.local` propio **y** otro puerto/origen o perfil de navegador vacío. Verificar en DevTools que `modas-naty` no se comparte.
+- [ ] E0.8 Resolver el `#` de la ruta (`subst R:`) para dev y tests.
 
-- [x] E0.1 (15/10) Rama `feature/tienda-online` desde `origin/main`.
-- [x] E0.2 (15/10) Copia literal en `tienda-origen/` sin secretos, sin fotos demo y sin dependencias.
-- [ ] E0.3 Confirmar con Renzo que `bulcbrgafrfklaejfyjd` es producción y pedirle **backup** (dump) o la fecha del último automático de Supabase.
-- [ ] E0.4 Crear una **copia de staging**: proyecto Supabase nuevo y gratuito, con `naty_schema.sql` de `origin/main` aplicado y un dump de datos anonimizado (teléfonos y nombres cambiados) o, si no se puede, datos de ejemplo.
-- [ ] E0.5 Foto de línea base de producción en **solo lectura**: conteo de filas por tabla `naty_*`, lista de objetos existentes (`information_schema`), claves de `naty_config`. Se guarda en `Docs/tienda/linea-base.md`.
-- [ ] E0.6 Crear `Docs/tienda/CAMBIOS-EN-ARCHIVOS-DE-RENZO.md` (vacío, con la regla 4).
-- [ ] E0.7 Copiar `app/.env.local` al staging (otra URL y otra clave pública). Verificar que `npm run dev` apunta al staging y no a producción.
-- [ ] E0.8 Resolver el `#` de la ruta para correr tests y dev desde la carpeta real (subst `R:` como hacía `tienda-origen/iniciar-dev.bat`) y dejarlo documentado.
+Criterio: la app corre contra staging, los 118 tests pasan y existe la línea base.
 
-Criterio de cierre: la app de Renzo corre desde esta rama contra staging, los 118 tests pasan y existe la línea base.
+## Etapa E1 · Esquema aditivo y ejecutor seguro (6 h)
+- [ ] E1.1 `Docs/tienda/CONTRATO.md`: qué lee la tienda de `naty_*` (`naty_catalogo_publico` o sus tablas base vía vista nueva, `naty_config`, `naty_es_rol`) y qué no se toca.
+- [ ] E1.2 `app/supabase/tienda_schema.sql`, idempotente, en una transacción, solo `create ... if not exists` y `create or replace`:
+  - `tienda_config`, `tienda_oculto` (sin FK).
+  - Vistas `tienda_catalogo_publico` y `tienda_ajustes_publicos` (D9).
+  - Sin `ALTER TYPE`, sin extensiones, sin triggers sobre `naty_*`.
+- [ ] E1.3 Políticas y grants explícitos (D8, D9). Escritura solo `naty_es_rol('admin')`.
+- [ ] E1.4 `app/scripts/aplicar-tienda.mjs` (D17), con `--dry` por defecto.
+- [ ] E1.5 Pruebas en PGlite: aplicar `naty_schema.sql` y después `tienda_schema.sql`, dos veces cada uno.
+- [ ] E1.6 Prueba de catálogo: **diff vacío** de definiciones, grants, columnas y dependencias `naty_*` antes y después.
+- [ ] E1.7 Matriz de roles, **secuencial** y un principal por vez: anon, authenticated vendedor, admin, superadmin. Verificar denegación de INSERT/UPDATE/DELETE en las vistas.
+- [ ] E1.8 Prueba de rollback: aplicar y revertir en staging, comparar con la línea base.
+- [ ] E1.9 Enviar el contrato a Renzo.
 
-## Etapa E1 · Contrato de datos, solo aditivo (4 h)
-Objetivo: definir exactamente qué lee la tienda y qué objetos nuevos necesita, sin tocar nada de Renzo.
+Criterio: diff `naty_*` vacío, rollback limpio y matriz de roles en verde.
 
-- [ ] E1.1 Escribir `Docs/tienda/CONTRATO.md`: tablas y columnas de `naty_*` que se leen (`naty_catalogo_publico`, `naty_config`, `naty_perfiles` solo vía vista) y qué no se toca.
-- [ ] E1.2 Definir los objetos nuevos mínimos en `app/supabase/tienda_schema.sql` (idempotente, prefijo `tienda_`):
-  - `tienda_contactos_publico` (vista): nombre, rol y teléfono de perfiles activos con rol `vendedor`, `enc_tienda`, `enc_ventas`. Sin id interno ni nada más.
-  - `tienda_config` (tabla de una fila por clave, con RLS) para: datos de transferencia, textos de "Cómo comprar", dos direcciones, horarios, enlace de mapa, indicaciones de llegada.
-  - `tienda_publicacion` (opcional, solo si E2.3 lo exige): producto publicado, destacado y orden. **Si se resuelve con lo existente, no se crea.**
-- [ ] E1.3 Política de seguridad para cada objeto: lectura pública solo de la vista y de las claves de config marcadas públicas; escritura solo `admin` y `superadmin` vía `naty_es_rol` (se **usa**, no se modifica).
-- [ ] E1.4 Prueba de contrato en PGlite: aplicar `naty_schema.sql` de `origin/main` y después `tienda_schema.sql`, dos veces cada uno. Verificar que **ninguna** tabla, columna, política o función `naty_*` cambió (diff de catálogo antes y después).
-- [ ] E1.5 Dry-run con rollback contra staging. Resultado en `Docs/tienda/linea-base.md`.
-- [ ] E1.6 Enviar a Renzo el contrato para que avise antes de cambiar algo de la lista.
+## Etapa E2 · Rutas públicas y catálogo (8 h)
+- [ ] E2.1 Edición mínima en `App.jsx` (D2): `pathname === '/tienda' || startsWith('/tienda/')` con selección reactiva dentro del router. Probar entrada directa, navegación interna y atrás/adelante sin montar el árbol privado.
+- [ ] E2.2 `features/tienda/data/clientePublico.js` (D3) y repositorio público con paginación por clave (código, id), páginas de 24, sin conteos exactos.
+- [ ] E2.3 Normalizar URLs de fotos absolutas y relativas (D12).
+- [ ] E2.4 `precioPublico()` (D10, D11) con tests: precio null, tasa 0 o NaN, el caso 101 centavos × 1,5 media docena (resultado 76, como Renzo).
+- [ ] E2.5 Copiar y adaptar grilla, filtros, ficha y `useScrollConservado` sin color ni Bs minoristas.
+- [ ] E2.6 Etiquetas "Media docena (6)" y "Docena (12)". Mínimo media docena.
+- [ ] E2.7 Caché propia `tienda-v1` (D15) y aviso "precios consultados el ...".
+- [ ] E2.8 SEO y enlace compartible por producto.
+- [ ] E2.9 Tests: cliente sin sesión (aunque haya sesión interna en el mismo navegador), catálogo con 0 productos, producto sin foto, foto rota.
 
-Criterio: el diff de objetos `naty_*` es vacío y las pruebas pasan dos veces seguidas.
+Criterio: un navegador limpio carga `/tienda` sin tocar la IndexedDB de Renzo, y el precio de cada producto coincide con la nota de venta, centavo por centavo.
 
-## Etapa E2 · Catálogo público sin color, en docenas y bimoneda (6 h)
-Objetivo: `/c` muestra el catálogo con precio por docena en USD, Bs y ARS, y sin color.
+## Etapa E3 · Pedido y contacto con el vendedor (8 h)
+- [ ] E3.1 Carrito propio en `localStorage` con versión (nada de tablas Dexie de Renzo).
+- [ ] E3.2 Reconciliación: al abrir el carrito se resuelven los IDs contra el catálogo vigente; si un producto desapareció o cambió el precio, se avisa y se pide revisar.
+- [ ] E3.3 Pantalla "Tu pedido": líneas, totales en las tres monedas o "a consultar", aviso "el precio final lo confirma tu vendedor".
+- [ ] E3.4 Selector "¿Con qué vendedor hablás?" desde `tienda_config` (D7). Verifica que el contacto siga publicado.
+- [ ] E3.5 Pago: Transferencia (datos y botón copiar) o Efectivo en el local.
+- [ ] E3.6 Entrega: retiro en uno de los dos locales o recibir, "a coordinar con tu vendedor".
+- [ ] E3.7 Botón "Enviar por WhatsApp" y "Copiar pedido" (D14).
+- [ ] E3.8 Texto posterior: "Mandá el comprobante al mismo vendedor". Aclarar que enviar no reserva ni confirma.
+- [ ] E3.9 Sin conexión: se pueden ver cantidades sin importe y se indica que no hay confirmación.
+- [ ] E3.10 Tests: texto armado con tildes, emojis y 40 líneas, contacto sin teléfono, teléfono mal formado.
 
-- [ ] E2.1 Leer cómo `GrillaProductos`, `ProductoFicha` y `useBusquedaCodigo` de Renzo obtienen datos. Documentar en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md` qué se reutiliza.
-- [ ] E2.2 Copiar a `app/src/features/tienda/` los componentes reciclables (grilla con scroll conservado, filtros por categoría, ficha con galería, miniaturas) y quitar de ellos el selector de color y las referencias a Bs minoristas.
-- [ ] E2.3 Decidir qué significa "publicado": **opción 1** todo producto activo con foto se muestra (cero objetos nuevos); **opción 2** `tienda_publicacion` con un interruptor por producto. Se decide en el duelo.
-- [ ] E2.4 Mostrar precio por docena y por media docena, convertido con `convertirDesdeUsd` y `naty_config.tipo_cambio`. Orden USD, ARS, Bs. Bandera `mostrar_precios_publico` respetada.
-- [ ] E2.5 Etiquetas de venta: "Media docena (6)" y "Docena (12)". Cantidad mínima: media docena. Se lee `unidades_por_docena`.
-- [ ] E2.6 Estado de stock público sin cantidades: "Disponible" o "Consultar". Nunca el número ni el costo.
-- [ ] E2.7 SEO básico y Open Graph por producto (`lib/seo.js`), con enlace compartible por WhatsApp.
-- [ ] E2.8 Tests: conversión de monedas, redondeo, mínimo de media docena, producto sin foto, producto sin precio.
+Criterio: un pedido de ejemplo llega por WhatsApp completo, correcto y sin escribir nada en la base.
 
-Criterio: la grilla y la ficha de un producto real de staging coinciden con lo que muestra la nota de venta, centavo por centavo.
+## Etapa E4 · Información del negocio y edición (5 h)
+- [ ] E4.1 "Cómo comprar" desde `tienda_config`.
+- [ ] E4.2 "Dónde estamos": dos locales, dirección, horarios, indicaciones desde la chalana y enlace a Maps validado (D13).
+- [ ] E4.3 Editor en **Ajustes de Renzo** (acordeón nuevo, solo admin y superadmin) con **repositorio propio** que escribe en `tienda_config` con el cliente autenticado. Nunca `config.guardar`.
+- [ ] E4.4 Validación de campos al guardar (URL, teléfono, longitud). Los textos se muestran como texto, nunca HTML.
+- [ ] E4.5 Legales simples revisados por Natali.
 
-## Etapa E3 · Pedido, transferencia y contacto con el vendedor (8 h)
-Objetivo: la clienta arma su pedido sin dejar datos, ve cómo pagar y escribe al vendedor con el mensaje ya armado.
+Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en `/tienda` sin tocar código.
 
-- [ ] E3.1 Carrito en el navegador (Dexie o `localStorage`), por modelo y cantidad en medias docenas. Total en las tres monedas.
-- [ ] E3.2 Pantalla "Tu pedido": líneas, subtotal por moneda, aviso de que el precio final lo confirma el vendedor.
-- [ ] E3.3 Selector **"¿Con qué vendedor hablás?"** (lista desde `tienda_contactos_publico`) y opción "Pasar por el local". Si no hay vendedores, cae en `whatsapp_tienda`.
-- [ ] E3.4 Elección de pago: **Transferencia** (muestra banco, titular, cuenta, alias y un botón copiar) o **Efectivo en el local**. Los datos salen de `tienda_config`.
-- [ ] E3.5 Elección de entrega: retiro en local (elige cuál de los dos) o recibir, siempre "a coordinar con tu vendedor".
-- [ ] E3.6 Botón "Enviar pedido por WhatsApp": abre `wa.me/<tel vendedor>` con un texto armado: modelos, cantidades, total en la moneda elegida, método de pago y entrega. Sin guardar nada en el servidor.
-- [ ] E3.7 Mensaje de ayuda post-transferencia: "Mandá el comprobante por WhatsApp al mismo vendedor".
-- [ ] E3.8 (Decisión del duelo) Si se quiere registro del pedido: tabla `tienda_pedidos_web` mínima, solo escritura anónima por función con límite de frecuencia. Si no, queda fuera de V1.
-- [ ] E3.9 Tests: armado del texto de WhatsApp (caracteres especiales, longitud), totales, carrito persistido, vendedor sin teléfono.
+## Etapa E5 · Enlace con la nota de venta (2 h)
+- [ ] E5.1 En staging, cargar `url_catalogo` **a mano desde Ajustes** (D16) y verificar el QR en la nota A5.
+- [ ] E5.2 Escanear la nota impresa y en PDF con un celular.
+- [ ] E5.3 Documentar para Natali el paso "cargar la dirección del catálogo" con capturas.
+- [ ] E5.4 Backlog: "pasar el pedido de la clienta a una nota" (no V1).
 
-Criterio: un pedido de ejemplo llega por WhatsApp con todos los datos correctos y sin tocar la base.
-
-## Etapa E4 · Información del negocio y "Cómo comprar" (4 h)
-- [ ] E4.1 Página "Cómo comprar" con los pasos de P3, textos editables desde el panel.
-- [ ] E4.2 Bloque "Dónde estamos": dos locales con dirección, mapa embebido o enlace a Google Maps, e indicaciones "pasando la chalana, caminá derecho hasta la esquina".
-- [ ] E4.3 Horarios y teléfonos (Ariel, Pamela y la segunda encargada) desde `tienda_config` y `tienda_contactos_publico`.
-- [ ] E4.4 Pantalla de edición de estos textos y datos dentro de **Ajustes** de Renzo (un acordeón nuevo, sin tocar los existentes), solo `admin` y `superadmin`.
-- [ ] E4.5 Políticas legales simples (cambios y devoluciones) con los textos de `tienda-origen`, revisadas por Natali.
-
-Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en el catálogo sin tocar código.
-
-## Etapa E5 · Enlace con la nota de venta (3 h)
-- [ ] E5.1 Cargar `url_catalogo` (clave existente) en staging y verificar que la nota A5 imprime el QR.
-- [ ] E5.2 Probar escaneo desde el celular con la nota impresa en A5 y en PDF.
-- [ ] E5.3 Botón "Ver catálogo para clientas" en la navegación interna, que abre `/c` en otra pestaña.
-- [ ] E5.4 Decidir con Natali si desde la nota el vendedor puede "pasar el pedido de la clienta" a una nota nueva (backlog, no V1).
-
-## Etapa E6 · Un solo lugar de carga y stock (3 h)
-- [ ] E6.1 Verificar que cargar o editar un producto en Inventario de Renzo aparece en `/c` sin pasos extra.
-- [ ] E6.2 Si E2.3 eligió la opción 2: interruptor "Publicar en el catálogo" dentro de la ficha de producto de Renzo (cambio mínimo, registrado en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`).
-- [ ] E6.3 Verificar que las limpiezas del superadmin (borrar productos y notas por fecha) no dejan enlaces rotos en `/c`.
-- [ ] E6.4 Verificar el modo sin conexión: el catálogo cacheado abre sin internet y avisa que los precios pueden estar viejos.
+## Etapa E6 · Un solo lugar de carga (3 h)
+- [ ] E6.1 Un producto nuevo en Inventario de Renzo aparece en `/tienda` sin pasos extra (si tiene foto y está activo).
+- [ ] E6.2 Ocultar y mostrar desde el editor de la tienda (`tienda_oculto`). Sin tocar la ficha de Renzo.
+- [ ] E6.3 Limpiezas del superadmin: sin enlaces rotos. Limpieza independiente de huérfanos de `tienda_oculto`.
+- [ ] E6.4 Documentar la diferencia: "oculto" saca el producto de la tienda pero no de `/c`.
 
 ## Etapa E7 · Diseño final con las imágenes de referencia (8 h)
-Objetivo: lo construido en E2 a E5 queda visualmente igual a las referencias de Facundo.
+- [ ] E7.1 Guardar referencias en `Docs/tienda/referencias/` (`01-inicio-390.png`, `01-inicio-1440.png`, …).
+- [ ] E7.2 Kit de marca (skill `kit-de-marca`): tokens nuevos aparte, sin pisar los de Renzo.
+- [ ] E7.3 Por pantalla: referencia + kit al skill `ingeniero-react`.
+- [ ] E7.4 Verificación visual con Playwright en 390 y 1440 px, lado a lado, con tabla de diferencias.
+- [ ] E7.5 Pasada `embellece_mi_frontend` y `anti-ia`.
+- [ ] E7.6 Accesibilidad (axe en 0), foco por teclado, 320 px.
+- [ ] E7.7 Rendimiento en celular con datos lentos: fotos con dimensiones reservadas y `loading="lazy"`. Meta: Lighthouse móvil mayor a 80.
 
-- [ ] E7.1 Guardar las imágenes de referencia en `Docs/tienda/referencias/` (celular y escritorio, por pantalla) con nombres `01-inicio-390.png`, `01-inicio-1440.png`, etc.
-- [ ] E7.2 Definir el kit de marca: contrastar los tokens de Renzo contra la referencia y fijar una sola paleta (skill `kit-de-marca`). Los tokens nuevos se agregan aparte, sin pisar los suyos.
-- [ ] E7.3 Por pantalla: pasar la imagen de referencia y el kit al skill `ingeniero-react` (exige las dos entradas) para que construya el componente que iguale la imagen.
-- [ ] E7.4 Verificación visual: capturar con Playwright cada pantalla en 390 y 1440 px y compararla con su referencia lado a lado. Se anota la diferencia en una tabla.
-- [ ] E7.5 Pasada `embellece_mi_frontend` y `anti-ia` para sacar sabor genérico.
-- [ ] E7.6 Accesibilidad (axe en 0), foco por teclado, contraste y 320 px.
-- [ ] E7.7 Rendimiento: Lighthouse móvil mayor a 80 en catálogo y ficha, miniaturas `.mini.webp`.
-
-## Etapa E8 · Pulido y datos pendientes de la clienta (3 h, más espera)
-Datos que mencionó la desgrabación y todavía no llegaron:
-
+## Etapa E8 · Pulido y datos pendientes (3 h, más espera)
 | Dato | Para qué | Quién |
 |---|---|---|
 | Segunda dirección del local | E4.2 | Natali |
-| Horarios exactos de atención | E4.3 | Natali |
-| Teléfono de la segunda encargada y de cada vendedor (autorización para publicarlos) | E3.3 | Natali |
-| Datos de transferencia: banco, titular, cuenta, alias, QR | E3.4 | Natali |
-| Ubicación exacta (pin de Google Maps) de cada local | E4.2 | Natali |
+| Horarios exactos | E4.2 | Natali |
+| Contactos a publicar (nombre y teléfono) con autorización | E3.4 | Natali |
+| Datos de transferencia: banco, titular, cuenta, alias, QR | E3.5 | Natali |
+| Pin de Google Maps de cada local | E4.2 | Natali |
 | Textos de "Cómo comprar" con sus palabras | E4.1 | Natali |
-| Si Natali quiere ver los pedidos registrados o solo por WhatsApp | E3.8 | Natali |
-| Nombre del dominio o subdominio del catálogo | E9 | Natali |
+| Si quiere ver pedidos guardados (hoy no, solo WhatsApp) | D6 | Natali |
+| Si los precios se muestran o van "a consultar" (`mostrar_precios_publico`) | E2.4 | Natali |
+| Dominio o subdominio | E9 | Natali |
 
-- [ ] E8.1 Completar cada dato en cuanto llegue y tachar.
-- [ ] E8.2 Revisión de ortografía y tono de todos los textos.
-- [ ] E8.3 Guía corta de uso para Natali y su equipo (una página).
+- [ ] E8.1 Completar cada dato y tachar.
+- [ ] E8.2 Revisión de ortografía y tono.
+- [ ] E8.3 Guía de una página para Natali y su equipo.
 
-## Etapa E9 · Salida a producción (4 h, más espera)
-Requiere OK de Facundo **y** de Renzo.
+## Etapa E9 · Salida a producción (5 h, más espera)
+Requiere OK de Facundo **y** de Renzo. Antes de arrancar se cierran los cinco puntos de evidencia de producción:
 
-- [ ] E9.1 Backup de producción confirmado y a mano.
-- [ ] E9.2 `tienda_schema.sql` contra producción con `--dry` (rollback) y revisión del resultado.
-- [ ] E9.3 Aplicación real en una ventana tranquila (sin ventas en curso). Verificar conteos y objetos `naty_*` contra la línea base: **diferencia cero**.
-- [ ] E9.4 Deploy preview en Netlify, con variables de producción cargadas en el panel, nunca en git.
-- [ ] E9.5 Recorrido con Natali en un celular real: ver catálogo, armar pedido, escribir al vendedor.
-- [ ] E9.6 Cargar `url_catalogo` definitiva y comprobar el QR en una nota real.
-- [ ] E9.7 Plan de vuelta atrás: cómo apagar `/c` y quitar los objetos `tienda_*` si algo falla.
-- [ ] E9.8 Merge a `main` (PR a revisar por Renzo).
+- [ ] E9.0a **Contrato desplegado**: propietario y opciones de las vistas existentes, RLS, grants, privilegios por defecto y esquema expuesto (con `auditor-backend`, en solo lectura).
+- [ ] E9.0b **Service worker y hosting**: scope, versión activa, cachés y headers efectivos en dispositivos reales. Verificar entrada a `/tienda` desde un shell anterior.
+- [ ] E9.0c **Fotos**: formato de rutas y accesibilidad de una muestra. No generar miniaturas.
+- [ ] E9.0d **Capacidad**: volumen real y límites del proyecto. Medir paginación en staging. Sin pruebas de carga contra producción.
+- [ ] E9.0e **Salida y recuperación**: backup recuperable, destino del ejecutor, rollback probado en staging.
+- [ ] E9.1 Aplicar con `aplicar-tienda.mjs --dry` contra producción y revisar.
+- [ ] E9.2 Aplicación real en ventana sin ventas en curso. Comparar contra la línea base: diff `naty_*` cero (considerando ventas legítimas concurrentes).
+- [ ] E9.3 Deploy preview en Netlify con variables en el panel, nunca en git. Despliegue sin forzar actualización del service worker.
+- [ ] E9.4 Recorrido con Natali en celular real.
+- [ ] E9.5 Natali carga `url_catalogo` definitiva y se verifica el QR en una nota real.
+- [ ] E9.6 Rollback documentado: retirar la ruta `/tienda` (revertir `App.jsx`), conservar inicialmente los objetos `tienda_*`, no tocar `/c`.
+- [ ] E9.7 PR a `main` para revisión de Renzo.
 
 ---
 
 ## 4. Orden y dependencias
 ```
-E0 → E1 → E2 → E3 → E4 → E5 → E6 → E7 → E8 → E9
-              └─ E4 puede ir en paralelo a E3 (texto y datos)
-E7 (diseño) arranca cuando E2 a E5 funcionan, no antes.
+E0 → E1 → E2 → E3 → E5 → E6 → E7 → E8 → E9
+              └─ E4 en paralelo a E3 (textos y datos)
 ```
-Estimación: 45 h de desarrollo, más la espera de datos de la clienta y la revisión de Renzo.
+E7 arranca cuando E2 a E5 funcionan. Estimación: unas 50 h de desarrollo, más espera de datos de la clienta y revisión de Renzo.
 
 ## 5. Riesgos
 | Riesgo | Mitigación |
 |---|---|
-| Renzo cambia su esquema mientras trabajamos | Contrato (E1.6) y prueba de contrato que falla antes de publicar |
-| Una prueba rompe datos reales | Regla 3: solo staging. La clave `service_role` de producción no se carga en este repo |
-| Los teléfonos de vendedores se publican sin permiso | E8: autorización explícita antes de E9 |
-| Natali pide cobro online más adelante | `tienda-origen` conserva Mercado Pago listo. Entra como etapa nueva, no en V1 |
-| El diseño de referencia exige estructura distinta a la de Renzo | Se construye en `features/tienda/` con tokens propios; el panel interno no se toca |
+| Renzo cambia su esquema mientras trabajamos | Contrato (E1.9) y prueba de catálogo que falla antes de publicar |
+| Una prueba toca datos reales | Regla 3: solo staging y origen aparte. `service_role` de producción nunca en este repo |
+| La tienda borra o envía la cola local de Renzo | D2 y regla 8: montaje antes del arranque interno, sin `SyncRunner` |
+| Teléfonos publicados sin permiso | D7 y E8: autorización explícita antes de E9 |
+| Enlaces editables maliciosos | D13: validación con `new URL()` y allowlist |
+| Natali pide cobro online más adelante | `tienda-origen` conserva Mercado Pago. Entra como etapa nueva |
+| El diseño de referencia exige otra estructura | Se construye en `features/tienda/` con tokens propios |
+| Gemini no pudo dar la pasada de UX (503) | Pendiente: repetirla cuando haya servicio, antes de E7 |
