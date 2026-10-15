@@ -10,6 +10,7 @@ import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
+import TiendaAjustes from '../tienda/admin/TiendaAjustes.jsx'
 
 const aTexto = (n) => (n == null ? '' : String(n).replace('.', ','))
 const aNumero = (t) => Number(String(t).trim().replace(',', '.'))
@@ -224,6 +225,10 @@ export default function AjustesPage() {
           <Telefonos lista={equipo.datos} soloLectura={soloLectura} />
           <TarjetaAlmacenamiento />
         </div>
+      </div>
+      {/* Tienda online: se oculta sola mientras la tabla tienda_config no exista en la base. */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+        <TiendaAjustes soloLectura={soloLectura} />
       </div>
     </div>
   )

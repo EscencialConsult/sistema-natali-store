@@ -8,24 +8,21 @@ import { useConfigTienda, useVigentes } from './data/catalogo.js'
 import { guardarCarrito, useCarrito } from './data/carritoStore.js'
 import { useAjustesTienda } from './contexto.js'
 import { cambiarCantidad, quitarLinea } from './lib/carrito.js'
+import { validarContactos, validarLocales, validarTransferencia } from './lib/configTienda.js'
 import { armarEnvio, detallePedido } from './lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
 import { soloDigitos } from './lib/whatsapp.js'
 import { BASE_TIENDA, rutaProducto } from './rutas.js'
 
 const telefonoValido = (t) => soloDigitos(t).length >= 8
-const texto = (v, max = 120) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
-// La configuración la edita la administración: se valida la forma antes de usarla.
+// La configuración la edita la administración: se valida con las mismas reglas que al guardar.
 const contactosDe = (config, respaldo) => {
-  const lista = Array.isArray(config?.contactos) ? config.contactos : []
-  const validos = lista
-    .map((c) => ({ nombre: texto(c?.nombre, 60), telefono: texto(c?.telefono, 30) }))
-    .filter((c) => c.nombre && telefonoValido(c.telefono))
+  const validos = validarContactos(config?.contactos).valor
   if (validos.length) return validos
   return telefonoValido(respaldo) ? [{ nombre: '', telefono: respaldo }] : []
 }
-const localesDe = (config) => (Array.isArray(config?.locales) ? config.locales.map((l) => texto(l?.nombre, 60)).filter(Boolean) : [])
+const localesDe = (config) => validarLocales(config?.locales).valor.map((l) => l.nombre)
 
 function Cantidad({ valor, onCambiar }) {
   return (
@@ -60,7 +57,7 @@ export default function PedidoPage() {
   const contactos = contactosDe(config, ajustes?.whatsapp_tienda)
   const locales = localesDe(config)
   const elegido = contactos.length === 1 ? contactos[0] : contactos[Number(vendedor)] ?? null
-  const transferencia = config?.transferencia && typeof config.transferencia === 'object' ? config.transferencia : null
+  const transferencia = validarTransferencia(config?.transferencia).valor
 
   const resumen = listo ? resumirPedido({ carrito, vigentes, ajustes, moneda }) : sinConfirmar({ carrito, moneda })
   const detalle = detallePedido({
@@ -179,7 +176,7 @@ export default function PedidoPage() {
         <section aria-label="Datos de transferencia" className="flex flex-col gap-2 rounded-2xl bg-superficie p-4 text-sm">
           {transferencia ? (
             <>
-              {[['Banco', texto(transferencia.banco)], ['Titular', texto(transferencia.titular)], ['Cuenta', texto(transferencia.cuenta, 60)], ['Alias', texto(transferencia.alias, 60)]]
+              {[['Banco', transferencia.banco], ['Titular', transferencia.titular], ['Cuenta', transferencia.cuenta], ['Alias', transferencia.alias]]
                 .filter(([, v]) => v)
                 .map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between gap-3">
@@ -189,7 +186,7 @@ export default function PedidoPage() {
                     )}
                   </div>
                 ))}
-              {texto(transferencia.nota, 300) && <p className="text-texto-suave">{texto(transferencia.nota, 300)}</p>}
+              {transferencia.nota && <p className="text-texto-suave">{transferencia.nota}</p>}
             </>
           ) : (
             <p>Pedile los datos de transferencia a tu vendedor.</p>

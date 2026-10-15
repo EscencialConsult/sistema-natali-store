@@ -144,13 +144,16 @@ Estado 15/10: **hecha en código y verificada** (17 pruebas nuevas, 172 en total
 Criterio: un pedido de ejemplo sale por WhatsApp con todos los datos correctos y sin escribir nada en la base (cumplido en pruebas).
 
 ## Etapa E4 · Información del negocio y edición (5 h)
-- [ ] E4.1 "Cómo comprar" desde `tienda_config`.
-- [ ] E4.2 "Dónde estamos": dos locales, dirección, horarios, indicaciones desde la chalana y enlace a Maps validado (D13).
-- [ ] E4.3 Editor en **Ajustes de Renzo** (acordeón nuevo, solo admin y superadmin) con **repositorio propio** que escribe en `tienda_config` con el cliente autenticado. Nunca `config.guardar`.
-- [ ] E4.4 Validación de campos al guardar (URL, teléfono, longitud). Los textos se muestran como texto, nunca HTML.
-- [ ] E4.5 Legales simples revisados por Natali.
+Estado 15/10: **hecha en código y verificada** (14 pruebas nuevas, 186 en total, lint limpio, build OK).
 
-Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en `/tienda` sin tocar código.
+- [x] E4.1 (15/10) "Cómo comprar": pasos por defecto tomados de lo que pidió la clienta, reemplazables desde Ajustes.
+- [x] E4.2 (15/10) "Dónde estamos": locales con dirección, indicaciones para llegar y botón de mapa. El enlace solo se acepta si es https de Google Maps (se valida con `new URL()` por partes, sin credenciales ni puertos), tanto al guardar como al leer.
+- [x] E4.3 (15/10) Horarios y contactos con WhatsApp, desde `tienda_config`.
+- [x] E4.4 (15/10) Editor en la pantalla **Ajustes** de Renzo: vendedores y contactos, datos de transferencia, locales, horarios y pasos. Escribe solo en `tienda_config` con el cliente autenticado, nunca en `naty_config`. **Se oculta solo** mientras la tabla no exista en la base. Una línea de import y un bloque en `AjustesPage.jsx`, registrados.
+- [x] E4.5 (15/10) Todo texto editable se muestra como texto, nunca como HTML.
+- [ ] E4.6 Textos legales (cambios y devoluciones), con lo que apruebe Natali.
+
+Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en la tienda sin tocar código (cumplido en código; se ve en pantalla recién cuando el esquema esté aplicado).
 
 ## Etapa E4b · Marca coherente en los dos sistemas (3 h)
 Contexto: los logos reales (imagotipo, isotipo e íconos de la app) existen solo en la tienda original. Renzo no los usó. Su app muestra un monograma "MN" sobre fondo oscuro, y su logo se carga desde Ajustes (`useMarca`, clave `logo`), que alimenta el encabezado y la nota de venta.

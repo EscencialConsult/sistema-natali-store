@@ -6,8 +6,9 @@ import { useAjustes } from './data/catalogo.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
-import { BASE_TIENDA, RUTA_PEDIDO } from './rutas.js'
+import { BASE_TIENDA, RUTA_COMO_COMPRAR, RUTA_DONDE_ESTAMOS, RUTA_PEDIDO } from './rutas.js'
 import CatalogoPage from './CatalogoPage.jsx'
+import { ComoComprarPage, DondeEstamosPage } from './InfoPages.jsx'
 import PedidoPage from './PedidoPage.jsx'
 import ProductoPage from './ProductoPage.jsx'
 
@@ -50,6 +51,11 @@ function Marco({ children }) {
         <footer className="bg-pie px-4 py-10 text-center text-sm text-sobre-tinta/70">
           <p className="font-titulo text-lg font-semibold text-sobre-tinta">{nombre}</p>
           <p className="mt-1">Catálogo mayorista</p>
+          <nav aria-label="Información" className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <Link to={BASE_TIENDA} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Catálogo</Link>
+            <Link to={RUTA_COMO_COMPRAR} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Cómo comprar</Link>
+            <Link to={RUTA_DONDE_ESTAMOS} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Dónde estamos</Link>
+          </nav>
         </footer>
       </div>
     </AjustesTienda.Provider>
@@ -71,6 +77,8 @@ export default function TiendaApp() {
         <Route path={BASE_TIENDA} element={<CatalogoPage />} />
         <Route path={`${BASE_TIENDA}/p/:id`} element={<ProductoPage />} />
         <Route path={RUTA_PEDIDO} element={<PedidoPage />} />
+        <Route path={RUTA_COMO_COMPRAR} element={<ComoComprarPage />} />
+        <Route path={RUTA_DONDE_ESTAMOS} element={<DondeEstamosPage />} />
         <Route path={`${BASE_TIENDA}/*`} element={<Navigate to={BASE_TIENDA} replace />} />
       </Routes>
     </Marco>
