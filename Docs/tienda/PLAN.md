@@ -84,9 +84,9 @@ Nota de seguridad al reciclar: `ContactoPage.jsx` pasa enlaces editables directo
 ## Etapa E0 · Terreno seguro (3 h)
 - [x] E0.1 (15/10) Rama desde `origin/main`.
 - [x] E0.2 (15/10) Copia literal en `tienda-origen/`, sin secretos ni fotos demo.
-- [!] E0.3 **No hay backup** (confirmado por Facundo 15/10) y en esta máquina **no hay credenciales** de la base de Renzo: las del cerebro son de la instancia vieja `aaxrcacoavghapiqhkrn`. `respaldo.mjs` está listo y probado en `Docs/tienda/herramientas/`. Falta que quien tenga la cadena de conexión de `bulcbrgafrfklaejfyjd` lo corra, y preguntarle a Renzo si ese proyecto tiene Backups activos.
+- [x] E0.3 (15/10) Acceso confirmado al proyecto `bulcbrgafrfklaejfyjd` (PostgreSQL 17, São Paulo) por el pooler de sesión, con TLS validado contra la CA raíz de Supabase. **Respaldo de solo lectura hecho**: 11 tablas, 534 filas, con huella SHA-256, en `C:\respaldos\modas-naty-2026-10-15` (fuera del repo, contiene datos reales). No incluye los 47 archivos del bucket ni las cuentas de acceso.
 - [x] E0.4 (15/10) Staging **local en PGlite** con el esquema real de Renzo (ya probado en `probar-herramientas.mjs`). Un proyecto Supabase de staging queda como opcional si hace falta probar Storage y Auth reales.
-- [~] E0.5 Línea base: `linea-base.sql` listo y probado contra el esquema real. **Falta correrlo en producción** (SQL Editor, 5 minutos) y guardar `linea-base-ANTES.json`.
+- [x] E0.5 (15/10) Línea base real guardada en `Docs/tienda/linea-base-ANTES.json` y resumida en `Docs/tienda/linea-base.md`.
 - [x] E0.6 (15/10) `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md` creado.
 - [ ] E0.7 Staging con `.env.local` propio **y** otro origen o perfil de navegador vacío. Verificar en DevTools que `modas-naty` no se comparte.
 - [x] E0.8 (15/10) `Docs/tienda/herramientas/iniciar-dev.bat` monta el repo como `S:` y corre con `--root S:\app`. Verificado: 118 tests OK en tres corridas seguidas (una corrida aislada dio 2 fallas por lentitud y no se repitió).
@@ -104,7 +104,7 @@ Estado 15/10: **hecha en local y verificada contra el esquema real de Renzo**. L
 - [x] E1.6 (15/10) Diff de catálogo `naty_*` antes y después: **vacío** (estructura, permisos, políticas, funciones, triggers y datos).
 - [x] E1.7 (15/10) Matriz de roles, un principal por vez: anon, vendedor, depósito, admin y superadmin. Verifica denegación de INSERT, UPDATE, DELETE y TRUNCATE donde corresponde.
 - [x] E1.8 (15/10) Rollback probado: la prueba revierte, un error revierte, y un cambio sobre `naty_*` que la guardia no vio también revierte.
-- [ ] E1.9 **Contra producción**: línea base real, dry-run real y envío del contrato a Renzo. Requiere acceso a su proyecto (ver E0.3). Lo hago yo en Supabase; nadie corre nada a mano.
+- [x] E1.9 (15/10) **Contra producción, solo lectura y revertido**: dry-run real del esquema (4 objetos nuevos, `naty_*` sin cambios, nada quedó aplicado) y vistas probadas con el rol anónimo real de Supabase sobre los 45 productos reales. Queda pendiente enviar `CONTRATO.md` a Renzo.
 
 Resultado: 19 pruebas nuevas, 137 en total (118 de Renzo más estas), tres corridas del esquema sin error.
 Criterio cumplido en local: diff `naty_*` vacío, rollback limpio y matriz de roles en verde.
