@@ -212,6 +212,10 @@ Estado 15/10: **hecha para portada, catálogo, ficha y pedido** a partir de `Doc
 Criterio: las pantallas se ven como la referencia en celular y escritorio (cumplido en capturas; falta la revisión visual de ustedes).
 
 ## Etapa E8 · Pulido y datos pendientes (3 h, más espera)
+**Llegó el 15/10** (detalle en `Docs/tienda/DATOS-RECIBIDOS.md`): transferencia completa (titular, CUIT, CBU, alias y cuenta), las dos direcciones y el horario de cada local. Los datos bancarios están fuera del repo. El alias cambia cada 2 meses y Mercado Pago ya no funciona.
+
+Sigue faltando, de lo que mencionó la desgrabación y de lo recién recibido:
+
 | Dato | Para qué | Quién |
 |---|---|---|
 | Segunda dirección del local | E4.2 | Natali |
