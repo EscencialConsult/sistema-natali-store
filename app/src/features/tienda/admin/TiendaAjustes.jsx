@@ -111,7 +111,8 @@ function Transferencia({ config, soloLectura }) {
   const t = validarTransferencia(config.transferencia).valor ?? {}
   const [v, setV] = useState({ banco: t.banco ?? '', titular: t.titular ?? '', cuit: t.cuit ?? '', cbu: t.cbu ?? '', cuenta: t.cuenta ?? '', alias: t.alias ?? '', nota: t.nota ?? '' })
   const dias = diasDesde(t.actualizado_en)
-  const viejo = t.alias && (dias === null || dias >= DIAS_AVISO_EN_AJUSTES)
+  const hayDatos = Boolean(t.titular || t.cbu || t.alias || t.cuenta)
+  const viejo = hayDatos && (dias === null || dias >= DIAS_AVISO_EN_AJUSTES)
   const cambiar = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.value }))
   return (
     <Tarjeta
@@ -128,7 +129,7 @@ function Transferencia({ config, soloLectura }) {
     >
       {viejo && (
         <p role="note" className="rounded-control bg-alerta-fondo p-3 text-sm text-alerta">
-          El alias se cambia cada 2 meses y hace {dias === null ? 'mucho' : `${dias} días`} que no se revisa. Confirmá que siga vigente y guardá de nuevo.
+          La cuenta se cambia cada 2 meses y hace {dias === null ? 'mucho' : `${dias} días`} que no se revisa. Si ya cambió, actualizá los datos y guardá de nuevo.
         </p>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -136,7 +137,7 @@ function Transferencia({ config, soloLectura }) {
         <Input etiqueta="CUIT o CUIL" inputMode="numeric" value={v.cuit} onChange={cambiar('cuit')} maxLength={16} ayuda={v.cuit.replace(/\D/g, '').length === 11 ? formatearCuit(v.cuit.replace(/\D/g, '')) : '11 números'} />
         <Input etiqueta="Banco" value={v.banco} onChange={cambiar('banco')} maxLength={60} />
         <Input etiqueta="CBU" inputMode="numeric" value={v.cbu} onChange={cambiar('cbu')} maxLength={30} ayuda="22 números" />
-        <Input etiqueta="Alias (cambia cada 2 meses)" value={v.alias} onChange={cambiar('alias')} maxLength={60} />
+        <Input etiqueta="Alias" value={v.alias} onChange={cambiar('alias')} maxLength={60} />
         <Input etiqueta="Número de cuenta" value={v.cuenta} onChange={cambiar('cuenta')} maxLength={60} />
       </div>
       <Input etiqueta="Nota (opcional)" value={v.nota} onChange={cambiar('nota')} maxLength={300} ayuda="Ej.: indicá tu nombre y el modelo en el comprobante." />

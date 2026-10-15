@@ -44,7 +44,7 @@ export function validarContactos(filas) {
   return { valor: valor.slice(0, MAX_CONTACTOS), errores }
 }
 
-// El alias de la cuenta se cambia cada 2 meses: pasado ese plazo la tienda avisa que se confirme con el vendedor.
+// La cuenta de transferencia se cambia cada 2 meses (alias, CBU y titular): pasado ese plazo la tienda avisa que se confirme con el vendedor.
 export const DIAS_ALIAS_VIGENTE = 60
 export const DIAS_AVISO_EN_AJUSTES = 50
 
@@ -53,8 +53,8 @@ export function diasDesde(iso, ahora = Date.now()) {
   return Number.isFinite(t) ? Math.max(0, Math.floor((ahora - t) / 86400000)) : null
 }
 
-// Sin datos de fecha, o con más de 60 días, el alias se considera "a confirmar".
-export const aliasAConfirmar = (actualizadoEn, ahora = Date.now()) => {
+// Sin fecha, o con más de 60 días, los datos de la cuenta se consideran "a confirmar".
+export const datosAConfirmar = (actualizadoEn, ahora = Date.now()) => {
   const d = diasDesde(actualizadoEn, ahora)
   return d === null || d > DIAS_ALIAS_VIGENTE
 }

@@ -8,7 +8,7 @@ import { useConfigTienda, useVigentes } from './data/catalogo.js'
 import { guardarCarrito, useCarrito } from './data/carritoStore.js'
 import { useAjustesTienda } from './contexto.js'
 import { cambiarCantidad, quitarLinea } from './lib/carrito.js'
-import { aliasAConfirmar, formatearCuit, validarContactos, validarLocales, validarTransferencia } from './lib/configTienda.js'
+import { datosAConfirmar, formatearCuit, validarContactos, validarLocales, validarTransferencia } from './lib/configTienda.js'
 import { armarEnvio, detallePedido } from './lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from './lib/pedido.js'
 import { soloDigitos } from './lib/whatsapp.js'
@@ -196,9 +196,9 @@ export default function PedidoPage() {
                   </div>
                 ))}
               {transferencia.nota && <p className="text-texto-suave">{transferencia.nota}</p>}
-              {transferencia.alias && aliasAConfirmar(transferencia.actualizado_en) && (
+              {datosAConfirmar(transferencia.actualizado_en) && (
                 <p role="note" className="rounded-xl bg-fondo p-3 font-medium">
-                  El alias cambia cada tanto: antes de transferir, confirmalo con tu vendedor.
+                  La cuenta cambia cada tanto: antes de transferir, confirmá estos datos con tu vendedor.
                 </p>
               )}
             </>

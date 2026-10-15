@@ -31,20 +31,26 @@ Entrá a **Ajustes**. Vas a encontrar estas tarjetas:
 
 Cada tarjeta tiene su botón **Guardar**. Los cambios se ven en la tienda enseguida.
 
-## El alias cambia cada 2 meses
+## La cuenta cambia cada 2 meses
 
-La cuenta de transferencia cambia de alias cada dos meses. Cada vez que cambie:
+La cuenta de transferencia se cambia cada dos meses, y cuando cambia puede cambiar **todo**: el alias, el CBU, la cuenta y hasta el titular. Cada vez que cambie:
 
 1. Entrá a **Ajustes** y buscá la tarjeta **Tienda online · datos de transferencia**.
-2. Escribí el alias nuevo en el campo **Alias**.
+2. Reemplazá los datos que cambiaron: titular, CUIT o CUIL, banco, CBU, alias y número de cuenta.
 3. Tocá **Guardar**.
 
-Para que no se pase por alto, el sistema te ayuda de dos formas:
+Solo la administración (el superadmin) puede hacerlo. Para que no se pase por alto, el sistema te ayuda de dos formas:
 
 - A los 50 días de la última vez que lo guardaste, la tarjeta te muestra un aviso para que lo revises.
-- Si pasan 60 días, la tienda le dice a la clienta "el alias cambia cada tanto: confirmalo con tu vendedor antes de transferir".
+- Si pasan 60 días, la tienda le dice a la clienta "la cuenta cambia cada tanto: antes de transferir, confirmá estos datos con tu vendedor".
 
-El CBU y el CUIT no suelen cambiar, así que la clienta siempre los tiene como respaldo.
+**Importante:** si la cuenta cambió y todavía no se actualizó acá, un cliente puede transferir a una cuenta vieja. Por eso conviene cargar la cuenta nueva el mismo día que se estrena.
+
+## Precios en dólares y en pesos
+
+Los precios se cargan en **dólares** y la tienda los convierte con la cotización del día que está en **Ajustes > Tipo de cambio**. La clienta ve el dólar, los pesos argentinos y los bolivianos, y la fecha de la cotización.
+
+Para cambiar la cotización: Ajustes, tarjeta **Tipo de cambio**, escribí cuántos pesos y cuántos bolivianos vale 1 US$ y guardá. Se actualiza en toda la tienda.
 
 ## Preguntas que van a surgir
 
@@ -58,7 +64,7 @@ No. La tienda solo muestra modelos con foto.
 Deja de verse en la tienda. Sigue en tu inventario y en las notas de venta. Lo podés volver a mostrar cuando quieras.
 
 **¿Cuándo cambia el precio en pesos y bolivianos?**
-Cuando cambiás el tipo de cambio en Ajustes. Los precios se guardan en dólares.
+Cuando cambiás la cotización en Ajustes. Los precios se guardan en dólares y todo lo demás se calcula con la cotización del día.
 
 **¿La clienta compra y paga desde la tienda?**
 No. Arma su pedido y se lo manda al vendedor por WhatsApp con todo el detalle. El vendedor confirma disponibilidad y precio final, y la clienta transfiere o paga en efectivo en el local. Enviar el pedido no reserva ni cobra nada. No hay pago con tarjeta ni Mercado Pago.

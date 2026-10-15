@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
-import { useAjustes } from './data/catalogo.js'
+import { useAjustes, useConfigTienda } from './data/catalogo.js'
+import { validarContactos } from './lib/configTienda.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
@@ -31,7 +32,10 @@ function Marco({ children }) {
   const a = useAjustes()
   const ajustes = a.datos
   const nombre = ajustes?.negocio_nombre || 'Modas Naty'
-  const wa = enlaceWhatsApp(ajustes?.whatsapp_tienda)
+  // El WhatsApp principal es el de la tienda; si todavía no está cargado, el de la primera encargada de la lista de contactos.
+  const config = useConfigTienda().datos
+  const principal = ajustes?.whatsapp_tienda || validarContactos(config?.contactos).valor[0]?.telefono
+  const wa = enlaceWhatsApp(principal)
   const cantidadModelos = useCarrito().lineas.length
   const { pathname } = useLocation()
 

@@ -1,4 +1,5 @@
 import { formatear, META_MONEDA } from '../../lib/moneda.js'
+import { textoCotizacion } from './lib/cotizacion.js'
 import { precioPublico } from './lib/precioPublico.js'
 
 // Precio por docena y por media docena en las monedas disponibles. Precio oculto = "a consultar" (nunca un cero).
@@ -8,8 +9,9 @@ export default function PrecioBloque({ producto, ajustes, compacto = false }) {
 
   const [principal, ...otras] = p.monedas
   if (compacto) {
-    // En la tarjeta: dólares y, si hay tasa válida, bolivianos (o pesos). Siempre aclarado "por docena".
-    const segunda = otras.find((m) => m.moneda === 'bs') ?? otras[0]
+    // En la tarjeta: dólares y, si hay tasa válida, pesos argentinos (la moneda en la que se paga) o bolivianos.
+    // Siempre aclarado "por docena".
+    const segunda = otras.find((m) => m.moneda === 'ars') ?? otras[0]
     return (
       <p className="text-sm">
         <span className="font-semibold">{formatear(principal.docena, principal.moneda)}</span>
@@ -39,6 +41,7 @@ export default function PrecioBloque({ producto, ajustes, compacto = false }) {
         </tbody>
       </table>
       {p.monedas.length === 1 && <p className="t-suave text-xs">Consultá a tu vendedor el importe en pesos o bolivianos.</p>}
+      {p.monedas.length > 1 && <p className="t-suave text-xs">{textoCotizacion(ajustes)}</p>}
     </div>
   )
 }

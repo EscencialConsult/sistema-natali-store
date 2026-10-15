@@ -17,20 +17,35 @@ Registro de lo que llegó por WhatsApp y dónde quedó. **No incluye datos banca
 | Local 27 de Mayo | Calle sin nombre, esquina Colorados | 6:00 a 12:00 y 14:00 a 16:00 |
 | Local Chalanitas | Calle 23 de Marzo, esquina Colorados | 6:00 a 13:00 y 14:00 a 17:00 |
 
+## Respuestas del 15/10 (19:44 a 19:50)
+
+| Pregunta | Respuesta |
+|---|---|
+| Banco | **Brubank** |
+| ¿En qué moneda transfieren? | **Pesos argentinos** |
+| Cambio de cuenta | **Se cambia cada dos meses, para no pagar impuestos.** Cambia la cuenta entera, no solo el alias |
+| Quién la actualiza | El superadmin, a mano, desde Ajustes |
+| WhatsApp principal | El de las **encargadas de tienda** (Pamela y otra de quien no recordaban el nombre). Están en el sistema |
+| Vendedores y sus teléfonos | Ya están en el sistema |
+| Precios | **Se muestran, en dólares y también en pesos**, con la cotización del día que carga la clienta. Quiere las dos alternativas |
+| Enlaces de Google Maps | Ya los tiene Facundo |
+| Cómo llegar a pie desde la chalana | No hace falta |
+
 ## Avisos importantes de la clienta
 
-- **El alias de la cuenta se cambia cada 2 meses.** La tienda muestra el aviso "confirmalo con tu vendedor" si pasaron más de 60 días desde que se guardó, y Ajustes avisa a los 50 días. Alguien tiene que actualizarlo en Ajustes cada vez que cambie.
+- **La cuenta de transferencia se cambia cada 2 meses.** La tienda muestra el aviso "confirmá estos datos con tu vendedor" si pasaron más de 60 días desde que se guardó, y Ajustes avisa a los 50 días. Alguien tiene que actualizarla en Ajustes cada vez que cambie.
 - **Mercado Pago ya no funciona**: el cobro es solo por transferencia (o efectivo en el local). No hay pago online.
+- **La cotización la maneja la clienta** (Ajustes > Tipo de cambio) y la tienda muestra de qué día es.
 
 ## Todavía falta
 
 | Dato | Para qué |
 |---|---|
-| Banco de la cuenta | Que la clienta sepa a qué banco transfiere (el CBU empieza con 143: confirmar con la titular) |
-| Días de atención de cada local | El horario llegó sin días. En el audio se mencionó lunes a sábado |
-| Enlace de Google Maps de cada local | Botón "Cómo llegar" |
-| Cómo llegar a pie desde la chalana | Texto de indicaciones |
-| Nombre y WhatsApp de vendedores y encargadas, **con permiso de cada uno** | Selector de vendedor en el pedido |
-| WhatsApp principal de la tienda | Botón de consulta |
-| Si se muestran los precios | Hoy están ocultos en el sistema |
+| Días de atención | Se toma **lunes a sábado en los dos locales**, cada uno con su horario. Confirmar |
+| Enlace de Google Maps de cada local | Los tiene Facundo: cargarlos |
+| Contactos de vendedores y encargadas | Se toman de **naty_perfiles** al publicar (nombre y teléfono). Esos teléfonos ya salen impresos en la nota. Confirmar con Natali cuáles aparecen |
+| WhatsApp principal | Será el de las encargadas de tienda. La tienda usa el primero de la lista de contactos si no hay uno cargado |
+| Activar "Mostrar precios en el catálogo público" | La clienta lo quiere visible. Hoy está en falso en el sistema; lo activa la administración en Ajustes |
 | Textos de "Cómo comprar" con sus palabras | Si no, se usan los pasos por defecto |
+
+Resuelto el 15/10: banco (Brubank), moneda de transferencia (pesos argentinos), quién actualiza la cuenta (superadmin), y no hace falta "cómo llegar a pie".
