@@ -40,6 +40,8 @@ Método: etapas con tareas y pasos tachables. `[ ]` pendiente · `[~]` en curso 
 | D15 | Caché de datos propia (`tienda-v1`, con backend y fecha). Se revalida catálogo, cambio y contacto antes de armar el mensaje. Si falla, no se presenta como precio confirmado | No se toca el service worker compartido |
 | D16 | `url_catalogo` lo carga **Natali a mano** desde Ajustes de Renzo. Nunca en un script ni en una migración | Es uso normal de su producto, no una migración nuestra |
 | D17 | Ejecutor nuevo `app/scripts/aplicar-tienda.mjs`: archivo y destino explícitos, TLS validado, rollback por defecto, `lock_timeout` y `statement_timeout` | `aplicar-schema.mjs` fija `naty_schema.sql` y desactiva la validación TLS |
+| D18 | **Marca real en los dos sistemas** (etapa E4b): los logos de la tienda original se suben al sistema de Renzo | Renzo nunca los usó: su app muestra un monograma "MN" y su logo se carga desde Ajustes |
+| D19 | El logo de Ajustes (nota de venta y panel interno) se sube **desde la pantalla de Ajustes**, no por script. Los íconos de la app instalada sí son archivos y se reemplazan por commit | Es dato de producción en un caso y código versionado en el otro |
 
 ---
 
@@ -82,14 +84,14 @@ Nota de seguridad al reciclar: `ContactoPage.jsx` pasa enlaces editables directo
 ## Etapa E0 · Terreno seguro (3 h)
 - [x] E0.1 (15/10) Rama desde `origin/main`.
 - [x] E0.2 (15/10) Copia literal en `tienda-origen/`, sin secretos ni fotos demo.
-- [ ] E0.3 Confirmar con Renzo que `bulcbrgafrfklaejfyjd` es producción. Pedirle backup o la fecha del último automático.
-- [ ] E0.4 Crear staging: proyecto Supabase nuevo con `naty_schema.sql` de `origin/main` y datos anonimizados o de ejemplo.
-- [ ] E0.5 Línea base de producción **en solo lectura**: conteo por tabla, definición de vistas y funciones `naty_*`, grants, propietario de las vistas, claves de `naty_config`. A `Docs/tienda/linea-base.md`.
-- [ ] E0.6 Crear `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
-- [ ] E0.7 Staging con `.env.local` propio **y** otro puerto/origen o perfil de navegador vacío. Verificar en DevTools que `modas-naty` no se comparte.
-- [ ] E0.8 Resolver el `#` de la ruta (`subst R:`) para dev y tests.
+- [!] E0.3 **No hay backup** (confirmado por Facundo 15/10) y en esta máquina **no hay credenciales** de la base de Renzo: las del cerebro son de la instancia vieja `aaxrcacoavghapiqhkrn`. `respaldo.mjs` está listo y probado en `Docs/tienda/herramientas/`. Falta que quien tenga la cadena de conexión de `bulcbrgafrfklaejfyjd` lo corra, y preguntarle a Renzo si ese proyecto tiene Backups activos.
+- [ ] E0.4 Staging **local en PGlite** con el esquema real de Renzo (ya probado en `probar-herramientas.mjs`). Un proyecto Supabase de staging queda como opcional si hace falta probar Storage y Auth reales.
+- [~] E0.5 Línea base: `linea-base.sql` listo y probado contra el esquema real. **Falta correrlo en producción** (SQL Editor, 5 minutos) y guardar `linea-base-ANTES.json`.
+- [x] E0.6 (15/10) `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md` creado.
+- [ ] E0.7 Staging con `.env.local` propio **y** otro origen o perfil de navegador vacío. Verificar en DevTools que `modas-naty` no se comparte.
+- [x] E0.8 (15/10) `Docs/tienda/herramientas/iniciar-dev.bat` monta el repo como `S:` y corre con `--root S:\app`. Verificado: 118 tests OK en tres corridas seguidas (una corrida aislada dio 2 fallas por lentitud y no se repitió).
 
-Criterio: la app corre contra staging, los 118 tests pasan y existe la línea base.
+Criterio: línea base y respaldo en mano, la app corre contra staging y los 118 tests pasan.
 
 ## Etapa E1 · Esquema aditivo y ejecutor seguro (6 h)
 - [ ] E1.1 `Docs/tienda/CONTRATO.md`: qué lee la tienda de `naty_*` (`naty_catalogo_publico` o sus tablas base vía vista nueva, `naty_config`, `naty_es_rol`) y qué no se toca.
@@ -142,6 +144,20 @@ Criterio: un pedido de ejemplo llega por WhatsApp completo, correcto y sin escri
 - [ ] E4.5 Legales simples revisados por Natali.
 
 Criterio: Natali cambia un horario o un teléfono desde Ajustes y se ve en `/tienda` sin tocar código.
+
+## Etapa E4b · Marca coherente en los dos sistemas (3 h)
+Contexto: los logos reales (imagotipo, isotipo e íconos de la app) existen solo en la tienda original. Renzo no los usó. Su app muestra un monograma "MN" sobre fondo oscuro, y su logo se carga desde Ajustes (`useMarca`, clave `logo`), que alimenta el encabezado y la nota de venta.
+
+- [x] E4b.1 (15/10) `imagotipo.png` e `isotipo.png` copiados a `app/public/brand/` (archivos nuevos, no pisan nada).
+- [ ] E4b.2 Mapa completo de dónde aparece la marca en Renzo: `Logo.jsx`, `useMarca`, encabezado de la nota, `favicon.svg`, íconos de `public/icons/`, manifiesto (nombre "Modas Naty · Notas de venta", color `#8a3a63`) y `index.html`.
+- [ ] E4b.3 `/tienda/*` usa `brand/imagotipo.png` e `isotipo.png` con ancho y alto fijos, sin depender de la configuración de Renzo.
+- [ ] E4b.4 Logo de Ajustes: se sube con `imagotipo.png` **desde la pantalla Ajustes** (D19), primero en staging y después en producción por Natali o un admin. Nunca por script.
+- [ ] E4b.5 Íconos de la app instalada: reemplazar los 4 PNG de `app/public/icons/` por los de la tienda (192, 512, maskable y apple-touch) y sumar el favicon PNG de 48 px. Revisar la zona segura del ícono maskable. Registrado en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`, fila 3.
+- [ ] E4b.6 Un solo color de marca: el manifiesto de Renzo ya usa `#8a3a63`. Confirmar que coincide con la ciruela de la tienda y dejar un único valor.
+- [ ] E4b.7 Verificación visual con capturas antes y después en `Docs/tienda/marca/`: nota A5 impresa en PDF con el logo real, PWA instalada en un Android con el ícono nuevo, pestaña con favicon, panel interno y `/tienda` con la misma marca.
+- [ ] E4b.8 Avisar a Natali que el ícono de una app ya instalada tarda en actualizarse y puede requerir reinstalar.
+
+Criterio: misma marca en la nota impresa, el panel, la app instalada y la tienda.
 
 ## Etapa E5 · Enlace con la nota de venta (2 h)
 - [ ] E5.1 En staging, cargar `url_catalogo` **a mano desde Ajustes** (D16) y verificar el QR en la nota A5.
@@ -201,10 +217,10 @@ Requiere OK de Facundo **y** de Renzo. Antes de arrancar se cierran los cinco pu
 
 ## 4. Orden y dependencias
 ```
-E0 → E1 → E2 → E3 → E5 → E6 → E7 → E8 → E9
+E0 → E1 → E2 → E3 → E4b → E5 → E6 → E7 → E8 → E9
               └─ E4 en paralelo a E3 (textos y datos)
 ```
-E7 arranca cuando E2 a E5 funcionan. Estimación: unas 50 h de desarrollo, más espera de datos de la clienta y revisión de Renzo.
+E4b va antes de E7 porque el diseño final usa la marca real. E7 arranca cuando E2 a E5 funcionan. Estimación: unas 53 h de desarrollo, más espera de datos de la clienta y revisión de Renzo.
 
 ## 5. Riesgos
 | Riesgo | Mitigación |
@@ -216,4 +232,5 @@ E7 arranca cuando E2 a E5 funcionan. Estimación: unas 50 h de desarrollo, más 
 | Enlaces editables maliciosos | D13: validación con `new URL()` y allowlist |
 | Natali pide cobro online más adelante | `tienda-origen` conserva Mercado Pago. Entra como etapa nueva |
 | El diseño de referencia exige otra estructura | Se construye en `features/tienda/` con tokens propios |
-| Gemini no pudo dar la pasada de UX (503) | Pendiente: repetirla cuando haya servicio, antes de E7 |
+| Gemini no pudo dar la pasada de UX (503, sigue caído el 15/10) | Pendiente: repetirla cuando haya servicio, antes de E7. Si no vuelve, la revisión de UX la hace Natali con un celular real en E9.4 |
+| **No hay backup de producción** y no hay credenciales de su base en esta máquina | Nada se aplica a producción hasta correr `respaldo.mjs` y `linea-base.sql` y guardar los resultados (E0.3 y E0.5). Hasta entonces todo es staging local |
