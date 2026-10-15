@@ -19,7 +19,8 @@ Los archivos **nuevos** que no pisan nada de él se anotan en la segunda tabla.
 | `app/public/brand/imagotipo.png`, `isotipo.png` | Logos reales de Modas Naty, usados solo por `/tienda/*` y, en E4b, por Ajustes |
 | `app/src/features/tienda/**` | Toda la tienda pública (E2 en adelante) |
 | `app/supabase/tienda_schema.sql` | Esquema aditivo `tienda_*` (E1) |
-| `app/scripts/aplicar-tienda.mjs` | Ejecutor propio con rollback por defecto (E1.4) |
+| `app/scripts/aplicar-tienda.mjs` | Ejecutor propio: guardia estática y rollback automático si `naty_*` cambia (E1.4) |
+| `app/src/data/remoto/tienda-esquema.test.js` | 19 pruebas del esquema, permisos y ejecutor contra su `naty_schema.sql` real |
 | `tienda-origen/**` | Copia de referencia de la tienda original. No compila |
 | `Docs/tienda/**` | Plan, contrato, línea base y herramientas |
 

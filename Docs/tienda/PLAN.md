@@ -85,7 +85,7 @@ Nota de seguridad al reciclar: `ContactoPage.jsx` pasa enlaces editables directo
 - [x] E0.1 (15/10) Rama desde `origin/main`.
 - [x] E0.2 (15/10) Copia literal en `tienda-origen/`, sin secretos ni fotos demo.
 - [!] E0.3 **No hay backup** (confirmado por Facundo 15/10) y en esta máquina **no hay credenciales** de la base de Renzo: las del cerebro son de la instancia vieja `aaxrcacoavghapiqhkrn`. `respaldo.mjs` está listo y probado en `Docs/tienda/herramientas/`. Falta que quien tenga la cadena de conexión de `bulcbrgafrfklaejfyjd` lo corra, y preguntarle a Renzo si ese proyecto tiene Backups activos.
-- [ ] E0.4 Staging **local en PGlite** con el esquema real de Renzo (ya probado en `probar-herramientas.mjs`). Un proyecto Supabase de staging queda como opcional si hace falta probar Storage y Auth reales.
+- [x] E0.4 (15/10) Staging **local en PGlite** con el esquema real de Renzo (ya probado en `probar-herramientas.mjs`). Un proyecto Supabase de staging queda como opcional si hace falta probar Storage y Auth reales.
 - [~] E0.5 Línea base: `linea-base.sql` listo y probado contra el esquema real. **Falta correrlo en producción** (SQL Editor, 5 minutos) y guardar `linea-base-ANTES.json`.
 - [x] E0.6 (15/10) `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md` creado.
 - [ ] E0.7 Staging con `.env.local` propio **y** otro origen o perfil de navegador vacío. Verificar en DevTools que `modas-naty` no se comparte.
@@ -94,20 +94,20 @@ Nota de seguridad al reciclar: `ContactoPage.jsx` pasa enlaces editables directo
 Criterio: línea base y respaldo en mano, la app corre contra staging y los 118 tests pasan.
 
 ## Etapa E1 · Esquema aditivo y ejecutor seguro (6 h)
-- [ ] E1.1 `Docs/tienda/CONTRATO.md`: qué lee la tienda de `naty_*` (`naty_catalogo_publico` o sus tablas base vía vista nueva, `naty_config`, `naty_es_rol`) y qué no se toca.
-- [ ] E1.2 `app/supabase/tienda_schema.sql`, idempotente, en una transacción, solo `create ... if not exists` y `create or replace`:
-  - `tienda_config`, `tienda_oculto` (sin FK).
-  - Vistas `tienda_catalogo_publico` y `tienda_ajustes_publicos` (D9).
-  - Sin `ALTER TYPE`, sin extensiones, sin triggers sobre `naty_*`.
-- [ ] E1.3 Políticas y grants explícitos (D8, D9). Escritura solo `naty_es_rol('admin')`.
-- [ ] E1.4 `app/scripts/aplicar-tienda.mjs` (D17), con `--dry` por defecto.
-- [ ] E1.5 Pruebas en PGlite: aplicar `naty_schema.sql` y después `tienda_schema.sql`, dos veces cada uno.
-- [ ] E1.6 Prueba de catálogo: **diff vacío** de definiciones, grants, columnas y dependencias `naty_*` antes y después.
-- [ ] E1.7 Matriz de roles, **secuencial** y un principal por vez: anon, authenticated vendedor, admin, superadmin. Verificar denegación de INSERT/UPDATE/DELETE en las vistas.
-- [ ] E1.8 Prueba de rollback: aplicar y revertir en staging, comparar con la línea base.
-- [ ] E1.9 Enviar el contrato a Renzo.
+Estado 15/10: **hecha en local y verificada contra el esquema real de Renzo**. Lo único que falta toca producción y lo hago yo en Supabase cuando haya acceso (E1.9 y el dry-run real).
 
-Criterio: diff `naty_*` vacío, rollback limpio y matriz de roles en verde.
+- [x] E1.1 (15/10) `Docs/tienda/CONTRATO.md`: qué lee la tienda de `naty_*`, qué nunca lee y qué le pedimos a Renzo.
+- [x] E1.2 (15/10) `app/supabase/tienda_schema.sql`, idempotente, solo objetos `tienda_*`: tablas `tienda_config` y `tienda_oculto` (sin clave foránea), vistas `tienda_catalogo_publico` y `tienda_ajustes_publicos`. Sin ALTER TYPE, sin extensiones, sin triggers sobre `naty_*`, sin DELETE ni TRUNCATE. Guardia de prerrequisito: falla con mensaje claro si falta `naty_schema.sql`.
+- [x] E1.3 (15/10) Políticas y privilegios explícitos. `tienda_config`: lectura pública solo de `publico = true`, la administración lee y escribe, **nadie borra**. `tienda_oculto`: solo administración, sin borrado (mostrar de nuevo es `oculto = false`). Vistas con `security_barrier` y lista blanca de columnas, incluso dentro del JSON.
+- [x] E1.4 (15/10) `app/scripts/aplicar-tienda.mjs`: guardia estática, una transacción, `lock_timeout` 5 s, `statement_timeout` 60 s, TLS validado, **prueba y revierte por defecto**, y revierte solo si la foto de `naty_*` cambió.
+- [x] E1.5 (15/10) Pruebas en PGlite: `naty_schema.sql` y después `tienda_schema.sql`, dos veces cada uno.
+- [x] E1.6 (15/10) Diff de catálogo `naty_*` antes y después: **vacío** (estructura, permisos, políticas, funciones, triggers y datos).
+- [x] E1.7 (15/10) Matriz de roles, un principal por vez: anon, vendedor, depósito, admin y superadmin. Verifica denegación de INSERT, UPDATE, DELETE y TRUNCATE donde corresponde.
+- [x] E1.8 (15/10) Rollback probado: la prueba revierte, un error revierte, y un cambio sobre `naty_*` que la guardia no vio también revierte.
+- [ ] E1.9 **Contra producción**: línea base real, dry-run real y envío del contrato a Renzo. Requiere acceso a su proyecto (ver E0.3). Lo hago yo en Supabase; nadie corre nada a mano.
+
+Resultado: 19 pruebas nuevas, 137 en total (118 de Renzo más estas), tres corridas del esquema sin error.
+Criterio cumplido en local: diff `naty_*` vacío, rollback limpio y matriz de roles en verde.
 
 ## Etapa E2 · Rutas públicas y catálogo (8 h)
 - [ ] E2.1 Edición mínima en `App.jsx` (D2): `pathname === '/tienda' || startsWith('/tienda/')` con selección reactiva dentro del router. Probar entrada directa, navegación interna y atrás/adelante sin montar el árbol privado.
