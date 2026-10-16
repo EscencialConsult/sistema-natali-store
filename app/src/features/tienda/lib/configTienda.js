@@ -68,6 +68,10 @@ export function validarTransferencia(obj) {
   const errores = []
   if (cbu && cbu.length !== 22) errores.push('El CBU tiene 22 números.')
   if (cuit && cuit.length !== 11) errores.push('El CUIT o CUIL tiene 11 números.')
+  // Fecha en la que hay que cambiar la cuenta (AAAA-MM-DD). Vacía = sin recordatorio.
+  const cambiarCrudo = typeof o.cambiar_el === 'string' ? o.cambiar_el.trim() : ''
+  const cambiarEl = esFechaIso(cambiarCrudo) ? cambiarCrudo : ''
+  if (cambiarCrudo && !cambiarEl) errores.push('La fecha de cambio de la cuenta no es válida.')
   const fecha = typeof o.actualizado_en === 'string' && Number.isFinite(Date.parse(o.actualizado_en)) ? new Date(o.actualizado_en).toISOString() : ''
   const valor = {
     banco: cortar(o.banco, 60),
@@ -77,9 +81,11 @@ export function validarTransferencia(obj) {
     cuenta: cortar(o.cuenta, 60),
     alias: cortar(o.alias, 60),
     nota: cortar(o.nota, 300),
+    moneda: MONEDAS_TRANSFERENCIA.includes(o.moneda) ? o.moneda : 'ars',
+    cambiar_el: cambiarEl,
     actualizado_en: fecha,
   }
-  const hayAlgo = Object.entries(valor).some(([k, v]) => k !== 'actualizado_en' && Boolean(v))
+  const hayAlgo = ['banco', 'titular', 'cuit', 'cbu', 'cuenta', 'alias', 'nota'].some((k) => Boolean(valor[k]))
   if (hayAlgo && !valor.cbu && !valor.cuenta && !valor.alias) errores.push('Cargá al menos el CBU, la cuenta o el alias.')
   return { valor: hayAlgo ? valor : null, errores }
 }
@@ -122,6 +128,50 @@ export function validarComoComprar(v) {
   const todas = lineas(v, MAX_PASOS, 200)
   const errores = todas.length > MAX_PASOS ? [`Como máximo ${MAX_PASOS} pasos.`] : []
   return { valor: todas.slice(0, MAX_PASOS), errores }
+}
+
+export const MONEDAS_TRANSFERENCIA = ['ars', 'bs', 'usd']
+export const NOMBRE_MONEDA = { ars: 'pesos argentinos', bs: 'bolivianos', usd: 'dólares' }
+
+/** @param {string} v AAAA-MM-DD, y que exista en el calendario (no 2026-02-31). */
+export function esFechaIso(v) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? '')) return false
+  const [a, m, d] = v.split('-').map(Number)
+  const f = new Date(Date.UTC(a, m - 1, d))
+  return f.getUTCFullYear() === a && f.getUTCMonth() === m - 1 && f.getUTCDate() === d
+}
+
+// Con fecha de cambio cargada, el aviso empieza esta cantidad de días antes.
+export const AVISO_DIAS_ANTES = 7
+
+/**
+ * Estado de la cuenta de transferencia, para el aviso de "cambiala ya" (superadmin) y el de "confirmá los datos" (clienta).
+ *   sin_datos  nada cargado
+ *   vigente    todo en orden
+ *   por_vencer falta poco para cambiarla (o hace mucho que no se revisa)
+ *   vencida    pasó la fecha de cambio, o pasaron más de 60 días sin actualizarla
+ * Si hay fecha de cambio manda esa; si no, se usa la antigüedad de la última carga.
+ * @returns {{ estado: 'sin_datos'|'vigente'|'por_vencer'|'vencida', motivo: 'fecha_de_cambio'|'antiguedad'|'sin_fecha'|null, dias: number|null }}
+ *   dias: para fecha de cambio, días que faltan (negativo si ya pasó); para antigüedad, días desde la última carga.
+ */
+export function estadoCuenta(t, ahora = Date.now()) {
+  const hayDatos = Boolean(t && (t.titular || t.cbu || t.alias || t.cuenta))
+  if (!hayDatos) return { estado: 'sin_datos', motivo: null, dias: null }
+
+  if (t.cambiar_el && esFechaIso(t.cambiar_el)) {
+    const [a, m, d] = t.cambiar_el.split('-').map(Number)
+    const finDelDia = new Date(a, m - 1, d, 23, 59, 59, 999).getTime()
+    const faltan = Math.ceil((finDelDia - ahora) / 86400000) - 1 // 0 = es hoy
+    if (ahora > finDelDia) return { estado: 'vencida', motivo: 'fecha_de_cambio', dias: faltan }
+    if (faltan <= AVISO_DIAS_ANTES) return { estado: 'por_vencer', motivo: 'fecha_de_cambio', dias: faltan }
+    return { estado: 'vigente', motivo: 'fecha_de_cambio', dias: faltan }
+  }
+
+  const desde = diasDesde(t.actualizado_en, ahora)
+  if (desde === null) return { estado: 'vencida', motivo: 'sin_fecha', dias: null }
+  if (desde > DIAS_ALIAS_VIGENTE) return { estado: 'vencida', motivo: 'antiguedad', dias: desde }
+  if (desde >= DIAS_AVISO_EN_AJUSTES) return { estado: 'por_vencer', motivo: 'antiguedad', dias: desde }
+  return { estado: 'vigente', motivo: 'antiguedad', dias: desde }
 }
 
 // "Quiénes somos": uno o varios párrafos, un párrafo por línea.

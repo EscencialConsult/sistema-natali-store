@@ -96,8 +96,8 @@ export function ContactoPage() {
         <section aria-labelledby="contactos" className="flex flex-col gap-3">
           <h2 id="contactos" className="text-xl font-semibold">Hablá con nosotros</h2>
           <ul className="flex flex-wrap gap-2">
-            {contactos.map((c) => (
-              <li key={c.nombre}>
+            {contactos.map((c, i) => (
+              <li key={`${c.nombre}-${i}`}>
                 <a href={enlaceWhatsApp(c.telefono, 'Hola, quiero consultar por el catálogo.')} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-pildora bg-whatsapp px-5 text-sm font-medium text-sobre-tinta shadow-boton hover:brightness-95">
                   <MessageCircle size={16} aria-hidden /> {c.nombre}
                 </a>
@@ -111,8 +111,8 @@ export function ContactoPage() {
         <section aria-labelledby="locales" className="flex flex-col gap-4">
           <h2 id="locales" className="text-xl font-semibold">Nuestros locales</h2>
           <ul className="flex flex-col gap-5">
-            {locales.map((l) => (
-              <li key={l.nombre} className="flex flex-col gap-2 rounded-2xl bg-superficie p-5">
+            {locales.map((l, i) => (
+              <li key={`${l.nombre}-${i}`} className="flex flex-col gap-2 rounded-2xl bg-superficie p-5">
                 <h3 className="flex items-center gap-2 text-lg font-semibold"><MapPin size={18} aria-hidden /> {l.nombre}</h3>
                 {l.direccion && <p>{l.direccion}</p>}
                 {l.horario && <p className="text-sm"><span className="t-suave">Horario: </span>{l.horario}</p>}

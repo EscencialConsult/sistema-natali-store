@@ -8,7 +8,7 @@ import { useConfigTienda, useVigentes } from '../data/catalogo.js'
 import { guardarCarrito, useCarrito } from '../data/carritoStore.js'
 import { useAjustesTienda } from '../contexto.js'
 import { cambiarCantidad, quitarLinea } from '../lib/carrito.js'
-import { datosAConfirmar, formatearCuit, validarContactos, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { NOMBRE_MONEDA, estadoCuenta, formatearCuit, validarContactos, validarLocales, validarTransferencia } from '../lib/configTienda.js'
 import { armarEnvio, detallePedido } from '../lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from '../lib/pedido.js'
 import { soloDigitos } from '../lib/whatsapp.js'
@@ -60,6 +60,7 @@ export default function PedidoPage() {
   const locales = localesDe(config)
   const elegido = contactos.length === 1 ? contactos[0] : contactos[Number(vendedor)] ?? null
   const transferencia = validarTransferencia(config?.transferencia).valor
+  const cuenta = estadoCuenta(transferencia)
 
   const resumen = listo ? resumirPedido({ carrito, vigentes, ajustes, moneda }) : sinConfirmar({ carrito, moneda })
   const detalle = detallePedido({
@@ -196,7 +197,16 @@ export default function PedidoPage() {
                   </div>
                 ))}
               {transferencia.nota && <p className="text-texto-suave">{transferencia.nota}</p>}
-              {datosAConfirmar(transferencia.actualizado_en) && (
+              {transferencia.moneda && (
+                <p className="font-medium">
+                  Transferí en {NOMBRE_MONEDA[transferencia.moneda]}
+                  {listo && monedas.includes(transferencia.moneda) && resumirPedido({ carrito, vigentes, ajustes, moneda: transferencia.moneda }).totalCent !== null
+                    ? `: ${formatear(resumirPedido({ carrito, vigentes, ajustes, moneda: transferencia.moneda }).totalCent, transferencia.moneda)} estimados`
+                    : ''}
+                  .
+                </p>
+              )}
+              {cuenta.estado === 'vencida' && (
                 <p role="note" className="rounded-xl bg-fondo p-3 font-medium">
                   La cuenta cambia cada tanto: antes de transferir, confirmá estos datos con tu vendedor.
                 </p>
