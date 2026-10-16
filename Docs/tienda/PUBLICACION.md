@@ -87,16 +87,16 @@ Si alguna vez hace falta cerrarla a mano (por ejemplo, para cambiar la cuenta co
 
 Salen solos de Usuarios: rol «Vendedor/a», activo y con teléfono cargado. Antes de publicar, revisar en Usuarios que cada vendedor tenga su teléfono con código de país; el que no lo tenga no aparece en la tienda.
 
-## Dominio oficial de la tienda: `modasnaty-tienda.onelabs.pro`
+## Dominio oficial de la tienda: `modasnaty.onelabs.pro`
 
-Estado al 16/10: el dominio existe y apunta por CNAME a `modasnaty-tienda.netlify.app`, un sitio de Netlify que hoy sirve la **tienda vieja** (la de Mercado Pago). El DNS de `onelabs.pro` está en Hostinger (servidores `dns-parking.com`). El QR de las notas ya manda a este dominio.
+Estado al 16/10 (tarde): el dominio definitivo es `modasnaty.onelabs.pro`; Facundo lo está atando al sitio de Netlify del sistema de Renzo. El dominio `modasnaty-tienda.onelabs.pro` era el de la tienda vieja (sitio `modasnaty-tienda.netlify.app`, de Mercado Pago) y se apaga. El DNS de `onelabs.pro` está en Hostinger (servidores `dns-parking.com`). El QR de las notas ya manda a este dominio.
 
 Para que ese dominio muestre la tienda nueva, sin duplicar despliegues, hay que hacer tres cosas el día de la publicación, en este orden:
 
-1. **Netlify**: en el sitio donde vive el sistema de Renzo (confirmar cuál con él), agregar `modasnaty-tienda.onelabs.pro` como dominio personalizado. Netlify emite el certificado solo cuando el DNS ya apunta.
+1. **Netlify**: en el sitio donde vive el sistema de Renzo (confirmar cuál con él), agregar `modasnaty.onelabs.pro` como dominio personalizado. Netlify emite el certificado solo cuando el DNS ya apunta.
 2. **DNS en Hostinger** (`onelabs.pro`): cambiar el CNAME de `modasnaty-tienda` para que apunte al sitio del sistema (por ejemplo `modas-naty.netlify.app`) en vez de `modasnaty-tienda.netlify.app`. Hasta que propague (minutos, a veces horas), el dominio sigue mostrando la tienda vieja.
-3. **Supabase, Authentication → URL Configuration**: agregar `https://modasnaty-tienda.onelabs.pro/**` a las Redirect URLs. El ingreso del equipo es con usuario y contraseña y no depende de esto, pero evita sorpresas si algún día se usa recuperación de contraseña.
+3. **Supabase, Authentication → URL Configuration**: agregar `https://modasnaty.onelabs.pro/**` a las Redirect URLs. El ingreso del equipo es con usuario y contraseña y no depende de esto, pero evita sorpresas si algún día se usa recuperación de contraseña.
 
-Después: en Ajustes, «Dirección del catálogo (para el QR)» debe ser `https://modasnaty-tienda.onelabs.pro/`. El sitio viejo `modasnaty-tienda.netlify.app` se puede borrar o dejar apagado una vez que el dominio apunte al nuevo.
+Después: en Ajustes, «Dirección del catálogo (para el QR)» debe ser `https://modasnaty.onelabs.pro/`. El sitio viejo `modasnaty-tienda.netlify.app` se puede borrar o dejar apagado una vez que el dominio apunte al nuevo.
 
 La tienda nueva **no manda correos**: no hace falta configurar nada en Brevo para este dominio. Brevo era de la tienda vieja (correos de pedidos con Mercado Pago).
