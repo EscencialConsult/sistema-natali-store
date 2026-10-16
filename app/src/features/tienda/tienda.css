@@ -150,3 +150,27 @@
     font-size: 120%;
   }
 }
+
+/* Agregado al pedido: el ícono da un saltito cuando llega la foto, y el aviso entra desde abajo. */
+@keyframes t-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.tienda .t-bump {
+  animation: t-bump 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes t-entra {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tienda .t-entra {
+  animation: t-entra 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda .t-bump,
+  .tienda .t-entra {
+    animation: none;
+  }
+}

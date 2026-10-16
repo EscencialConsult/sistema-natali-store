@@ -40,6 +40,7 @@ export const USUARIOS_DEMO = [
   { usuario: 'fabiana', nombre: 'Fabiana (admin demo)', rol: 'admin', clave: 'Demo-Naty-2026', telefono: '59170000011' },
   { usuario: 'pamela', nombre: 'Pamela Aramayo', rol: 'enc_tienda', clave: 'Demo-Naty-2026', telefono: '59170000001' },
   { usuario: 'ariel', nombre: 'Ariel Maydana', rol: 'vendedor', clave: 'Demo-Naty-2026', telefono: '59170000002' },
+  { usuario: 'carla', nombre: 'Carla Mamani', rol: 'vendedor', clave: 'Demo-Naty-2026', telefono: '59170000003' },
 ]
 
 // Ids fijos por nombre. El servidor arranca en memoria cada vez: si los ids cambiaran en cada arranque, la base local del

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
@@ -12,6 +12,7 @@ import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
 import { BASE_ADMIN, RUTA_AYUDA, RUTA_CATALOGO, RUTA_CONTACTO, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO, RUTA_QUIENES_SOMOS, RUTAS_ANTERIORES } from './rutas.js'
 import CatalogoPage from './publico/CatalogoPage.jsx'
 import { DecorCatalogo, DecorInicio } from './publico/Decoraciones.jsx'
+import AvisoAgregado from './publico/AvisoAgregado.jsx'
 import HomePage from './publico/HomePage.jsx'
 import MantenimientoPage from './publico/MantenimientoPage.jsx'
 import { AyudaPage, ContactoPage, QuienesSomosPage } from './publico/InfoPages.jsx'
@@ -47,6 +48,9 @@ function Marco({ children }) {
   const wa = enlaceWhatsApp(principal)
   const locales = validarLocales(config?.locales).valor
   const cantidadModelos = useCarrito().lineas.length
+  // Cada vez que algo llega al pedido, el ícono da un saltito (la clave reinicia la animación).
+  const [bump, setBump] = useState(0)
+  const alLlegar = useCallback(() => setBump((n) => n + 1), [])
   const { pathname, search } = useLocation()
 
   // Vista previa para el equipo: con ?previa=1 esta pestaña ve la tienda abierta aunque esté cerrada al público.
@@ -115,8 +119,10 @@ function Marco({ children }) {
               <Link to={`${RUTA_CATALOGO}?foco=1`} aria-label="Buscar en el catálogo" className="inline-flex size-11 items-center justify-center rounded-full hover:bg-(--t-beige)/60">
                 <Search size={19} strokeWidth={1.75} aria-hidden />
               </Link>
-              <Link to={RUTA_PEDIDO} aria-label={`Mi pedido${cantidadModelos ? `, ${cantidadModelos} modelos` : ''}`} className="relative inline-flex size-11 items-center justify-center rounded-full hover:bg-(--t-beige)/60">
-                <ShoppingBag size={19} strokeWidth={1.75} aria-hidden />
+              <Link id="icono-pedido" to={RUTA_PEDIDO} aria-label={`Mi pedido${cantidadModelos ? `, ${cantidadModelos} modelos` : ''}`} className="relative inline-flex size-11 items-center justify-center rounded-full hover:bg-(--t-beige)/60">
+                <span key={bump} className={bump ? 't-bump inline-flex' : 'inline-flex'}>
+                  <ShoppingBag size={19} strokeWidth={1.75} aria-hidden />
+                </span>
                 {cantidadModelos > 0 && (
                   <span className="absolute right-0.5 top-0.5 flex min-w-5 items-center justify-center rounded-full bg-(--t-vino) px-1 text-[0.6875rem] font-semibold text-white">{cantidadModelos}</span>
                 )}
@@ -129,6 +135,8 @@ function Marco({ children }) {
         </header>
 
         <main id="contenido" className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 md:px-8 md:pt-12">{children}</main>
+
+        <AvisoAgregado onLlego={alLlegar} />
 
         {wa && (
           <a href={wa} rel="noopener noreferrer" target="_blank" aria-label="Consultar por WhatsApp" className="fixed bottom-5 right-5 z-40 inline-flex size-14 items-center justify-center rounded-full bg-whatsapp text-sobre-tinta shadow-lg hover:brightness-95">

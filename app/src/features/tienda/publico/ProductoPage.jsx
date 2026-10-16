@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MessageCircle, SearchX, WifiOff } from 'lucide-react'
+import { ArrowLeft, Check, MessageCircle, SearchX, WifiOff } from 'lucide-react'
 import { EmptyState, Skeleton } from '../../../components/ui/index.js'
 import { useProducto } from '../data/catalogo.js'
+import { avisarAgregado, rectDe } from '../data/avisosCarrito.js'
 import { guardarCarrito, useCarrito } from '../data/carritoStore.js'
 import { supabaseUrl } from '../data/clientePublico.js'
 import { enlaceWhatsApp, useAjustesTienda } from '../contexto.js'
 import { agregarLinea } from '../lib/carrito.js'
 import { fotosDe } from '../lib/fotos.js'
-import { RUTA_CATALOGO, RUTA_PEDIDO } from '../rutas.js'
+import { RUTA_CATALOGO } from '../rutas.js'
 import PrecioBloque from './PrecioBloque.jsx'
 import { useVolverArriba } from './useVolverArriba.js'
 
@@ -22,6 +23,7 @@ export default function ProductoPage() {
   const { ajustes } = useAjustesTienda()
   const carrito = useCarrito()
   const [agregado, setAgregado] = useState(null)
+  const reinicio = useRef(null)
   // La foto elegida es de un producto concreto: al cambiar de producto vuelve a la primera sin tocar estado en un efecto.
   const [eleccion, setEleccion] = useState({ id, i: 0 })
   const actual = eleccion.id === id ? eleccion.i : 0
@@ -87,21 +89,20 @@ export default function ProductoPage() {
               <button
                 key={c}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
                   guardarCarrito(agregarLinea(carrito, producto, c))
+                  // El marco de la tienda hace volar la foto hasta el ícono del pedido y muestra el aviso.
+                  avisarAgregado({ nombre: producto.nombre, cantidad: c, foto: fotos[0], desde: rectDe(e.currentTarget) })
                   setAgregado(c)
+                  clearTimeout(reinicio.current)
+                  reinicio.current = setTimeout(() => setAgregado(null), 1600)
                 }}
-                className="inline-flex min-h-12 items-center justify-center rounded-pildora bg-tinta px-5 text-sm font-medium text-sobre-tinta"
+                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-pildora px-5 text-sm font-medium transition-colors ${agregado === c ? 'bg-whatsapp text-sobre-tinta' : 'bg-tinta text-sobre-tinta'}`}
               >
-                Agregar {c === 1 ? '1 docena' : 'media docena'}
+                {agregado === c ? <><Check size={16} aria-hidden /> Agregado</> : `Agregar ${c === 1 ? '1 docena' : 'media docena'}`}
               </button>
             ))}
           </div>
-          {agregado !== null && (
-            <p role="status" className="text-sm">
-              Agregado al pedido. <Link to={RUTA_PEDIDO} className="font-medium underline">Ver mi pedido</Link>
-            </p>
-          )}
           {wa && (
             <a href={wa} rel="noopener noreferrer" target="_blank" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-pildora bg-whatsapp px-6 font-medium text-sobre-tinta shadow-boton hover:brightness-95">
               <MessageCircle size={18} strokeWidth={1.75} aria-hidden /> Consultar por WhatsApp

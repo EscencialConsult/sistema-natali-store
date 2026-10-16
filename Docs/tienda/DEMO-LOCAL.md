@@ -27,6 +27,7 @@ Todos con la contraseña **`Demo-Naty-2026`**.
 |---|---|---|
 | `natali` | superadmin | Todo: Ajustes de la tienda, usuarios, limpieza |
 | `fabiana` | admin | Ajustes y Gestor web, sin gestión de usuarios |
+| `carla` | vendedor | Segunda vendedora: con ella se ve el selector de vendedor en el pedido |
 | `pamela` | encargada de tienda | Lo que ve una encargada |
 | `ariel` | vendedor | Que NO pueda cambiar la configuración de la tienda |
 

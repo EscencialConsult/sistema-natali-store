@@ -254,14 +254,25 @@ export default function PedidoPage() {
             <p className="t-suave text-xs leading-snug">El precio final y la disponibilidad los confirma tu vendedor. Enviar el pedido no lo reserva ni lo cobra.</p>
           </div>
 
-          {contactos.length > 1 && (
+          {contactos.length > 0 && (
             <fieldset className="flex flex-col gap-2 border-t border-(--t-beige) pt-4">
-              <legend className="float-left mb-2 font-semibold">¿Con quién hablás?</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {contactos.map((c, i) => (
-                  <Opcion key={`${c.nombre}-${i}`} name="vendedor" value={String(i)} actual={vendedor} onChange={setVendedor} titulo={c.nombre || 'Vendedor'} />
-                ))}
-              </div>
+              <legend className="float-left mb-2 font-semibold">{contactos.length > 1 ? '¿Con quién hablás?' : 'Tu vendedor'}</legend>
+              {contactos.length > 1 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {contactos.map((c, i) => (
+                    <Opcion key={`${c.nombre}-${i}`} name="vendedor" value={String(i)} actual={vendedor} onChange={setVendedor} titulo={c.nombre || 'Vendedor'} texto="Recibe tu pedido por WhatsApp" />
+                  ))}
+                </div>
+              ) : (
+                // Con una sola persona no hay nada que elegir, pero la clienta tiene que ver a quién le llega el pedido.
+                <p className="flex items-center gap-3 rounded-xl border border-(--t-vino) bg-(--t-rosa)/35 p-3 text-sm">
+                  <MessageCircle size={18} aria-hidden className="shrink-0 text-(--t-vino)" />
+                  <span>
+                    <span className="block font-semibold">{contactos[0].nombre || 'WhatsApp de la tienda'}</span>
+                    <span className="t-suave block text-xs">Tu pedido le llega por WhatsApp.</span>
+                  </span>
+                </p>
+              )}
             </fieldset>
           )}
 

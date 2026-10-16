@@ -1,7 +1,7 @@
 # Tu catálogo online: qué tenés que cargar y dónde
 
 Esta guía es para vos y para quien te ayude en la tienda. No hace falta saber de computación.
-Todo se carga en **Ajustes**, dentro del sistema de notas (`modas-naty.netlify.app/admin`). Solo la administración puede cambiar estos datos.
+Todo se carga en **Ajustes**, dentro del sistema de notas (`modasnaty-tienda.onelabs.pro/admin`). Solo la administración puede cambiar estos datos.
 
 ## Antes de publicar: lo que tenemos que juntar
 
@@ -23,7 +23,7 @@ Mandanos estos datos por WhatsApp. Sin ellos la tienda sale, pero con partes vac
 
 Entrá a **Ajustes**. Vas a encontrar estas tarjetas:
 
-1. **Catálogo y código QR**: la dirección de la tienda (`https://modas-naty.netlify.app/`), el WhatsApp de la tienda y la casilla "Mostrar precios en el catálogo público". Esa dirección es la que sale como QR en cada nota.
+1. **Catálogo y código QR**: la dirección de la tienda (`https://modasnaty-tienda.onelabs.pro/`), el WhatsApp de la tienda y la casilla "Mostrar precios en el catálogo público". Esa dirección es la que sale como QR en cada nota.
 2. **Tienda online · vendedores y contactos**: nombre y WhatsApp, con código de país y solo números (por ejemplo `59171234567`).
 3. **Ajustes → Gestor web → Cuenta**: banco, titular, cuenta y alias.
 4. **Ajustes → Gestor web → Contacto y locales, y Textos**: cada local con su dirección, su horario, cómo llegar y el enlace de Google Maps. Hay un campo de horario general por si alguna vez hace falta.
