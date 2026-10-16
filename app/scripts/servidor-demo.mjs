@@ -13,7 +13,7 @@
 // Uso (desde la raíz del repo, con la unidad S: montada; ver Docs/tienda/herramientas/iniciar-dev.bat demo):
 //   node app/scripts/servidor-demo.mjs [--puerto 4300]
 import http from 'node:http'
-import { createHmac, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, extname, join, normalize, resolve, sep } from 'node:path'
@@ -41,6 +41,13 @@ export const USUARIOS_DEMO = [
   { usuario: 'pamela', nombre: 'Pamela Aramayo', rol: 'enc_tienda', clave: 'Demo-Naty-2026', telefono: '59170000001' },
   { usuario: 'ariel', nombre: 'Ariel Maydana', rol: 'vendedor', clave: 'Demo-Naty-2026', telefono: '59170000002' },
 ]
+
+// Ids fijos por nombre. El servidor arranca en memoria cada vez: si los ids cambiaran en cada arranque, la base local del
+// navegador (que ya guardó usuarios y modelos de la vez anterior) chocaría con sus índices únicos (usuario, código) al sincronizar.
+const uuidDe = (nombre) => {
+  const h = createHash('sha1').update(`modas-naty-demo:${nombre}`).digest('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${((parseInt(h[16], 16) & 0x3) | 0x8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`
+}
 
 // ── Base de datos ───────────────────────────────────────────────────────────────────────────────────
 const STUB = `
@@ -88,9 +95,18 @@ async function crearBase(puerto, configReal) {
   await ajuste('mostrar_precios_publico', true)
   await ajuste('url_catalogo', `http://localhost:${puerto}/`)
 
-  // Usuarios con contraseña real (la función de Renzo la guarda con crypt).
+  // Usuarios con contraseña real (la función de Renzo la guarda con crypt). Después se les fija un id estable (ver uuidDe):
+  // las claves foráneas se saltean solo durante ese cambio de id, en esta base en memoria.
   for (const u of USUARIOS_DEMO) {
-    await db.query(`select naty_crear_usuario_interno($1, $2, $3::naty_rol_usuario, $4, $5)`, [u.usuario, u.nombre, u.rol, u.clave, u.telefono])
+    const { rows } = await db.query(`select naty_crear_usuario_interno($1, $2, $3::naty_rol_usuario, $4, $5) as id`, [u.usuario, u.nombre, u.rol, u.clave, u.telefono])
+    const viejo = rows[0].id
+    const nuevo = uuidDe(`usuario:${u.usuario}`)
+    await db.exec(`set session_replication_role = replica`)
+    // El id nuevo va dos veces (uuid y texto): Postgres no deja usar un mismo parámetro con dos tipos.
+    await db.query(`update auth.identities set user_id = $2, provider_id = $3::text, identity_data = jsonb_set(identity_data, '{sub}', to_jsonb($3::text)) where user_id = $1`, [viejo, nuevo, nuevo])
+    await db.query(`update naty_perfiles set id = $2 where id = $1`, [viejo, nuevo])
+    await db.query(`update auth.users set id = $2 where id = $1`, [viejo, nuevo])
+    await db.exec(`set session_replication_role = default`)
   }
 
   // Catálogo de ejemplo con las fotos de la biblioteca provisional del repo.
@@ -100,22 +116,22 @@ async function crearBase(puerto, configReal) {
   for (const f of archivos) {
     const nombreCat = categoriaDe(f)
     if (!ids.has(nombreCat)) {
-      const id = randomUUID()
+      const id = uuidDe(`categoria:${nombreCat}`)
       ids.set(nombreCat, id)
       await db.query(`insert into naty_categorias (id, nombre, orden) values ($1, $2, $3)`, [id, nombreCat, orden++])
     }
   }
   let i = 0
   for (const f of archivos) {
-    const id = randomUUID()
     const codigo = `F${String(30 + i).padStart(4, '0')}`
+    const id = uuidDe(`producto:${codigo}`)
     await db.query(
       `insert into naty_productos (id, codigo, nombre, categoria_id, descripcion, precio_docena_usd_cent, nuevo, activo)
        values ($1, $2, $3, $4, $5, $6, $7, true)`,
       [id, codigo, bonito(f), ids.get(categoriaDe(f)), 'Modelo de demostración.', [12000, 9000, 15000, 7500][i % 4], i % 5 === 0],
     )
-    await db.query(`insert into naty_producto_fotos (id, producto_id, orden, ruta) values ($1, $2, 0, $3)`, [randomUUID(), id, `${codigo}/${f}`])
-    await db.query(`insert into naty_movimientos_stock (id, producto_id, tipo, delta, motivo, creado_en) values ($1, $2, 'entrada', 72, 'Stock inicial de demostración', now())`, [randomUUID(), id])
+    await db.query(`insert into naty_producto_fotos (id, producto_id, orden, ruta) values ($1, $2, 0, $3)`, [uuidDe(`foto:${codigo}:0`), id, `${codigo}/${f}`])
+    await db.query(`insert into naty_movimientos_stock (id, producto_id, tipo, delta, motivo, creado_en) values ($1, $2, 'entrada', 72, 'Stock inicial de demostración', now())`, [uuidDe(`stock:${codigo}`), id])
     i += 1
   }
 
