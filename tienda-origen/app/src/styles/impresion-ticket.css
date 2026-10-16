@@ -1,0 +1,24 @@
+/* Ticket térmico (ver DESIGN.md, "Ticket impreso"). Solo aplica al imprimir y solo al nodo .ticket.
+   Ancho de papel por defecto 80 mm; para 58 mm se cambia --ticket-ancho en el componente (tarea 6.5). */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  .ticket {
+    --ticket-ancho: 72mm;
+    width: var(--ticket-ancho);
+    margin: 0 auto;
+    padding: 4mm 0 8mm;
+    color: #000;
+    background: #fff;
+    font-family: var(--font-cuerpo);
+    font-size: 11pt;
+    line-height: 1.3;
+  }
+  .ticket * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}

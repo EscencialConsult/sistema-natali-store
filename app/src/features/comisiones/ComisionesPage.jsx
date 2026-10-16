@@ -93,7 +93,7 @@ export default function ComisionesPage() {
               {filas.map((f) => (
                 <li key={f.vendedor_id} className={`${TARJETA} flex flex-col gap-4 p-4 sm:p-5`}>
                   <div className="flex items-center gap-3">
-                    <Avatar nombre={f.nombre} />
+                    <Avatar rol={f.rol} />
                     <div className="min-w-0 flex-1">
                       <h2 className="truncate text-base sm:text-lg">{f.nombre}</h2>
                       <p className="text-sm text-texto-suave tabular-nums">

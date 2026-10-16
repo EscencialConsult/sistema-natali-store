@@ -16,8 +16,10 @@ export default defineConfig({
         short_name: 'Modas Naty',
         description: 'Catálogo y notas de venta de Modas Naty. Funciona sin internet.',
         lang: 'es',
-        start_url: '/',
-        scope: '/',
+        // La app instalada es la del equipo y vive en /admin; la raíz (/) es la tienda pública.
+        id: '/admin/',
+        start_url: '/admin/',
+        scope: '/admin/',
         display: 'standalone',
         background_color: '#fbf7f3',
         theme_color: '#8a3a63',
@@ -31,7 +33,8 @@ export default defineConfig({
         // La app completa (código, estilos, fuentes, íconos) queda guardada: abre y vende sin internet.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // La librería de Excel pesa ~1 MB y solo se usa en cargas masivas: se guarda la primera vez que se usa.
-        globIgnores: ['**/exceljs*.js'],
+        // El mapa de la tienda pública (MapLibre y su worker, ~1,5 MB) tampoco: el equipo no lo usa desde la app instalada.
+        globIgnores: ['**/exceljs*.js', '**/MapaLibre*.{js,css}', '**/maplibre-gl*.js'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [

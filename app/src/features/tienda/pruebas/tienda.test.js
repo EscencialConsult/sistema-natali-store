@@ -1,0 +1,180 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+// El cliente público se reemplaza por uno falso que registra las llamadas del constructor de consultas.
+const llamadas = []
+let filasDevueltas = []
+vi.mock('../data/clientePublico.js', () => ({
+  supabaseUrl: 'https://proyecto.supabase.co',
+  hayBackendPublico: true,
+  clientePublico: async () => ({
+    from: (tabla) => {
+      const q = {
+        select: (c) => {
+          llamadas.push(['from', tabla], ['select', c])
+          return q
+        },
+        order: (c) => {
+          llamadas.push(['order', c])
+          return q
+        },
+        limit: (n) => {
+          llamadas.push(['limit', n])
+          return q
+        },
+        then: (res) => res({ data: filasDevueltas, error: null }),
+      }
+      return q
+    },
+  }),
+}))
+
+const { esRutaAdmin, esRutaTienda, rutaProducto, rutaCategoria, RUTAS_ANTERIORES, RUTA_AYUDA, RUTA_CONTACTO } = await import('../rutas.js')
+const { precioPublico } = await import('../lib/precioPublico.js')
+const { urlDeFoto, fotosDe } = await import('../lib/fotos.js')
+const { guardarCache, leerCache } = await import('../lib/cache.js')
+const { enlaceWhatsApp } = await import('../contexto.js')
+const { pedirTodo } = await import('../data/catalogo.js')
+
+describe('rutas', () => {
+  it('/admin y sus subrutas son del sistema interno; todo lo demás es la tienda', () => {
+    for (const r of ['/admin', '/admin/', '/admin/ventas', '/admin/ventas/abc', '/admin/catalogo/admin']) {
+      expect(esRutaAdmin(r), r).toBe(true)
+      expect(esRutaTienda(r), r).toBe(false)
+    }
+    // Parecidas pero NO son del sistema: no deben abrir el sistema interno por error.
+    for (const r of ['/', '/catalogo', '/p/abc', '/pedido', '/como-comprar', '/donde-estamos', '/c', '/administracion', '/admin-viejo', '/administrador/x']) {
+      expect(esRutaAdmin(r), r).toBe(false)
+      expect(esRutaTienda(r), r).toBe(true)
+    }
+    expect(rutaProducto('x')).toBe('/p/x')
+    expect(rutaCategoria('a b&c')).toBe('/catalogo?categoria=a%20b%26c')
+  })
+
+  it('las direcciones anteriores siguen funcionando y apuntan a su reemplazo', () => {
+    expect(RUTAS_ANTERIORES).toEqual({ '/como-comprar': RUTA_AYUDA, '/donde-estamos': RUTA_CONTACTO })
+    for (const [desde, hacia] of Object.entries(RUTAS_ANTERIORES)) {
+      expect(esRutaTienda(desde)).toBe(true)
+      expect(esRutaTienda(hacia)).toBe(true)
+    }
+  })
+})
+
+describe('precioPublico', () => {
+  const aj = { tipo_cambio_bs: 12, tipo_cambio_ars: 1590, tipo_cambio_es_ejemplo: false }
+  const por = (r, m) => r.monedas.find((x) => x.moneda === m)
+
+  it('convierte docena y media docena en USD, ARS y Bs', () => {
+    const r = precioPublico({ precioUsdCent: 12000, ajustes: aj })
+    expect(r.oculto).toBe(false)
+    expect(r.monedas.map((m) => m.moneda)).toEqual(['usd', 'ars', 'bs'])
+    expect(por(r, 'usd')).toMatchObject({ docena: 12000, media: 6000 })
+    expect(por(r, 'bs')).toMatchObject({ docena: 144000, media: 72000 })
+    expect(por(r, 'ars')).toMatchObject({ docena: 19080000, media: 9540000 })
+  })
+
+  it('respeta el orden de redondeo del sistema de nota: primero la docena, después la media', () => {
+    const r = precioPublico({ precioUsdCent: 101, ajustes: { tipo_cambio_bs: 1.5, tipo_cambio_ars: 1, tipo_cambio_es_ejemplo: false } })
+    // 101 × 1,5 = 151,5 → 152 la docena; la media es 76 (convertir primero la media daría 77).
+    expect(por(r, 'bs')).toMatchObject({ docena: 152, media: 76 })
+  })
+
+  it('precio oculto, nulo o inválido es "a consultar", nunca cero', () => {
+    for (const p of [null, undefined, -5, 12.5, '120']) {
+      const r = precioPublico({ precioUsdCent: p, ajustes: aj })
+      expect(r.oculto, String(p)).toBe(true)
+      expect(r.monedas).toEqual([])
+    }
+  })
+
+  it('tasa inválida deja afuera esa moneda en vez de multiplicar por cero', () => {
+    const r = precioPublico({ precioUsdCent: 12000, ajustes: { tipo_cambio_bs: 0, tipo_cambio_ars: null, tipo_cambio_es_ejemplo: false } })
+    expect(r.monedas.map((m) => m.moneda)).toEqual(['usd'])
+    expect(precioPublico({ precioUsdCent: 12000, ajustes: { tipo_cambio_bs: 'mucho', tipo_cambio_ars: NaN } }).monedas).toHaveLength(1)
+  })
+
+  it('con tasa de ejemplo muestra solo USD', () => {
+    const r = precioPublico({ precioUsdCent: 12000, ajustes: { ...aj, tipo_cambio_es_ejemplo: true } })
+    expect(r.monedas.map((m) => m.moneda)).toEqual(['usd'])
+  })
+
+  it('sin ajustes cargados muestra solo USD', () => {
+    expect(precioPublico({ precioUsdCent: 12000 }).monedas.map((m) => m.moneda)).toEqual(['usd'])
+  })
+
+  it('una tasa que llega como texto numérico se acepta', () => {
+    expect(precioPublico({ precioUsdCent: 1000, ajustes: { tipo_cambio_bs: '6.96', tipo_cambio_ars: '1400' } }).monedas).toHaveLength(3)
+  })
+})
+
+describe('fotos', () => {
+  const base = 'https://proyecto.supabase.co/'
+  it('acepta https absolutas y arma las relativas contra el bucket público', () => {
+    expect(urlDeFoto('https://x.test/a.jpg', base)).toBe('https://x.test/a.jpg')
+    expect(urlDeFoto('F0032/abc.jpg', base)).toBe('https://proyecto.supabase.co/storage/v1/object/public/naty_productos/F0032/abc.jpg')
+    expect(urlDeFoto('/F 1/ñ.jpg', base)).toBe('https://proyecto.supabase.co/storage/v1/object/public/naty_productos/F%201/%C3%B1.jpg')
+  })
+  it('rechaza otros protocolos, vacíos y relativas sin base', () => {
+    for (const r of ['javascript:alert(1)', 'data:image/png;base64,AAA', 'http://x.test/a.jpg', '//x.test/a.jpg', '', '   ', null]) {
+      expect(urlDeFoto(r, base), String(r)).toBeNull()
+    }
+    expect(urlDeFoto('a.jpg', '')).toBeNull()
+  })
+  it('fotosDe tolera fotos nulas o mal formadas', () => {
+    expect(fotosDe({ fotos: null }, base)).toEqual([])
+    expect(fotosDe({ fotos: ['a.jpg', 'javascript:x', ''] }, base)).toHaveLength(1)
+  })
+})
+
+describe('pedirTodo', () => {
+  beforeEach(() => {
+    llamadas.length = 0
+  })
+  it('trae el catálogo completo de la vista pública, ordenado y con tope de seguridad', async () => {
+    filasDevueltas = [{ id: 'a', codigo: 'A1' }, { id: 'b', codigo: 'B1' }]
+    const r = await pedirTodo()
+    expect(r).toHaveLength(2)
+    expect(llamadas).toContainEqual(['from', 'tienda_catalogo_publico'])
+    expect(llamadas).toContainEqual(['order', 'codigo'])
+    expect(llamadas).toContainEqual(['limit', 1000])
+    // Solo las columnas de la lista blanca: nunca stock ni costos.
+    expect(llamadas.find(([k]) => k === 'select')[1]).toBe('id,codigo,nombre,categoria_id,categoria,descripcion,nuevo,precio_docena_usd_cent,fotos')
+  })
+})
+
+describe('caché propia', () => {
+  beforeEach(() => {
+    const almacen = new Map()
+    globalThis.localStorage = {
+      getItem: (k) => almacen.get(k) ?? null,
+      setItem: (k, v) => almacen.set(k, v),
+    }
+  })
+  it('guarda y lee con versión y origen', () => {
+    guardarCache('ajustes', { a: 1 }, 'https://p.supabase.co')
+    expect(leerCache('ajustes', 'https://p.supabase.co').datos).toEqual({ a: 1 })
+    expect(leerCache('ajustes', 'https://otro.supabase.co')).toBeNull()
+  })
+  it('tolera almacenamiento roto o bloqueado', () => {
+    globalThis.localStorage = {
+      getItem: () => {
+        throw new Error('bloqueado')
+      },
+      setItem: () => {
+        throw new Error('lleno')
+      },
+    }
+    expect(() => guardarCache('x', 1)).not.toThrow()
+    expect(leerCache('x')).toBeNull()
+    globalThis.localStorage = { getItem: () => '{no json', setItem: () => {} }
+    expect(leerCache('x')).toBeNull()
+  })
+})
+
+describe('enlaceWhatsApp', () => {
+  it('fija el host, deja solo dígitos y codifica el mensaje', () => {
+    expect(enlaceWhatsApp('+591 7000-0000', 'Hola & chau')).toBe('https://wa.me/59170000000?text=Hola%20%26%20chau')
+    expect(enlaceWhatsApp('591700')).toBeNull()
+    expect(enlaceWhatsApp('')).toBeNull()
+    expect(enlaceWhatsApp(null)).toBeNull()
+  })
+})

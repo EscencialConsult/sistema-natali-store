@@ -1,0 +1,176 @@
+/* Paleta y detalles de la tienda pública. Salen de la imagen de referencia (Docs/tienda/referencias).
+   Están acotados a .tienda: no cambian ningún color del sistema interno de notas. */
+.tienda {
+  --t-crema: #fbf4f1;
+  --t-vino: #631b36;
+  --t-vino-oscuro: #4a1228;
+  --t-terracota: #c26f4f;
+  --t-coral: #d4958a;
+  --t-rosa: #f6cbcb;
+  --t-beige: #e3d6bf;
+  --t-tinta: #2b1d22;
+  --t-suave: #6f5e63;
+  background-color: var(--t-crema);
+  color: var(--t-tinta);
+
+  /* Los componentes del sistema de notas usan estos nombres: acá toman la paleta de la tienda.
+     Solo dentro de .tienda; el sistema interno conserva los suyos. */
+  --color-tinta: var(--t-vino);
+  --color-tinta-hover: var(--t-vino-oscuro);
+  --color-fondo: var(--t-crema);
+  --color-superficie: #fffaf8;
+  --color-superficie-2: #f6ece6;
+  --color-borde: var(--t-beige);
+  --color-texto: var(--t-tinta);
+  --color-texto-suave: var(--t-suave);
+}
+
+.tienda .t-suave {
+  color: var(--t-suave);
+}
+
+/* Formas orgánicas decorativas: nunca reciben clics ni se leen en pantalla. */
+.tienda .t-decor {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Las tarjetas de producto levantan apenas el borde al pasar el mouse. */
+.tienda .t-tarjeta-foto {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.tienda a:hover .t-tarjeta-foto {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -14px rgb(99 27 54 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tienda .t-tarjeta-foto {
+    transition: none;
+  }
+  .tienda a:hover .t-tarjeta-foto {
+    transform: none;
+  }
+}
+
+/* Foco visible y consistente con la paleta. */
+.tienda :focus-visible {
+  outline: 2px solid var(--t-vino);
+  outline-offset: 2px;
+}
+
+/* Mapa de los locales (maplibre). El marcador es un boton: se llega con el teclado y se activa con Enter. */
+.tienda .t-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.tienda .t-pin-punto {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--t-vino);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgb(99 27 54 / 0.35);
+}
+.tienda .t-pin-etiqueta {
+  position: absolute;
+  bottom: calc(100% - 0.25rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--t-tinta);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.tienda .t-pin:hover .t-pin-etiqueta,
+.tienda .t-pin:focus-visible .t-pin-etiqueta {
+  opacity: 1;
+}
+.tienda .maplibregl-popup-content {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  font-family: inherit;
+  color: var(--t-tinta);
+}
+.tienda .t-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-right: 0.75rem;
+}
+.tienda .t-popup-nombre {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.tienda .t-popup-dato {
+  font-size: 0.8125rem;
+  color: var(--t-suave);
+}
+.tienda .t-popup-enlace {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--t-vino);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tienda .maplibregl-popup-close-button {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda .t-pin-etiqueta {
+    transition: none;
+  }
+}
+
+/* La tienda se ve como con el navegador al 120 %: en pantallas grandes la base pasa de 16 a 19,2 px y todo escala (es rem).
+   En celular queda al 100 %. El sistema interno (/admin) no cambia: la clase está solo mientras la tienda está montada. */
+@media (min-width: 48rem) {
+  html.tienda-activa {
+    font-size: 110%;
+  }
+}
+@media (min-width: 64rem) {
+  html.tienda-activa {
+    font-size: 120%;
+  }
+}
+
+/* Agregado al pedido: el ícono da un saltito cuando llega la foto, y el aviso entra desde abajo. */
+@keyframes t-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.tienda .t-bump {
+  animation: t-bump 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes t-entra {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tienda .t-entra {
+  animation: t-entra 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda .t-bump,
+  .tienda .t-entra {
+    animation: none;
+  }
+}

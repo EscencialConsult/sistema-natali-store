@@ -1,0 +1,49 @@
+/* Tokens de diseño. Única fuente de colores, tipografías, radios y tamaños (ver DESIGN.md).
+   Fuente de verdad: cerebro-facundo/proyectos/modas-naty/kit-de-marca.md. No inventar colores ni tamaños nuevos sin actualizar ese archivo primero.
+   Heredado del sistema de notas de venta de la misma clienta (decisión D3): si allá cambia la paleta, se replica acá. */
+@theme static {
+  --font-titulo: 'Outfit Variable', system-ui, sans-serif;
+  --font-cuerpo: 'DM Sans Variable', system-ui, sans-serif;
+
+  --color-fondo: #fbf7f3;
+  --color-superficie: #ffffff;
+  --color-superficie-2: #f5efe9;
+  --color-borde: #e8e0d8;
+  --color-borde-fuerte: #cfc9c2;
+  --color-texto: #2a2230;
+  --color-texto-suave: #5c5663;
+  --color-texto-tenue: #625b68;
+  --color-tinta: #8a3a63;
+  --color-tinta-hover: #732f52;
+  --color-sobre-tinta: #ffffff;
+  /* Tinte suave del acento (fondos de selección y de aviso de marca). Contraste del texto oscuro sobre él: > 12:1. */
+  --color-acento-tinte: #f6e8ef;
+  --color-acento-tinte-hover: #efd9e5;
+  /* Línea inferior de los campos (relleno tonal + línea de 2 px). Contraste sobre crema y blanco: 3,4:1 (WCAG 1.4.11). */
+  --color-campo: #857c8a;
+  --color-pie: #2b2230;
+  --color-sobre-pie: #f5f3f1;
+
+  --color-exito: #166534;
+  --color-exito-fondo: #e6f4ea;
+  --color-alerta: #92400e;
+  --color-alerta-fondo: #fdf0d8;
+  --color-error: #b42318;
+  --color-error-fondo: #fde8e6;
+  --color-info: #1d4e89;
+  --color-info-fondo: #e5eefa;
+  --color-whatsapp: #0b7a52;
+
+  /* Movimiento (ver DESIGN.md): salida fuerte para entradas y feedback; cajón para la hoja inferior. */
+  --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --radius-control: 0.5rem;
+  --radius-tarjeta: 0.75rem;
+  --radius-pildora: 999px;
+
+  /* Kiosco táctil: controles de 56 px y texto de 18 px (regla "Táctil generoso"). */
+  --spacing-control-kiosco: 3.5rem;
+  --text-kiosco: 1.125rem;
+  --text-kiosco--line-height: 1.5rem;
+}

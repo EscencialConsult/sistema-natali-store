@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+# Zonas privadas o sin valor para buscadores: panel, kiosco y el recorrido de compra.
+Disallow: /administracion
+Disallow: /kiosco
+Disallow: /carrito
+Disallow: /checkout
+Disallow: /pedido/
+Disallow: /seguimiento
+
+# Sitemap: se agrega con la URL absoluta del dominio al publicar (etapa 9): https://<dominio>/sitemap.xml

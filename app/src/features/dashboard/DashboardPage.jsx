@@ -145,7 +145,7 @@ export default function DashboardPage() {
                   <ul className="flex flex-col gap-4">
                     {porVendedor.map((f) => (
                       <li key={f.id} className="flex items-center gap-3">
-                        <Avatar nombre={f.nombre} className="size-9 text-xs" />
+                        <Avatar rol={f.rol} className="size-9 text-xs" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-3">
                             <span className="truncate text-sm font-medium">{f.nombre}</span>

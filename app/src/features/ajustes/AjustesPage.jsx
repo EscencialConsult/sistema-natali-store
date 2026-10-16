@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { ImagePlus } from 'lucide-react'
-import { Button, Encabezado, ErrorState, Input, Skeleton, useToast } from '../../components/ui/index.js'
+import { useSearchParams } from 'react-router-dom'
+import { Button, Encabezado, ErrorState, Input, Skeleton, Tabs, useToast } from '../../components/ui/index.js'
+import { IMAGOTIPO } from '../../components/useMarca.js'
 import { useConfig, usePerfiles } from '../../data/hooks.js'
 import { config, perfiles } from '../../data/repos/index.js'
 import { urlDeImagen } from '../../lib/blobUrl.js'
@@ -10,6 +12,7 @@ import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
+import TiendaAjustes from '../tienda/admin/TiendaAjustes.jsx'
 
 const aTexto = (n) => (n == null ? '' : String(n).replace('.', ','))
 const aNumero = (t) => Number(String(t).trim().replace(',', '.'))
@@ -39,7 +42,7 @@ function Seccion({ titulo, ayuda, onGuardar, soloLectura, children }) {
         <h2 className="text-lg">{titulo}</h2>
         {ayuda && <p className="text-sm text-texto-suave">{ayuda}</p>}
       </div>
-      <fieldset disabled={soloLectura} className="flex flex-col gap-4">{children}</fieldset>
+      <fieldset disabled={soloLectura || guardando} className="flex flex-col gap-4">{children}</fieldset>
       {error && <p role="alert" className="rounded-control bg-error-fondo p-3 text-sm text-error">{error}</p>}
       {!soloLectura && <Button type="submit" cargando={guardando} className="self-start">Guardar</Button>}
     </form>
@@ -81,13 +84,13 @@ function Negocio({ cfg, soloLectura }) {
         <span className="text-sm font-medium">Logo</span>
         <div className="flex items-center gap-4">
           <div className="flex h-20 w-40 items-center justify-center rounded-control border border-borde bg-white p-2">
-            {logo ? <img src={urlDeImagen(logo)} alt="Logo actual" className="max-h-full max-w-full object-contain" /> : <span className="text-sm text-texto-tenue">Sin logo</span>}
+            <img src={logo ? urlDeImagen(logo) : IMAGOTIPO} alt="Logo actual" className="max-h-full max-w-full object-contain" />
           </div>
           <Button variante="secundario" icono={ImagePlus} cargando={procesando} deshabilitado={soloLectura} onClick={() => input.current?.click()}>Subir logo</Button>
           <input ref={input} type="file" accept="image/*" hidden onChange={(e) => elegirLogo(e.target.files[0])} />
         </div>
         {errorLogo && <p role="alert" className="text-sm text-error">{errorLogo}</p>}
-        {!logo && <p className="text-sm text-texto-suave">Hasta que se suba, la nota usa el nombre del negocio como título.</p>}
+        {!logo && <p className="text-sm text-texto-suave">Se usa el logo de Modas Naty que ya viene con el sistema. Subí otro solo si querés reemplazarlo.</p>}
       </div>
     </Seccion>
   )
@@ -147,7 +150,7 @@ function Catalogo({ cfg, soloLectura }) {
         await config.guardar('mostrar_precios_publico', precios)
       }}
     >
-      <Input etiqueta="Dirección del catálogo (para el QR)" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/c" ayuda="Todavía no hay dirección definitiva: cuando se publique, se carga acá." />
+      <Input etiqueta="Dirección del catálogo (para el QR)" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://modasnaty.onelabs.pro/" ayuda="La dirección de la tienda pública: cuando esté publicada, se carga acá y sale como QR en cada nota." />
       <Input etiqueta="WhatsApp de la tienda (con código de país)" inputMode="tel" value={wsp} onChange={(e) => setWsp(e.target.value)} placeholder="59171234567" />
       <label className="flex min-h-11 items-center gap-3 text-base">
         <input type="checkbox" checked={precios} onChange={(e) => setPrecios(e.target.checked)} className="size-5 accent-tinta" />
@@ -202,6 +205,19 @@ export default function AjustesPage() {
   const cfg = useConfig()
   const equipo = usePerfiles()
   const soloLectura = !puede(usuario.rol, 'ajustes.editar')
+  // Dos pestañas para la administración (admin y superadmin): los ajustes del sistema y todo lo que toca la tienda web (Gestor web).
+  const esAdministracion = usuario.rol === 'superadmin' || usuario.rol === 'admin'
+  const [params, setParams] = useSearchParams()
+  const pestana = esAdministracion && params.get('pestana') === 'gestor' ? 'gestor' : 'general'
+  // Una vez abierto, el Gestor web queda montado para no perder lo que se estaba escribiendo al volver de pestaña.
+  const [gestorAbierto, setGestorAbierto] = useState(pestana === 'gestor')
+  const elegirPestana = (v) => {
+    if (v === 'gestor') setGestorAbierto(true)
+    const nuevos = new URLSearchParams(params)
+    if (v === 'gestor') nuevos.set('pestana', 'gestor')
+    else nuevos.delete('pestana')
+    setParams(nuevos)
+  }
 
   if (cfg.cargando || equipo.cargando) return <div className="flex flex-col gap-4"><Skeleton className="h-40" /><Skeleton className="h-40" /></div>
   if (cfg.error || equipo.error) return <ErrorState mensaje="No pudimos cargar los ajustes." onReintentar={() => { cfg.reintentar(); equipo.reintentar() }} />
@@ -212,8 +228,20 @@ export default function AjustesPage() {
         titulo="Ajustes"
         descripcion={soloLectura ? 'Podés ver los ajustes, pero solo la administración puede cambiarlos.' : 'Datos del negocio, tipo de cambio, catálogo, teléfonos de la nota e inventario.'}
       />
+      {esAdministracion && (
+        <Tabs
+          valor={pestana}
+          onChange={elegirPestana}
+          etiqueta="Secciones de ajustes"
+          prefijo="tab-"
+          items={[
+            { valor: 'general', etiqueta: 'Ajustes generales', panel: 'panel-general' },
+            { valor: 'gestor', etiqueta: 'Gestor web', panel: 'panel-gestor' },
+          ]}
+        />
+      )}
       {/* Escritorio: dos columnas que se apilan solas; celular: una sola. */}
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+      <div id="panel-general" role={esAdministracion ? 'tabpanel' : undefined} aria-labelledby={esAdministracion ? 'tab-general' : undefined} hidden={pestana !== 'general'} className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">
           <Negocio cfg={cfg.datos} soloLectura={soloLectura} />
           <Catalogo cfg={cfg.datos} soloLectura={soloLectura} />
@@ -225,6 +253,12 @@ export default function AjustesPage() {
           <TarjetaAlmacenamiento />
         </div>
       </div>
+      {/* Gestor web (solo superadmin): avisa solo si la tienda todavía no está activada en la base. */}
+      {esAdministracion && (gestorAbierto || pestana === 'gestor') && (
+        <div id="panel-gestor" role="tabpanel" aria-labelledby="tab-gestor" hidden={pestana !== 'gestor'}>
+          <TiendaAjustes soloLectura={soloLectura} />
+        </div>
+      )}
     </div>
   )
 }

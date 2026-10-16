@@ -91,7 +91,7 @@ export default function UsuariosPage() {
               {lista.map((p) => (
                 <li key={p.id}>
                   <button type="button" onClick={() => setEditando(p)} className={`group ${FILA} min-h-[4.75rem] p-3`}>
-                    <Avatar nombre={p.nombre} className={p.activo ? '' : 'opacity-50'} />
+                    <Avatar rol={p.rol} className={p.activo ? '' : 'opacity-50'} />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate font-medium">{p.nombre}</span>
