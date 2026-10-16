@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datosAConfirmar, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
 
 describe('urlMapaSegura', () => {
   it('acepta enlaces https de Google Maps', () => {
@@ -114,14 +114,8 @@ describe('cuenta que se cambia cada 2 meses', () => {
   const hoy = Date.parse('2026-10-15T12:00:00Z')
   const hace = (d) => new Date(hoy - d * 86400000).toISOString()
 
-  it('vigente hasta 60 días; después, o sin fecha, queda "a confirmar"', () => {
+  it('la cuenta se da por vigente hasta 60 días (el detalle de estados está en gestor.test.js)', () => {
     expect(DIAS_ALIAS_VIGENTE).toBe(60)
-    expect(datosAConfirmar(hace(0), hoy)).toBe(false)
-    expect(datosAConfirmar(hace(60), hoy)).toBe(false)
-    expect(datosAConfirmar(hace(61), hoy)).toBe(true)
-    expect(datosAConfirmar('', hoy)).toBe(true)
-    expect(datosAConfirmar(undefined, hoy)).toBe(true)
-    expect(datosAConfirmar('no es fecha', hoy)).toBe(true)
   })
 
   it('diasDesde tolera entradas raras y nunca da negativo', () => {

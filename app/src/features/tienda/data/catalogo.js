@@ -52,9 +52,11 @@ export async function pedirAjustes() {
 }
 
 // Datos que casi no cambian: se muestran de la caché propia mientras llegan los nuevos.
-function useConCache(clave, pedir) {
+// `edadMaxMs`: pasado ese tiempo la copia guardada no se usa. Es lo que evita mostrar una cuenta de transferencia vieja sin conexión.
+function useConCache(clave, pedir, edadMaxMs = Infinity) {
   const [estado, setEstado] = useState(() => {
-    const c = leerCache(clave, supabaseUrl)
+    const guardada = leerCache(clave, supabaseUrl)
+    const c = guardada && Date.now() - guardada.t <= edadMaxMs ? guardada : null
     return { datos: c?.datos ?? null, desde: c?.t ?? null, cargando: true, error: null, enCache: Boolean(c) }
   })
   useEffect(() => {
@@ -72,8 +74,11 @@ function useConCache(clave, pedir) {
   return estado
 }
 
-export const useAjustes = () => useConCache('ajustes', pedirAjustes)
-export const useConfigTienda = () => useConCache('config', pedirConfig)
+// Incluye la cotización: se muestra con su fecha, pero una copia de más de 6 horas no se usa.
+export const useAjustes = () => useConCache('ajustes', pedirAjustes, 6 * 3600000)
+// La configuración incluye la cuenta de transferencia, que cambia cada 2 meses: su copia local vale 1 hora como máximo.
+const HORA_MS = 3600000
+export const useConfigTienda = () => useConCache('config', pedirConfig, HORA_MS)
 
 // Productos del carrito al día. `listo` es falso mientras se consulta o si la consulta falló (no se confía en datos viejos).
 export function useVigentes(ids) {

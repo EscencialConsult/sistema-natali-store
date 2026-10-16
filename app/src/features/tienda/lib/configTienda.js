@@ -53,12 +53,6 @@ export function diasDesde(iso, ahora = Date.now()) {
   return Number.isFinite(t) ? Math.max(0, Math.floor((ahora - t) / 86400000)) : null
 }
 
-// Sin fecha, o con más de 60 días, los datos de la cuenta se consideran "a confirmar".
-export const datosAConfirmar = (actualizadoEn, ahora = Date.now()) => {
-  const d = diasDesde(actualizadoEn, ahora)
-  return d === null || d > DIAS_ALIAS_VIGENTE
-}
-
 export const formatearCuit = (digitos) => (/^\d{11}$/.test(digitos ?? '') ? `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos.slice(10)}` : digitos ?? '')
 
 export function validarTransferencia(obj) {

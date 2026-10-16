@@ -9,7 +9,7 @@ Hola Renzo, te cuento qué hice sobre tu sistema para sumarle el catálogo onlin
 **Qué hice**
 - Rama `feature/tienda-online`, que sale de tu `main`. No modifiqué ninguna tabla, función, política ni dato tuyo: solo agrego objetos nuevos con prefijo `tienda_` (dos tablas y dos vistas públicas).
 - Tu sistema pasa a vivir en `/admin` (con `basename`) y la raíz del sitio es la tienda. Los QR viejos que apuntan a `/c` redirigen a la tienda.
-- Toqué solo cuatro archivos tuyos y están anotados en `Docs/tienda/CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`: `App.jsx`, `AjustesPage.jsx` (una tarjeta nueva y un texto), `vite.config.js` (manifiesto de la app) y `_redirects`. También reemplacé los íconos de la app por el logo real.
+- Toqué solo cuatro archivos tuyos y están anotados en `Docs/tienda/CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`: `App.jsx`, `AjustesPage.jsx` (un bloque que muestra el Gestor web solo al superadmin, y un texto), `vite.config.js` (manifiesto de la app) y `_redirects`. También reemplacé los íconos de la app por el logo real.
 - Probé el esquema contra tu base en modo solo lectura: se aplicó dentro de una transacción y se revirtió, y tus objetos quedaron idénticos. Tus 118 tests pasan.
 
 **Lo que necesito de vos**

@@ -51,4 +51,4 @@ Nunca a mano. `app/scripts/aplicar-tienda.mjs` hace, en una sola transacción:
 
 ## Cómo se retira la tienda
 
-Solo con OK explícito, porque borra objetos de la tienda (nunca de Renzo): quitar la ruta `/tienda` del código y, si hace falta, retirar las dos vistas y las dos tablas `tienda_*`. Los datos de `tienda_config` son lo único que se pierde.
+Solo con OK explícito, porque borra objetos de la tienda (nunca de Renzo): volver `App.jsx` a como estaba y, si hace falta, retirar las dos vistas y las dos tablas `tienda_*`. Los datos de `tienda_config` son lo único que se pierde.

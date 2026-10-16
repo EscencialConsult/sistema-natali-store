@@ -23,8 +23,8 @@ Método: etapas con tareas y pasos tachables. `[ ]` pendiente · `[~]` en curso 
 
 | # | Decisión | Motivo |
 |---|---|---|
-| D1 | **No se extiende `/c`.** Se crean rutas `/tienda/*`. `/c` queda intacto | `/c` depende del caché local y del `SyncRunner` con usuario: un navegador anónimo no obtiene catálogo |
-| D2 | `/tienda/*` se monta **antes** de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (edición mínima en `App.jsx`) | `prepararBase` puede borrar `modas-naty`; `SyncRunner` puede enviar pendientes |
+| D1 | **No se extiende `/c`.** La tienda vive en la raíz `/` (antes se pensó `/tienda`, ver D20) y `/c` solo redirige a `/` | `/c` depende del caché local y del `SyncRunner` con usuario: un navegador anónimo no obtiene catálogo |
+| D2 | La tienda pública se monta **antes** de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (edición mínima en `App.jsx`) | `prepararBase` puede borrar `modas-naty`; `SyncRunner` puede enviar pendientes |
 | D3 | **Cliente Supabase público propio**: `persistSession:false`, `autoRefreshToken:false`, `detectSessionInUrl:false` | El cliente de Renzo hereda la sesión interna |
 | D4 | "Publicado" = producto activo con al menos una foto. Tabla `tienda_oculto(producto_id uuid pk)` **sin FK**, para ocultar | Evita tocar su ficha de producto y evita triggers sobre `naty_productos`. Ocultar es **editorial, no confidencial**: `naty_catalogo_publico` y el bucket siguen públicos |
 | D5 | **Sin disponibilidad ni stock en V1.** El vendedor confirma al responder | El agregado sobre movimientos filtra stock indirecto y agrega costo sin medir |
@@ -114,7 +114,7 @@ Criterio cumplido en local: diff `naty_*` vacío, rollback limpio y matriz de ro
 ## Etapa E2 · Rutas públicas y catálogo (8 h)
 Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total, lint limpio, build OK, el chunk de la tienda pesa 15 kB y se carga solo en `/tienda`). Todavía **no se vio contra datos reales en un navegador**: las vistas `tienda_*` no existen en producción hasta E9, y el dry-run ya las validó con los 45 productos reales.
 
-- [x] E2.1 (15/10) Edición mínima en `App.jsx`: `/tienda` y subrutas se montan antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (carga diferida). Registrada en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
+- [x] E2.1 (15/10) Edición mínima en `App.jsx`: la tienda (raíz `/`) y sus subrutas se montan antes de `Arranque`, `AuthProvider`, `PrimeraCarga` y `SyncRunner` (carga diferida). Registrada en `CAMBIOS-EN-ARCHIVOS-DE-RENZO.md`.
 - [x] E2.2 (15/10) `features/tienda/data/clientePublico.js` (sin sesión, sin renovación, sin leer la URL) y repositorio. **Ajustado en E7**: el catálogo se trae completo en una consulta (tope de 1000 modelos) y se filtra, cuenta y ordena en el navegador, porque la referencia pide total de modelos, conteos por categoría y orden. Con unas decenas o pocas centenas de modelos es más simple y rápido que paginar.
 - [x] E2.3 (15/10) Fotos absolutas y relativas al bucket. Solo se aceptan `https`; el resto se descarta.
 - [x] E2.4 (15/10) `precioPublico()` importa las funciones de Renzo y hereda su redondeo. Precio oculto es "a consultar", tasa inválida deja solo USD, tasa de ejemplo muestra solo USD.
@@ -125,7 +125,7 @@ Estado 15/10: **hecha en código y verificada** (18 pruebas nuevas, 155 en total
 - [~] E2.8 Título por producto hecho. **Falta** la vista previa al compartir por WhatsApp: en una SPA necesita una función de servidor o prerender. Decisión pendiente para E7 o E9.
 - [x] E2.9 (15/10) Pruebas: rutas, precios (incluido el caso 101 centavos por 1,5), fotos con protocolos peligrosos, filtros, paginación, caché rota y enlace de WhatsApp.
 
-Criterio: un navegador limpio carga `/tienda` sin tocar la base local de Renzo (cumplido por construcción), y el precio coincide con la nota (cumplido en pruebas; falta verlo en pantalla con datos reales).
+Criterio: un navegador limpio carga la tienda (`/`) sin tocar la base local de Renzo (cumplido por construcción), y el precio coincide con la nota (cumplido en pruebas; falta verlo en pantalla con datos reales).
 
 ## Etapa E3 · Pedido y contacto con el vendedor (8 h)
 Estado 15/10: **hecha en código y verificada** (17 pruebas nuevas, 172 en total, lint limpio, build OK, el chunk de la tienda pasó a 31 kB). Igual que E2, falta verla en un navegador con datos reales, que depende de aplicar el esquema (E9).
@@ -246,7 +246,7 @@ Requiere OK de Facundo **y** de Renzo. El procedimiento paso a paso, con comando
 - [ ] E9.3 Deploy preview en Netlify con variables en el panel, nunca en git. Despliegue sin forzar actualización del service worker.
 - [ ] E9.4 Recorrido con Natali en celular real.
 - [ ] E9.5 Natali carga `url_catalogo` definitiva y se verifica el QR en una nota real.
-- [ ] E9.6 Rollback documentado: retirar la ruta `/tienda` (revertir `App.jsx`), conservar inicialmente los objetos `tienda_*`, no tocar `/c`.
+- [ ] E9.6 Rollback documentado: volver `App.jsx` a como estaba (el sistema vuelve a la raíz), conservar inicialmente los objetos `tienda_*`, no tocar `/c`.
 - [ ] E9.7 PR a `main` para revisión de Renzo.
 
 ---
