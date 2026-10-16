@@ -196,3 +196,38 @@ describe('textos en líneas', () => {
     expect(PASOS_POR_DEFECTO.join(' ')).toMatch(/media docena/i)
   })
 })
+
+describe('enlace "Cómo llegar"', () => {
+  it('usa el mapa cargado si es de Google Maps, y si no busca la dirección', async () => {
+    const { enlaceComoLlegar } = await import('../lib/configTienda.js')
+    expect(enlaceComoLlegar({ mapa: 'https://maps.app.goo.gl/abc', direccion: 'Calle 1' })).toBe('https://maps.app.goo.gl/abc')
+    expect(enlaceComoLlegar({ mapa: 'https://malo.test/x', direccion: 'Calle 1 & 2, Bermejo' })).toBe(
+      'https://www.google.com/maps/search/?api=1&query=Calle%201%20%26%202%2C%20Bermejo',
+    )
+    expect(enlaceComoLlegar({ direccion: '' })).toBeNull()
+    expect(enlaceComoLlegar(null)).toBeNull()
+  })
+
+  it('cada pregunta frecuente pertenece a un tema que existe', async () => {
+    const { PREGUNTAS_FRECUENTES, TEMAS_AYUDA } = await import('../lib/configTienda.js')
+    const ids = TEMAS_AYUDA.map((t) => t.id)
+    for (const f of PREGUNTAS_FRECUENTES) expect(ids).toContain(f.tema)
+    for (const id of ids) expect(PREGUNTAS_FRECUENTES.some((f) => f.tema === id)).toBe(true)
+  })
+})
+
+describe('coordenadas de los locales', () => {
+  it('acepta lat y lng válidas, también con coma decimal', () => {
+    const r = validarLocales([{ nombre: 'Local', lat: '-17,7834', lng: -63.1821 }])
+    expect(r.errores).toEqual([])
+    expect(r.valor[0]).toMatchObject({ lat: -17.7834, lng: -63.1821 })
+  })
+  it('sin coordenadas no agrega las claves', () => {
+    const r = validarLocales([{ nombre: 'Local', direccion: 'Calle 1' }])
+    expect(r.valor[0]).not.toHaveProperty('lat')
+  })
+  it('rechaza una sola coordenada o fuera de rango', () => {
+    expect(validarLocales([{ nombre: 'L', lat: '-17.7' }]).errores.join(' ')).toMatch(/latitud y la longitud/)
+    expect(validarLocales([{ nombre: 'L', lat: '95', lng: '10' }]).errores.length).toBe(1)
+  })
+})

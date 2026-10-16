@@ -17,6 +17,7 @@
     "exceljs": "^4.4.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.53.0",
+    "maplibre-gl": "^6.14.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

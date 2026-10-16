@@ -36,3 +36,6 @@ export async function marcarOculto(productoId, oculto) {
   const { error } = await sb.from('tienda_oculto').upsert({ producto_id: productoId, oculto }, { onConflict: 'producto_id' })
   if (error) throw error
 }
+
+// Identidad estable para cada fila editable (no viaja al guardar: los validadores la descartan).
+export const conClave = (fila) => ({ ...fila, _k: globalThis.crypto?.randomUUID?.() ?? `k${Math.random().toString(36).slice(2)}` })

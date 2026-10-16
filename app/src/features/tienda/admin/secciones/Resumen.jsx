@@ -12,10 +12,10 @@ const ETIQUETA_ESTADO = {
 }
 
 const Caja = ({ titulo, pestana, irA, children }) => (
-  <section className="flex flex-col gap-3 rounded-tarjeta border border-borde/70 bg-superficie p-4 shadow-tarjeta">
+  <section className="flex flex-col gap-3 border-t border-borde pt-4">
     <div className="flex items-baseline justify-between gap-3">
       <h3 className="text-base font-semibold">{titulo}</h3>
-      {pestana && <button type="button" onClick={() => irA(pestana)} className="min-h-11 text-sm text-tinta underline-offset-4 hover:underline">Editar</button>}
+      {pestana && <button type="button" onClick={() => irA(pestana)} className="min-h-11 min-w-11 text-sm text-tinta underline-offset-4 hover:underline">Editar</button>}
     </div>
     <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</dl>
   </section>
@@ -37,7 +37,7 @@ export default function Resumen({ resumen: r, irA }) {
           {alertas.map((a) => (
             <li key={a.id} className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0 flex-1"><Aviso nivel={a.nivel}>{a.texto}</Aviso></div>
-              {a.pestana && <button type="button" onClick={() => irA(a.pestana)} className="min-h-11 shrink-0 text-sm text-tinta underline-offset-4 hover:underline">Resolver</button>}
+              {a.pestana && <button type="button" onClick={() => irA(a.pestana)} className="min-h-11 min-w-11 shrink-0 text-sm text-tinta underline-offset-4 hover:underline">Resolver</button>}
             </li>
           ))}
         </ul>

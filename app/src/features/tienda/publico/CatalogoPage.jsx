@@ -4,10 +4,12 @@ import { Search, SearchX, WifiOff } from 'lucide-react'
 import { EmptyState, Skeleton } from '../../../components/ui/index.js'
 import { guardarScroll, leerScroll, useCatalogoCompleto } from '../data/catalogo.js'
 import { useAjustesTienda } from '../contexto.js'
-import { contarPorCategoria, filtrarYOrdenar, ORDENES, textoModelos } from '../lib/catalogo.js'
+import { contarPorCategoria, filtrarYOrdenar, ORDENES, paginar, paginaDesdeTexto, textoModelos, textoRango } from '../lib/catalogo.js'
+import MenuOrden from './MenuOrden.jsx'
+import Paginador from './Paginador.jsx'
 import TarjetaProducto from './TarjetaProducto.jsx'
 
-// El estado del catálogo vive en la dirección (?q=…&categoria=…&orden=…): el botón "atrás" desde una ficha lo recupera
+// El estado del catálogo vive en la dirección (?q=…&categoria=…&orden=…&pagina=…): el botón "atrás" desde una ficha lo recupera
 // tal cual, y el enlace "Catálogo" del menú siempre arranca limpio.
 export default function CatalogoPage() {
   const [params, setParams] = useSearchParams()
@@ -24,6 +26,8 @@ export default function CatalogoPage() {
     setParams(
       (anterior) => {
         const nuevo = new URLSearchParams(anterior)
+        // Cambiar búsqueda, categoría u orden vuelve a la página 1; solo ?pagina= conserva la que se pide.
+        if (!('pagina' in cambios)) nuevo.delete('pagina')
         for (const [k, v] of Object.entries(cambios)) {
           if (v) nuevo.set(k, v)
           else nuevo.delete(k)
@@ -53,6 +57,22 @@ export default function CatalogoPage() {
   const categorias = useMemo(() => contarPorCategoria(items), [items])
   const lista = useMemo(() => filtrarYOrdenar(items, { texto: q, categoriaId, orden }), [items, q, categoriaId, orden])
   const visible = !c.cargando && items.length > 0
+  const paginacion = useMemo(() => paginar(lista, paginaDesdeTexto(params.get('pagina'))), [lista, params])
+  const pagina = paginacion.pagina
+
+  // Al cambiar de página se vuelve al inicio de la grilla (no al principio de todo): se ve de nuevo la primera fila.
+  const inicioGrilla = useRef(null)
+  const subirAlCambiar = useRef(false)
+  useEffect(() => {
+    if (!subirAlCambiar.current) return
+    subirAlCambiar.current = false
+    const caja = inicioGrilla.current
+    if (caja) window.scrollTo(0, Math.max(0, caja.getBoundingClientRect().top + window.scrollY - 16))
+  }, [pagina])
+  const irAPagina = (n) => {
+    subirAlCambiar.current = true
+    actualizar({ pagina: n > 1 ? String(n) : '' })
+  }
 
   // Posición: al volver (atrás) se restaura; al entrar por un enlace se empieza arriba.
   const resuelto = useRef(false)
@@ -116,17 +136,10 @@ export default function CatalogoPage() {
 
           <section aria-label="Modelos" className="flex min-w-0 flex-col gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="t-suave text-sm" aria-live="polite">{visible ? textoModelos(lista.length) : ' '}</p>
-              <label className="flex items-center gap-2 text-sm">
-                <span className="t-suave">Ordenar</span>
-                <select
-                  value={orden}
-                  onChange={(e) => actualizar({ orden: e.target.value === 'novedades' ? '' : e.target.value })}
-                  className="min-h-10 rounded-xl border border-(--t-beige) bg-white/70 px-3"
-                >
-                  {ORDENES.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
-                </select>
-              </label>
+              <p className="t-suave text-sm" aria-live="polite">
+                {visible ? (paginacion.totalPaginas > 1 ? textoRango(paginacion) : textoModelos(lista.length)) : ' '}
+              </p>
+              <MenuOrden opciones={ORDENES} valor={orden} onCambiar={(v) => actualizar({ orden: v === 'novedades' ? '' : v })} />
             </div>
 
             {c.desdeCache && (
@@ -155,9 +168,12 @@ export default function CatalogoPage() {
             )}
 
             {lista.length > 0 && (
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-                {lista.map((p) => <TarjetaProducto key={p.id} producto={p} ajustes={ajustes} />)}
-              </ul>
+              <>
+                <ul ref={inicioGrilla} className="grid scroll-mt-4 grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                  {paginacion.items.map((p) => <TarjetaProducto key={p.id} producto={p} ajustes={ajustes} />)}
+                </ul>
+                <Paginador paginacion={paginacion} onIr={irAPagina} />
+              </>
             )}
           </section>
         </div>

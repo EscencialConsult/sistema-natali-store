@@ -34,11 +34,12 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <form onSubmit={entrar} noValidate className={`${TARJETA} flex w-full max-w-sm flex-col gap-5 p-6 sm:p-8`}>
-        <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex flex-col items-center gap-4 text-center">
           <MarcaIcono tamano="lg" />
           <div>
-            <h1 className="text-2xl">{nombre}</h1>
-            <p className="text-sm text-texto-suave">Ingresá con tu usuario y contraseña.</p>
+            <h1 className="sr-only">{nombre}</h1>
+            <p className="text-sm uppercase tracking-[0.14em] text-texto-suave">Sistema de ventas y stock</p>
+            <p className="mt-1 text-sm text-texto-suave">Ingresá con tu usuario y contraseña.</p>
           </div>
         </div>
         <Input etiqueta="Usuario" autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus value={usuario} onChange={(e) => setUsuario(e.target.value)} />

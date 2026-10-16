@@ -3,13 +3,15 @@ import { Check, Copy, ExternalLink } from 'lucide-react'
 
 function Fila({ nombre, ayuda, url }) {
   const [copiado, setCopiado] = useState(false)
+  const [fallo, setFallo] = useState(false)
   const copiar = async () => {
     try {
       await navigator.clipboard.writeText(url)
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2000)
     } catch {
-      /* sin portapapeles: la dirección queda a la vista para copiarla a mano */
+      setFallo(true)
+      setTimeout(() => setFallo(false), 4000)
     }
   }
   return (
@@ -22,12 +24,13 @@ function Fila({ nombre, ayuda, url }) {
           <button type="button" onClick={copiar} className="inline-flex min-h-11 items-center gap-1.5 text-sm text-tinta">
             {copiado ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />} {copiado ? 'Copiada' : 'Copiar'}
           </button>
+          <span role="status" className="text-sm text-texto-suave">{copiado ? 'Dirección copiada' : fallo ? 'No se pudo copiar: seleccioná la dirección y copiala a mano.' : ''}</span>
           <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-tinta">
             <ExternalLink size={16} aria-hidden /> Abrir
           </a>
         </div>
       ) : (
-        <span className="text-sm text-texto-suave">— sin cargar —</span>
+        <span className="text-sm text-texto-suave">Todavía sin cargar: se define en Ajustes, «Catálogo y código QR».</span>
       )}
     </li>
   )

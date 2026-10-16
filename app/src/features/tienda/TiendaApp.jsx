@@ -3,15 +3,16 @@ import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-route
 import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
 import { useAjustes, useConfigTienda } from './data/catalogo.js'
-import { validarContactos } from './lib/configTienda.js'
+import { validarContactos, validarLocales } from './lib/configTienda.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
 import { BASE_ADMIN, RUTA_AYUDA, RUTA_CATALOGO, RUTA_CONTACTO, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO, RUTA_QUIENES_SOMOS, RUTAS_ANTERIORES } from './rutas.js'
 import CatalogoPage from './publico/CatalogoPage.jsx'
-import { DecorCatalogo, DecorInicio } from './publico/Decoraciones.jsx'
+import { DecorCatalogo } from './publico/Decoraciones.jsx'
 import HomePage from './publico/HomePage.jsx'
 import { AyudaPage, ContactoPage, QuienesSomosPage } from './publico/InfoPages.jsx'
+import Pie from './publico/Pie.jsx'
 import PedidoPage from './publico/PedidoPage.jsx'
 import ProductoPage from './publico/ProductoPage.jsx'
 import './tienda.css'
@@ -37,6 +38,7 @@ function Marco({ children }) {
   const config = useConfigTienda().datos
   const principal = ajustes?.whatsapp_tienda || validarContactos(config?.contactos).valor[0]?.telefono
   const wa = enlaceWhatsApp(principal)
+  const locales = validarLocales(config?.locales).valor
   const cantidadModelos = useCarrito().lineas.length
   const { pathname } = useLocation()
 
@@ -57,7 +59,6 @@ function Marco({ children }) {
       <div className="tienda relative flex min-h-dvh flex-col overflow-x-clip">
         {/* Capa decorativa a todo el ancho, por detrás de todo: las manchas se pegan a los bordes de la pantalla. */}
         <div className="t-decor absolute inset-x-0 top-0 z-0 h-[44rem] overflow-hidden" aria-hidden="true">
-          {pathname === RUTA_INICIO && <DecorInicio />}
           {pathname === RUTA_CATALOGO && <DecorCatalogo />}
         </div>
         <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">
@@ -97,15 +98,7 @@ function Marco({ children }) {
           </a>
         )}
 
-        <footer className="bg-(--t-vino) px-4 py-10 text-center text-sm text-white/80">
-          <p className="font-titulo text-lg font-semibold text-white">{nombre}</p>
-          <p className="mt-1">Catálogo mayorista</p>
-          <nav aria-label="Información" className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-1">
-            {ENLACES.map((e) => <Link key={e.a} to={e.a} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">{e.texto}</Link>)}
-            {/* Enlace normal (no del router): el sistema del equipo es otra aplicación y se carga aparte. */}
-            <a href={`${BASE_ADMIN}/`} className="inline-flex min-h-11 items-center text-white/60 underline-offset-4 hover:underline">Acceso del equipo</a>
-          </nav>
-        </footer>
+        <Pie nombre={nombre} enlaces={ENLACES} locales={locales} whatsapp={wa} />
       </div>
     </AjustesTienda.Provider>
   )

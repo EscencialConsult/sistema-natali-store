@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
-import { Ellipsis, LogOut } from 'lucide-react'
+import { Ellipsis, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import Logo from '../components/Logo.jsx'
 import { Avatar, Sheet, Skeleton, useToast } from '../components/ui/index.js'
@@ -13,15 +13,18 @@ import ErrorBoundary from './ErrorBoundary.jsx'
 import { PANTALLAS, repartirBarra } from './navegacion.js'
 
 
-function ItemLateral({ pantalla, onClick }) {
+function ItemLateral({ pantalla, onClick, compacto = false }) {
   const Icono = pantalla.icono
   return (
     <NavLink
       to={pantalla.ruta}
       onClick={onClick}
+      title={compacto ? pantalla.etiqueta : undefined}
+      aria-label={compacto ? pantalla.etiqueta : undefined}
       className={({ isActive }) =>
         cn(
           'group flex min-h-11 items-center gap-3 rounded-control px-3 text-[0.9375rem] transition-colors duration-150',
+          compacto && 'justify-center px-0',
           isActive ? 'bg-tinte font-medium text-sobre-tinte' : 'text-texto-suave hover:bg-superficie-2 hover:text-texto',
         )
       }
@@ -29,7 +32,7 @@ function ItemLateral({ pantalla, onClick }) {
       {({ isActive }) => (
         <>
           <Icono size={20} strokeWidth={isActive ? 2 : 1.75} aria-hidden className={isActive ? 'text-tinta' : ''} />
-          {pantalla.etiqueta}
+          {!compacto && pantalla.etiqueta}
         </>
       )}
     </NavLink>
@@ -52,8 +55,27 @@ function ItemBarra({ pantalla }) {
   )
 }
 
+const CLAVE_MENU = 'mn-menu-minimizado'
+const leerMenuMinimizado = () => {
+  try {
+    return localStorage.getItem(CLAVE_MENU) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function Layout() {
   const { usuario, cerrarSesion: cerrar } = useAuth()
+  const [minimizado, setMinimizado] = useState(leerMenuMinimizado)
+  const alternarMenu = () =>
+    setMinimizado((m) => {
+      try {
+        localStorage.setItem(CLAVE_MENU, m ? '0' : '1')
+      } catch {
+        /* sin almacenamiento: el menú igual se minimiza en esta sesión */
+      }
+      return !m
+    })
   const avisar = useToast()
   const cerrarSesion = async () => {
     const r = await cerrar()
@@ -72,21 +94,33 @@ export default function Layout() {
   const masActivo = enMas.some((p) => p === actual)
 
   return (
-    <div className="min-h-dvh md:pl-64">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-borde bg-superficie md:flex">
-        <div className="px-5 pb-6 pt-6">
-          <Logo conBajada />
+    <div className={cn('min-h-dvh transition-[padding] duration-200', minimizado ? 'md:pl-[4.75rem]' : 'md:pl-64')}>
+      <aside className={cn('fixed inset-y-0 left-0 hidden flex-col border-r border-borde bg-superficie transition-[width] duration-200 md:flex', minimizado ? 'w-[4.75rem]' : 'w-64')}>
+        <div className={cn('pb-6 pt-6', minimizado ? 'flex justify-center px-2' : 'px-5')}>
+          {minimizado ? <Logo soloMarca className="[&_img]:h-auto [&_img]:w-12" /> : <Logo conBajada />}
         </div>
-        <p className="px-6 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-texto-tenue">Menú</p>
+        {!minimizado && <p className="px-6 pb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-texto-tenue">Menú</p>}
         <nav aria-label="Principal" className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
-          {visibles.map((p) => <ItemLateral key={p.ruta} pantalla={p} />)}
+          {visibles.map((p) => <ItemLateral key={p.ruta} pantalla={p} compacto={minimizado} />)}
         </nav>
-        <div className="m-3 flex items-center gap-3 rounded-tarjeta bg-superficie-2 p-3">
-          <Avatar nombre={usuario.nombre} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{usuario.nombre}</p>
-            <p className="truncate text-xs text-texto-suave">{ROLES[usuario.rol]}</p>
-          </div>
+        <button
+          type="button"
+          onClick={alternarMenu}
+          aria-pressed={minimizado}
+          aria-label={minimizado ? 'Expandir el menú' : 'Minimizar el menú'}
+          title={minimizado ? 'Expandir el menú' : 'Minimizar el menú'}
+          className={cn('mx-3 mt-2 flex min-h-11 items-center gap-3 rounded-control px-3 text-sm text-texto-suave transition-colors hover:bg-superficie-2 hover:text-texto', minimizado && 'justify-center px-0')}
+        >
+          {minimizado ? <PanelLeftOpen size={20} strokeWidth={1.75} aria-hidden /> : <><PanelLeftClose size={20} strokeWidth={1.75} aria-hidden /> Minimizar</>}
+        </button>
+        <div className={cn('mx-3 mb-3 mt-2 flex items-center border-t border-borde', minimizado ? 'flex-col gap-1 pt-3' : 'gap-3 pt-4')}>
+          <span title={`${usuario.nombre} · ${ROLES[usuario.rol]}`}><Avatar rol={usuario.rol} /></span>
+          {!minimizado && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{usuario.nombre}</p>
+              <p className="truncate text-xs text-texto-suave">{ROLES[usuario.rol]}</p>
+            </div>
+          )}
           <button type="button" onClick={cerrarSesion} aria-label="Salir" title="Salir" className="flex size-11 shrink-0 items-center justify-center rounded-control text-texto-suave transition-colors hover:bg-superficie hover:text-texto">
             <LogOut size={18} strokeWidth={1.75} aria-hidden />
           </button>
@@ -132,7 +166,7 @@ export default function Layout() {
       <Sheet abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Más opciones">
         <div className="flex flex-col gap-1">
           <div className="mb-3 flex items-center gap-3 rounded-tarjeta bg-superficie-2 p-3">
-            <Avatar nombre={usuario.nombre} />
+            <Avatar rol={usuario.rol} />
             <div className="min-w-0">
               <p className="truncate font-medium">{usuario.nombre}</p>
               <p className="truncate text-sm text-texto-suave">{ROLES[usuario.rol]}</p>

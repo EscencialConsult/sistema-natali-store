@@ -21,12 +21,16 @@ export default function Textos({ config, soloLectura, alGuardar }) {
         const q = validarQuienesSomos(quienes)
         const errores = [...h.errores, ...p.errores, ...q.errores]
         if (errores.length) return errores
-        await guardarClave('horarios', h.valor)
-        await guardarClave('como_comprar', p.valor)
-        await guardarClave('quienes_somos', q.valor)
-        alGuardar?.('horarios', h.valor)
-        alGuardar?.('como_comprar', p.valor)
-        alGuardar?.('quienes_somos', q.valor)
+        // Cada clave se guarda por separado: el resumen se actualiza apenas una queda guardada y, si falla una, se sabe cuál.
+        const claves = [['horarios', h.valor, 'los horarios'], ['como_comprar', p.valor, '«Cómo comprar»'], ['quienes_somos', q.valor, '«Quiénes somos»']]
+        for (const [clave, valor, nombre] of claves) {
+          try {
+            await guardarClave(clave, valor)
+            alGuardar?.(clave, valor)
+          } catch {
+            return [`No se pudo guardar ${nombre}. Lo anterior sí quedó guardado; revisá la conexión y volvé a tocar Guardar.`]
+          }
+        }
         return []
       }}
     >

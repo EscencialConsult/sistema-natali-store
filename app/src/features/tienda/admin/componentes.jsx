@@ -1,7 +1,8 @@
 // Piezas de interfaz compartidas por las secciones del Gestor web. Mismo aspecto que las tarjetas de Ajustes de Renzo.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, useToast } from '../../../components/ui/index.js'
+import { conClave } from './api.js'
 
 const NIVELES = {
   alta: 'bg-error-fondo text-error',
@@ -42,10 +43,10 @@ export function Tarjeta({ titulo, ayuda, onGuardar, soloLectura, children }) {
         <h3 className="text-lg">{titulo}</h3>
         {ayuda && <p className="text-sm text-texto-suave">{ayuda}</p>}
       </div>
-      <fieldset disabled={soloLectura} className="flex flex-col gap-4">{children}</fieldset>
+      <fieldset disabled={soloLectura || guardando} className="flex flex-col gap-4">{children}</fieldset>
       {errores.length > 0 && (
         <ul role="alert" className="flex flex-col gap-1 rounded-control bg-error-fondo p-3 text-sm text-error">
-          {errores.map((m) => <li key={m}>{m}</li>)}
+          {errores.map((m, i) => <li key={`${i}-${m}`}>{m}</li>)}
         </ul>
       )}
       {!soloLectura && <Button type="submit" cargando={guardando} className="self-start">Guardar</Button>}
@@ -55,18 +56,28 @@ export function Tarjeta({ titulo, ayuda, onGuardar, soloLectura, children }) {
 
 // Lista editable de filas con agregar y quitar. `children(fila, cambiar)` dibuja los campos de una fila.
 export function Filas({ filas, setFilas, nueva, max, etiquetaAgregar, children }) {
+  const lista = useRef(null)
+  const quitar = (i) => {
+    setFilas(filas.filter((_, k) => k !== i))
+    requestAnimationFrame(() => {
+      const cajas = lista.current?.querySelectorAll(':scope > [data-fila]') ?? []
+      const destino = cajas[i] ?? cajas[i - 1]
+      const foco = destino?.querySelector('input, textarea, select') ?? lista.current?.querySelector('[data-agregar]')
+      foco?.focus()
+    })
+  }
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={lista} className="flex flex-col gap-4">
       {filas.map((f, i) => (
-        <div key={i} className="flex flex-col gap-3 rounded-control border border-borde/70 p-3">
+        <div key={f._k ?? i} data-fila className="flex flex-col gap-3 rounded-control border border-borde/70 p-3">
           {children(f, (campo, valor) => setFilas(filas.map((x, k) => (k === i ? { ...x, [campo]: valor } : x))))}
-          <button type="button" onClick={() => setFilas(filas.filter((_, k) => k !== i))} className="inline-flex min-h-11 items-center gap-2 self-start text-sm text-texto-suave hover:text-tinta">
+          <button type="button" onClick={() => quitar(i)} className="inline-flex min-h-11 items-center gap-2 self-start text-sm text-texto-suave hover:text-tinta">
             <Trash2 size={16} aria-hidden /> Quitar
           </button>
         </div>
       ))}
       {filas.length < max && (
-        <Button type="button" variante="secundario" icono={Plus} onClick={() => setFilas([...filas, nueva()])} className="self-start">{etiquetaAgregar}</Button>
+        <Button type="button" variante="secundario" icono={Plus} data-agregar onClick={() => setFilas([...filas, conClave(nueva())])} className="self-start">{etiquetaAgregar}</Button>
       )}
     </div>
   )

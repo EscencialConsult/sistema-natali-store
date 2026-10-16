@@ -33,7 +33,8 @@ export default defineConfig({
         // La app completa (código, estilos, fuentes, íconos) queda guardada: abre y vende sin internet.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // La librería de Excel pesa ~1 MB y solo se usa en cargas masivas: se guarda la primera vez que se usa.
-        globIgnores: ['**/exceljs*.js'],
+        // El mapa de la tienda pública (MapLibre y su worker, ~1,5 MB) tampoco: el equipo no lo usa desde la app instalada.
+        globIgnores: ['**/exceljs*.js', '**/MapaLibre*.{js,css}', '**/maplibre-gl*.js'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [

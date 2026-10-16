@@ -12,6 +12,14 @@ Los archivos **nuevos** que no pisan nada de él se anotan en la segunda tabla.
 | 3 | `app/public/icons/*.png` y `favicon` | Reemplazar los íconos "MN" por el logo real de Modas Naty | Coherencia de marca: el logo real nunca llegó al sistema de Renzo (E4b) | Restaurar los 4 PNG desde git | **Hecho 15/10** (E4b.5): 4 PNG reemplazados por los de la tienda y `favicon.svg` con el logo real embebido |
 | 4 | `app/vite.config.js` | Manifiesto de la app instalada: `id`, `start_url` y `scope` pasan de `/` a `/admin/` | D20 y D21: la raíz es la tienda pública | Volver a `'/'` los tres valores | **Hecho 15/10** |
 | 5 | `app/public/_redirects` | Línea `/c  /  301` antes del comodín | Los QR ya impresos apuntaban a `/c` | Quitar la línea | **Hecho 15/10** |
+| 6 | `app/src/components/Logo.jsx`, `useMarca.js` | Sin logo propio cargado, se muestra el logo real de Modas Naty (imagotipo e isotipo de `app/public/brand`) en vez del monograma | Coherencia de marca en login, menú y barra superior; pedido del dueño 15/10 | Restaurar los dos archivos desde git | **Hecho 15/10** |
+| 7 | `app/src/components/ui/Avatar.jsx` y los 5 lugares donde se usa (`Layout`, `ComisionesPage`, `DashboardPage`, `UsuariosPage`) | El avatar muestra un ícono según el rol en vez de las iniciales | Pedido del dueño 15/10 | Restaurar los archivos | **Hecho 15/10** |
+| 8 | `app/src/app/Layout.jsx` | Menú lateral minimizable (se recuerda en el navegador) | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
+| 9 | `app/src/app/ConexionPildora.jsx` | Indicador de conexión discreto (punto y palabra) en lugar de la insignia de color | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
+| 10 | `app/src/features/auth/LoginPage.jsx` | Pantalla de ingreso con el logo real | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
+| 11 | `app/src/features/ajustes/AjustesPage.jsx` (ampliación) | Dos pestañas para el superadmin: «Ajustes generales» y «Gestor web». Muestra el logo de fábrica en la tarjeta del logo | Pedido del dueño 15/10 | Restaurar el archivo y la línea del import | **Hecho 15/10** |
+| 12 | `app/src/components/ui/Tabs.jsx` | Navegación con flechas, Inicio y Fin; alto mínimo de 44 px (antes 40). Se nota en todas las pantallas que usan pestañas | Accesibilidad, hallazgo del duelo de IA 15/10 | Restaurar el archivo | **Hecho 15/10** |
+| 13 | `app/vite.config.js` (ampliación) | `globIgnores` excluye del precaché el mapa de la tienda (`MapaLibre*`, `maplibre-gl*`) | Que la app instalada del equipo no descargue 1,5 MB que no usa | Quitar esos dos patrones | **Hecho 15/10** |
 
 ## Archivos nuevos (no pisan nada)
 

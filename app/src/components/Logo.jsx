@@ -2,24 +2,21 @@ import { useEffect } from 'react'
 import { useMarca } from './useMarca.js'
 import { cn } from '../lib/cn.js'
 
-// Sin logo cargado en Ajustes se muestra un monograma con la inicial del negocio.
+// Sin logo propio cargado en Ajustes se muestra el logo de fábrica de Modas Naty (imagotipo e isotipo).
 
-const TAMANO = { md: 'size-9 text-lg rounded-[0.7rem]', lg: 'size-16 text-3xl rounded-[1.1rem]' }
+const TAMANO_PROPIO = { md: 'size-9 rounded-[0.7rem]', lg: 'size-20 rounded-[1.1rem]' }
+const TAMANO_FABRICA = { md: 'h-9 w-auto', lg: 'h-28 w-auto' }
 
-export function MarcaIcono({ className, claro = false, tamano = 'md' }) {
-  const { nombre, logo } = useMarca()
+export function MarcaIcono({ className, tamano = 'md' }) {
+  const { logo, imagotipo, isotipo } = useMarca()
   if (logo) {
     return (
-      <span aria-hidden className={cn('flex shrink-0 items-center justify-center overflow-hidden bg-superficie p-0.5 ring-1 ring-borde', TAMANO[tamano], className)}>
+      <span aria-hidden className={cn('flex shrink-0 items-center justify-center overflow-hidden bg-superficie p-0.5 ring-1 ring-borde', TAMANO_PROPIO[tamano], className)}>
         <img src={logo} alt="" className="max-h-full max-w-full object-contain" />
       </span>
     )
   }
-  return (
-    <span aria-hidden className={cn('flex shrink-0 items-center justify-center font-titulo font-semibold shadow-boton', TAMANO[tamano], claro ? 'bg-sobre-tinta text-tinta' : 'bg-tinta text-sobre-tinta', className)}>
-      {nombre[0].toUpperCase()}
-    </span>
-  )
+  return <img aria-hidden alt="" src={tamano === 'lg' ? imagotipo : isotipo} className={cn('shrink-0 object-contain', TAMANO_FABRICA[tamano], className)} />
 }
 
 export default function Logo({ className, conBajada = false, soloMarca = false }) {

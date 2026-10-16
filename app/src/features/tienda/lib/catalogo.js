@@ -1,4 +1,4 @@
-// Filtros, conteos y orden del catálogo, del lado del cliente. Con unos cientos de modelos es más simple y rápido
+// Filtros, conteos, orden y paginación del catálogo, del lado del cliente. Con unos cientos de modelos es más simple y rápido
 // que paginar en el servidor, y permite mostrar el total y los conteos por categoría.
 
 export const ORDENES = [
@@ -65,3 +65,53 @@ export function filtrarYOrdenar(items, { texto = '', categoriaId = '', orden = '
 }
 
 export const textoModelos = (n) => `${n} ${n === 1 ? 'modelo' : 'modelos'}`
+
+// Paginación. 24 por página: es divisible por 2, 3, 4 y 6, así que la última fila de cada página
+// queda completa en la grilla de celular (2), tablet (3), escritorio (4) y pantallas anchas (6).
+export const POR_PAGINA = 24
+
+export const totalDePaginas = (total, porPagina = POR_PAGINA) => Math.max(1, Math.ceil((Number(total) || 0) / porPagina))
+
+/** Lee ?pagina=: lo que no sea un entero positivo es la página 1, y pasarse del final lleva a la última. */
+export function paginaDesdeTexto(valor, totalPaginas = Infinity) {
+  const n = /^\d{1,6}$/.test(String(valor ?? '').trim()) ? Number(valor) : 1
+  return Math.min(Math.max(1, n), Math.max(1, totalPaginas))
+}
+
+/** @returns {{ items: any[], pagina: number, totalPaginas: number, total: number, desde: number, hasta: number }} desde/hasta son posiciones 1-based (0 y 0 si no hay nada). */
+export function paginar(lista, pagina = 1, porPagina = POR_PAGINA) {
+  const todo = lista ?? []
+  const totalPaginas = totalDePaginas(todo.length, porPagina)
+  const actual = paginaDesdeTexto(pagina, totalPaginas)
+  const inicio = (actual - 1) * porPagina
+  const items = todo.slice(inicio, inicio + porPagina)
+  return {
+    items,
+    pagina: actual,
+    totalPaginas,
+    total: todo.length,
+    desde: items.length ? inicio + 1 : 0,
+    hasta: inicio + items.length,
+  }
+}
+
+/**
+ * Números para el paginador: siempre la primera, la última y las vecinas de la actual; los huecos de
+ * dos o más páginas son `null` (se dibujan como "…") y un hueco de una sola página muestra esa página.
+ */
+export function paginasVisibles(actual, total, vecinas = 1) {
+  if (total <= 1) return [1]
+  const fijas = new Set([1, total])
+  for (let i = actual - vecinas; i <= actual + vecinas; i += 1) if (i >= 1 && i <= total) fijas.add(i)
+  const orden = [...fijas].sort((a, b) => a - b)
+  const salida = []
+  for (const [i, n] of orden.entries()) {
+    const previa = orden[i - 1]
+    if (previa !== undefined && n - previa === 2) salida.push(previa + 1)
+    else if (previa !== undefined && n - previa > 2) salida.push(null)
+    salida.push(n)
+  }
+  return salida
+}
+
+export const textoRango = ({ desde, hasta, total }) => (total === 0 ? 'Sin modelos' : `Mostrando ${desde}-${hasta} de ${total}`)

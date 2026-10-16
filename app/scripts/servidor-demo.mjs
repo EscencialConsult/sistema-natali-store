@@ -122,9 +122,10 @@ async function crearBase(puerto) {
     aplicar: true,
     datos: {
       transferencia: { titular: 'Cuenta de demostración', cuit: '20-12345678-6', banco: 'Banco de ejemplo', cbu: '0140000000000000000001', alias: 'demo.modas.naty', cuenta: '0000000001' },
+      // lat/lng de demostración (aproximadas, no son las reales: las carga Natali en el Gestor web).
       locales: [
-        { nombre: 'Local 27 de Mayo', direccion: 'Calle sin nombre, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 12:00 y 14:00 a 16:00' },
-        { nombre: 'Local Chalanitas', direccion: 'Calle 23 de Marzo, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 13:00 y 14:00 a 17:00' },
+        { nombre: 'Local 27 de Mayo', direccion: 'Calle sin nombre, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 12:00 y 14:00 a 16:00', lat: -22.7326, lng: -64.3412 },
+        { nombre: 'Local Chalanitas', direccion: 'Calle 23 de Marzo, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 13:00 y 14:00 a 17:00', lat: -22.7298, lng: -64.3386 },
       ],
       contactos: USUARIOS_DEMO.filter((u) => u.rol !== 'superadmin').map((u) => ({ nombre: u.nombre, telefono: u.telefono })),
     },

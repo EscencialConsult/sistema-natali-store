@@ -58,3 +58,82 @@
   outline: 2px solid var(--t-vino);
   outline-offset: 2px;
 }
+
+/* Mapa de los locales (maplibre). El marcador es un boton: se llega con el teclado y se activa con Enter. */
+.tienda .t-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.tienda .t-pin-punto {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--t-vino);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgb(99 27 54 / 0.35);
+}
+.tienda .t-pin-etiqueta {
+  position: absolute;
+  bottom: calc(100% - 0.25rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--t-tinta);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.tienda .t-pin:hover .t-pin-etiqueta,
+.tienda .t-pin:focus-visible .t-pin-etiqueta {
+  opacity: 1;
+}
+.tienda .maplibregl-popup-content {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  font-family: inherit;
+  color: var(--t-tinta);
+}
+.tienda .t-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-right: 0.75rem;
+}
+.tienda .t-popup-nombre {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.tienda .t-popup-dato {
+  font-size: 0.8125rem;
+  color: var(--t-suave);
+}
+.tienda .t-popup-enlace {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--t-vino);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tienda .maplibregl-popup-close-button {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda .t-pin-etiqueta {
+    transition: none;
+  }
+}

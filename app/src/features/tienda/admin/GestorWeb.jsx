@@ -1,6 +1,6 @@
 // Gestor web: todo lo que toca la tienda pública, en un solo lugar y solo para el superadministrador.
 // Lee la configuración del sistema (naty_config) sin modificarla; escribe únicamente en las tablas tienda_*.
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { resumenGlobal } from '../lib/gestor.js'
 import Cuenta from './secciones/Cuenta.jsx'
 import Contacto from './secciones/Contacto.jsx'
@@ -10,7 +10,7 @@ import Resumen from './secciones/Resumen.jsx'
 import Textos from './secciones/Textos.jsx'
 
 const PESTANAS = [
-  { id: 'resumen', nombre: 'Resumen' },
+  { id: 'resumen', nombre: 'Configuración global' },
   { id: 'cuenta', nombre: 'Cuenta' },
   { id: 'contacto', nombre: 'Contacto y locales' },
   { id: 'textos', nombre: 'Textos' },
@@ -21,6 +21,19 @@ const PESTANAS = [
 export default function GestorWeb({ configInicial, naty, soloLectura }) {
   const [config, setConfig] = useState(configInicial)
   const [pestana, setPestana] = useState('resumen')
+  const pestanas = useRef({})
+  // Cambiar de pestaña lleva el foco a la pestaña elegida (sirve para «Editar» y «Resolver» del resumen).
+  const irA = (id) => {
+    setPestana(id)
+    requestAnimationFrame(() => pestanas.current[id]?.focus())
+  }
+  const teclado = (e, i) => {
+    const salto = { ArrowRight: 1, ArrowLeft: -1 }[e.key]
+    const destino = e.key === 'Home' ? 0 : e.key === 'End' ? PESTANAS.length - 1 : salto ? (i + salto + PESTANAS.length) % PESTANAS.length : null
+    if (destino === null) return
+    e.preventDefault()
+    irA(PESTANAS[destino].id)
+  }
   // Las secciones avisan lo que guardaron para que el resumen y los avisos se pongan al día sin recargar.
   const alGuardar = (clave, valor) => setConfig((c) => ({ ...c, [clave]: valor }))
   const origen = typeof window === 'undefined' ? '' : window.location.origin
@@ -35,14 +48,19 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
       </div>
 
       <div role="tablist" aria-label="Secciones del gestor web" className="flex gap-1 overflow-x-auto border-b border-borde/70">
-        {PESTANAS.map((p) => (
+        {PESTANAS.map((p, i) => (
           <button
             key={p.id}
             id={`gw-${p.id}`}
+            ref={(el) => {
+              pestanas.current[p.id] = el
+            }}
             role="tab"
             type="button"
             aria-selected={pestana === p.id}
-            aria-controls="gw-panel"
+            aria-controls={`gw-panel-${p.id}`}
+            tabIndex={pestana === p.id ? 0 : -1}
+            onKeyDown={(e) => teclado(e, i)}
             onClick={() => setPestana(p.id)}
             className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-medium ${pestana === p.id ? 'border-tinta text-tinta' : 'border-transparent text-texto-suave'}`}
           >
@@ -52,14 +70,19 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
         ))}
       </div>
 
-      <div id="gw-panel" role="tabpanel" aria-labelledby={`gw-${pestana}`} className="flex flex-col gap-5">
-        {pestana === 'resumen' && <Resumen resumen={resumen} irA={setPestana} />}
-        {pestana === 'cuenta' && <Cuenta config={config} soloLectura={soloLectura} alGuardar={alGuardar} />}
-        {pestana === 'contacto' && <Contacto config={config} soloLectura={soloLectura} alGuardar={alGuardar} />}
-        {pestana === 'textos' && <Textos config={config} soloLectura={soloLectura} alGuardar={alGuardar} />}
-        {pestana === 'modelos' && <Modelos soloLectura={soloLectura} />}
-        {pestana === 'direcciones' && <Direcciones resumen={resumen} />}
-      </div>
+      {/* Todos los paneles quedan montados: al cambiar de pestaña no se pierde lo que se estaba escribiendo. */}
+      {[
+        ['resumen', <Resumen key="r" resumen={resumen} irA={irA} />],
+        ['cuenta', <Cuenta key="c" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
+        ['contacto', <Contacto key="co" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
+        ['textos', <Textos key="t" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
+        ['modelos', <Modelos key="m" soloLectura={soloLectura} />],
+        ['direcciones', <Direcciones key="d" resumen={resumen} />],
+      ].map(([id, panel]) => (
+        <div key={id} id={`gw-panel-${id}`} role="tabpanel" aria-labelledby={`gw-${id}`} hidden={pestana !== id} className="flex flex-col gap-5">
+          {panel}
+        </div>
+      ))}
     </section>
   )
 }

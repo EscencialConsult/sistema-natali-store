@@ -2,18 +2,19 @@ import { useState } from 'react'
 import { Input } from '../../../../components/ui/index.js'
 import { validarContactos, validarLocales } from '../../lib/configTienda.js'
 import { guardarClave } from '../api.js'
+import { conClave } from '../api.js'
 import { Filas, Tarjeta } from '../componentes.jsx'
 
-const LOCAL_VACIO = () => ({ nombre: '', direccion: '', indicaciones: '', horario: '', mapa: '' })
+const LOCAL_VACIO = () => ({ nombre: '', direccion: '', indicaciones: '', horario: '', mapa: '', lat: '', lng: '' })
 
 export default function Contacto({ config, soloLectura, alGuardar }) {
   const [contactos, setContactos] = useState(() => {
     const v = validarContactos(config.contactos).valor
-    return v.length ? v : [{ nombre: '', telefono: '' }]
+    return (v.length ? v : [{ nombre: '', telefono: '' }]).map(conClave)
   })
   const [locales, setLocales] = useState(() => {
     const v = validarLocales(config.locales).valor
-    return v.length ? v : [LOCAL_VACIO()]
+    return (v.length ? v : [LOCAL_VACIO()]).map(conClave)
   })
 
   return (
@@ -60,6 +61,10 @@ export default function Contacto({ config, soloLectura, alGuardar }) {
               <Input etiqueta="Horario de este local" value={f.horario ?? ''} onChange={(e) => set('horario', e.target.value)} maxLength={160} placeholder="6:00 a 12:00 y 14:00 a 16:00" ayuda="Si es distinto del horario general." />
               <Input etiqueta="Cómo llegar (opcional)" value={f.indicaciones} onChange={(e) => set('indicaciones', e.target.value)} maxLength={300} />
               <Input etiqueta="Enlace de Google Maps (opcional)" inputMode="url" value={f.mapa} onChange={(e) => set('mapa', e.target.value)} maxLength={500} placeholder="https://maps.app.goo.gl/…" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input etiqueta="Latitud (para el mapa)" inputMode="decimal" value={f.lat ?? ''} onChange={(e) => set('lat', e.target.value)} maxLength={14} placeholder="-22.7326" />
+                <Input etiqueta="Longitud (para el mapa)" inputMode="decimal" value={f.lng ?? ''} onChange={(e) => set('lng', e.target.value)} maxLength={14} placeholder="-64.3412" ayuda="En Google Maps: tocá y mantené el punto y copiá los dos números." />
+              </div>
             </>
           )}
         </Filas>

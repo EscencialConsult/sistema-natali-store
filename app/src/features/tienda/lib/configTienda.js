@@ -84,6 +84,13 @@ export function validarTransferencia(obj) {
   return { valor: hayAlgo ? valor : null, errores }
 }
 
+// Coordenada opcional: acepta número o texto con coma decimal. Devuelve null si no es un número dentro de rango.
+const coordenada = (v, max) => {
+  if (v === '' || v === null || v === undefined) return null
+  const n = Number(String(v).trim().replace(',', '.'))
+  return Number.isFinite(n) && Math.abs(n) <= max ? n : null
+}
+
 export function validarLocales(filas) {
   const errores = []
   const valor = []
@@ -93,14 +100,21 @@ export function validarLocales(filas) {
     const indicaciones = cortar(f?.indicaciones, 300)
     const horario = cortar(f?.horario, 160)
     const mapaCrudo = typeof f?.mapa === 'string' ? f.mapa.trim() : ''
-    if (!nombre && !direccion && !indicaciones && !horario && !mapaCrudo) continue
+    const hayCoord = [f?.lat, f?.lng].some((c) => c !== '' && c !== null && c !== undefined)
+    if (!nombre && !direccion && !indicaciones && !horario && !mapaCrudo && !hayCoord) continue
     if (!nombre) {
       errores.push(`Local ${i + 1}: falta el nombre.`)
       continue
     }
     const mapa = mapaCrudo ? urlMapaSegura(mapaCrudo) : null
     if (mapaCrudo && !mapa) errores.push(`${nombre}: el enlace del mapa tiene que ser de Google Maps (https://maps.app.goo.gl/… o https://www.google.com/maps/…).`)
-    valor.push({ nombre, direccion, indicaciones, horario, mapa: mapa ?? '' })
+    const lat = coordenada(f?.lat, 90)
+    const lng = coordenada(f?.lng, 180)
+    if (hayCoord && (lat === null || lng === null)) errores.push(`${nombre}: la latitud y la longitud tienen que ser dos números válidos (ej. -17.7834 y -63.1821), o dejarse vacías.`)
+    const local = { nombre, direccion, indicaciones, horario, mapa: mapa ?? '' }
+    // Solo con las dos coordenadas válidas: el mapa de «Quiénes somos» ubica el local con ellas.
+    if (lat !== null && lng !== null) Object.assign(local, { lat, lng })
+    valor.push(local)
   }
   if (valor.length > MAX_LOCALES) errores.push(`Como máximo ${MAX_LOCALES} locales.`)
   return { valor: valor.slice(0, MAX_LOCALES), errores }
@@ -176,21 +190,55 @@ export function validarQuienesSomos(v) {
   return { valor: todas.slice(0, MAX_PARRAFOS), errores }
 }
 
-// Texto por defecto: solo lo que se sabe del negocio. La administración lo reemplaza desde Ajustes.
+// Texto por defecto: solo lo que se sabe del negocio (sin cifras ni años). La administración lo reemplaza desde Ajustes.
 export const QUIENES_SOMOS_POR_DEFECTO = [
   'Modas Naty es un negocio de indumentaria femenina por mayor, en Bermejo, Tarija, a pasos de la frontera con Argentina.',
   'Vendemos por docena y media docena: blusas, pantalones, faldas, chalecos, vestidos y más, en talles y colores surtidos.',
   'Atendemos en dos locales y por WhatsApp, con un equipo de ventas que te acompaña desde que elegís hasta que retirás o recibís tu pedido.',
+  'Pensamos la tienda para quien revende: ves los modelos con sus fotos y su precio por docena, armás tu pedido a tu ritmo y hablás con una persona real para cerrarlo.',
 ]
 
-// Preguntas frecuentes de la ayuda. Son hechos del funcionamiento de la tienda: si cambia el funcionamiento, se cambia acá.
+// Cómo se trabaja, en pasos cortos. Es estructura fija de la página, no texto editable.
+export const COMO_TRABAJAMOS = [
+  { titulo: 'Elegís', texto: 'Recorrés el catálogo, abrís cada modelo y mirás sus fotos y su precio por docena y media docena.' },
+  { titulo: 'Armás tu pedido', texto: 'Sumás los modelos que querés y elegís con qué vendedor hablar. Enviar el pedido no lo reserva ni lo cobra.' },
+  { titulo: 'Tu vendedor confirma', texto: 'Te escribe por WhatsApp, confirma disponibilidad y precio final y te pasa los datos para transferir.' },
+  { titulo: 'Pagás y retirás', texto: 'Transferís o pagás en el local, y retirás por uno de nuestros locales o coordinás la entrega con tu vendedor.' },
+]
+
+// Lo que distingue la forma de vender, sin promesas que el negocio no hizo.
+export const DIFERENCIALES = [
+  { titulo: 'Precio por docena a la vista', texto: 'Cada modelo muestra su precio por docena y por media docena, en dólares, pesos argentinos y bolivianos.' },
+  { titulo: 'Surtido pensado para revender', texto: 'La docena y la media docena vienen surtidas en talles y colores. El color no se elige modelo por modelo.' },
+  { titulo: 'Una persona del otro lado', texto: 'No hay carrito automático que cobre solo: tu vendedor revisa el pedido y te responde en persona.' },
+  { titulo: 'Catálogo siempre al día', texto: 'Los modelos y los precios que ves son los que carga el equipo, con la cotización vigente.' },
+]
+
+// Preguntas frecuentes de la ayuda, agrupadas por tema. Son hechos del funcionamiento de la tienda: si cambia, se cambia acá.
+// Lo que el negocio no definió (plazos, costos de envío, políticas de cambio) remite al vendedor: no se inventa.
+export const TEMAS_AYUDA = [
+  { id: 'comprar', titulo: 'Comprar' },
+  { id: 'pagos', titulo: 'Pagos y transferencia' },
+  { id: 'entrega', titulo: 'Entrega y retiro' },
+  { id: 'cambios', titulo: 'Cambios y devoluciones' },
+  { id: 'cuenta', titulo: 'Cuenta de transferencia' },
+]
+
 export const PREGUNTAS_FRECUENTES = [
-  { p: '¿Se vende por unidad?', r: 'No. Se vende por docena o por media docena, y cada una viene surtida en talles y colores.' },
-  { p: '¿Cómo pago?', r: 'Por transferencia bancaria (los datos de la cuenta están en tu pedido) o en efectivo en el local.' },
-  { p: '¿En qué moneda pago?', r: 'Los precios están en dólares y se muestran también en pesos argentinos y en bolivianos, con la cotización del día. La transferencia se hace en pesos argentinos.' },
-  { p: '¿Enviar el pedido lo reserva?', r: 'No. Tu vendedor confirma la disponibilidad y el precio final, y recién entonces transferís.' },
-  { p: '¿Cómo retiro o recibo mi pedido?', r: 'Pasás por uno de nuestros locales, o coordinás la entrega con tu vendedor.' },
-  { p: '¿Con quién hablo?', r: 'Elegí un vendedor cuando armás tu pedido, o escribinos por WhatsApp desde Contacto.' },
+  { tema: 'comprar', p: '¿Se vende por unidad?', r: 'No. Se vende por docena o por media docena, y cada una viene surtida en talles y colores.' },
+  { tema: 'comprar', p: '¿Puedo elegir el color?', r: 'No. La docena y la media docena vienen surtidas. Si necesitás algo puntual, consultalo con tu vendedor antes de armar el pedido.' },
+  { tema: 'comprar', p: '¿Enviar el pedido lo reserva?', r: 'No. Tu vendedor confirma la disponibilidad y el precio final, y recién entonces transferís.' },
+  { tema: 'comprar', p: '¿Con quién hablo?', r: 'Elegí un vendedor cuando armás tu pedido, o escribinos por WhatsApp desde Contacto.' },
+  { tema: 'comprar', p: '¿Cómo sé si hay stock de un modelo?', r: 'La tienda no muestra el stock: la disponibilidad la confirma tu vendedor cuando recibe tu pedido.' },
+  { tema: 'pagos', p: '¿Cómo pago?', r: 'Por transferencia bancaria (los datos de la cuenta están en tu pedido) o en efectivo en el local.' },
+  { tema: 'pagos', p: '¿En qué moneda pago?', r: 'Los precios están en dólares y se muestran también en pesos argentinos y en bolivianos, con la cotización del día. La transferencia se hace en pesos argentinos.' },
+  { tema: 'pagos', p: '¿Cuándo transfiero?', r: 'Después de que tu vendedor confirme disponibilidad y precio final. Cuando transferís, mandale el comprobante por WhatsApp.' },
+  { tema: 'entrega', p: '¿Cómo retiro o recibo mi pedido?', r: 'Pasás por uno de nuestros locales, o coordinás la entrega con tu vendedor.' },
+  { tema: 'entrega', p: '¿Hacen envíos? ¿Cuánto tardan y cuánto cuestan?', r: 'Eso se coordina caso por caso. Consultalo con tu vendedor, que te confirma las opciones y los tiempos para tu pedido.' },
+  { tema: 'cambios', p: '¿Puedo cambiar o devolver una prenda?', r: 'Las condiciones de cambios y devoluciones las informa tu vendedor al confirmar el pedido. Consultalo con tu vendedor antes de pagar.' },
+  { tema: 'cambios', p: '¿Qué hago si algo llega distinto a lo que pedí?', r: 'Escribile a tu vendedor por WhatsApp contándole qué pasó y con una foto, y lo resuelven con vos.' },
+  { tema: 'cuenta', p: '¿Dónde veo los datos para transferir?', r: 'En tu pedido, antes de enviarlo. Si todavía no están, pedíselos a tu vendedor.' },
+  { tema: 'cuenta', p: '¿Por qué me piden confirmar la cuenta?', r: 'La cuenta de transferencia cambia cada tanto, más o menos cada dos meses. Antes de transferir, confirmá los datos con tu vendedor.' },
 ]
 
 // Pasos por defecto: salen de lo que pidió la clienta. La administración puede reemplazarlos desde Ajustes.
@@ -201,3 +249,15 @@ export const PASOS_POR_DEFECTO = [
   'Pagá por transferencia (los datos están en tu pedido) o en efectivo en el local.',
   'Pasá por el local o coordiná la entrega con tu vendedor.',
 ]
+
+/**
+ * Enlace "Cómo llegar" de un local: si cargó un enlace de Google Maps (ya validado) se usa ese;
+ * si no, una búsqueda de Google Maps con la dirección. Sin dirección ni mapa no hay enlace.
+ */
+export function enlaceComoLlegar(local) {
+  const mapa = local?.mapa ? urlMapaSegura(local.mapa) : null
+  if (mapa) return mapa
+  const consulta = [local?.direccion].map((t) => cortar(t, 160)).filter(Boolean).join(' ')
+  if (!consulta) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`
+}
