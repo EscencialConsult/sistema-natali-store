@@ -7,7 +7,7 @@ const ANIO = new Date().getFullYear()
 
 // Pie compacto: marca y WhatsApp, la navegación en una línea, y los locales con dirección y horario en dos columnas.
 // Los locales vienen de la configuración (ya validada).
-export default function Pie({ nombre, enlaces, locales, whatsapp }) {
+export default function Pie({ nombre, enlaces, locales, whatsapp, frase, localesTitulo }) {
   return (
     <footer className="bg-(--t-vino-oscuro) text-(--t-crema)">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-8 pt-10 md:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12">
@@ -23,7 +23,7 @@ export default function Pie({ nombre, enlaces, locales, whatsapp }) {
               </a>
             )}
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-white/75">Venta mayorista por docena y media docena. Elegís el modelo, pedís por WhatsApp y retirás en el local.</p>
+          <p className="max-w-md text-sm leading-relaxed text-white/75">{frase}</p>
           <nav aria-label="Información">
             <ul className="flex flex-wrap gap-x-6 gap-y-1">
               {enlaces.map((e) => (
@@ -36,7 +36,7 @@ export default function Pie({ nombre, enlaces, locales, whatsapp }) {
         </div>
 
         <section aria-labelledby="pie-locales" className="flex flex-col gap-3">
-          <h2 id="pie-locales" className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-white/60">Nuestros locales</h2>
+          <h2 id="pie-locales" className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-white/60">{localesTitulo}</h2>
           {locales.length > 0 ? (
             <ul className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
               {locales.map((l, i) => {

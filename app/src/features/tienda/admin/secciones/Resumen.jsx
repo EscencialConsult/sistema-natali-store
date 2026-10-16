@@ -77,7 +77,7 @@ export default function Resumen({ resumen: r, irA }) {
 
         <Caja titulo="Contacto" pestana="contacto" irA={irA}>
           <Dato etiqueta="WhatsApp principal">{contacto.principal ? `${contacto.principal.telefono} (${contacto.principal.nombre})` : ''}</Dato>
-          <Dato etiqueta="Vendedores en la lista">{String(contacto.contactos)}</Dato>
+          <Dato etiqueta="Vendedores con WhatsApp">{String(contacto.contactos)}</Dato>
           <Dato etiqueta="Locales">{String(contacto.locales)}</Dato>
         </Caja>
 

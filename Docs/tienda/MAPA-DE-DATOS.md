@@ -11,10 +11,11 @@ Qué dato existe, dónde vive, quién lo puede escribir y quién lo puede ver. S
 | Cotización (pesos, bolivianos, fecha) | `naty_config.tipo_cambio` | Sí, por `tienda_ajustes_publicos` (con su fecha) | Administración, en Ajustes |
 | Nombre del negocio, WhatsApp de la tienda | `naty_config` | Sí | Administración |
 | Cuenta de transferencia (titular, CUIT, CBU, alias, banco, moneda, fecha de cambio) | `tienda_config.transferencia` | **Sí**, a propósito: la clienta la ve al pagar | Solo administración, desde el Gestor web |
-| Vendedores y teléfonos | `tienda_config.contactos` | **Sí**, a propósito | Administración |
+| Vendedores y teléfonos | `naty_perfiles` (rol vendedor/a, activos, con teléfono) a través de la vista `tienda_vendedores_publicos` | **Sí**, a propósito: solo nombre y teléfono | Se administran en Usuarios (pantalla de Renzo). `tienda_config.contactos` queda como respaldo si no hay ninguno |
+| Textos de las páginas | `tienda_config.textos` (más `quienes_somos`, `como_comprar`, `horarios`) | Sí | Administración, Gestor web → Textos |
 | Locales, horarios, textos | `tienda_config.locales / horarios / como_comprar / quienes_somos` | Sí | Administración |
 | Modelos ocultos | `tienda_oculto` | No (solo el efecto: el modelo no aparece) | Administración |
-| Tienda abierta o cerrada, mensaje de mantenimiento | `tienda_config.tienda` | Sí (es lo que decide qué pantalla ve) | Administración, «Estado de la tienda» en el Gestor web |
+| Tienda abierta o cerrada, mensaje de mantenimiento | `tienda_config.tienda` | Sí (es lo que decide qué pantalla ve) | Solo por el script de carga (sin interruptor en el Gestor, decisión del 16/10). Sin la tabla en la base, la raíz muestra la misma pantalla |
 | Pedido armado | `localStorage` del navegador de la clienta y mensaje de WhatsApp | Es suyo | La clienta |
 | Copia de configuración y ajustes | `localStorage`, claves `tienda-v1:*` | Es de cada navegador | La tienda (vence: config 1 h, ajustes 6 h) |
 

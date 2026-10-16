@@ -25,8 +25,8 @@ Entrá a **Ajustes**. Vas a encontrar estas tarjetas:
 
 1. **Catálogo y código QR**: la dirección de la tienda (`https://modas-naty.netlify.app/`), el WhatsApp de la tienda y la casilla "Mostrar precios en el catálogo público". Esa dirección es la que sale como QR en cada nota.
 2. **Tienda online · vendedores y contactos**: nombre y WhatsApp, con código de país y solo números (por ejemplo `59171234567`).
-3. **Tienda online · datos de transferencia**: banco, titular, cuenta y alias.
-4. **Tienda online · locales, horarios y «Cómo comprar»**: cada local con su dirección, su horario, cómo llegar y el enlace de Google Maps. Hay un campo de horario general por si alguna vez hace falta.
+3. **Ajustes → Gestor web → Cuenta**: banco, titular, cuenta y alias.
+4. **Ajustes → Gestor web → Contacto y locales, y Textos**: cada local con su dirección, su horario, cómo llegar y el enlace de Google Maps. Hay un campo de horario general por si alguna vez hace falta.
 5. **Tienda online · modelos visibles**: tildá o destildá cada modelo para que se vea o no en la tienda.
 
 Cada tarjeta tiene su botón **Guardar**. Los cambios se ven en la tienda enseguida.
@@ -78,6 +78,10 @@ Por ahora llegan por WhatsApp al vendedor. No se guardan en el sistema.
 - **No aparece un modelo:** revisá que esté activo, que tenga foto y que esté tildado en «modelos visibles».
 - **Los precios dicen "a consultar":** la casilla "Mostrar precios en el catálogo público" está destildada, o el tipo de cambio todavía es de ejemplo.
 
-## Cerrar la tienda un rato
+## Los textos de la tienda
 
-Si necesitás que las clientas no vean la tienda por un tiempo (por ejemplo mientras cambiás la cuenta o cargás modelos nuevos), en Ajustes → Gestor web, arriba de todo, está «Estado de la tienda». Tocá **Cerrar al público…**, escribí si querés un mensaje, y confirmá. Las clientas van a ver un aviso con tu WhatsApp y los locales; vos seguís usando el sistema igual. Para volver a abrirla, **Abrir la tienda** en el mismo lugar. Con el enlace «Ver la tienda (vista previa)» la ves vos aunque esté cerrada.
+Todo lo que se lee en la tienda se cambia en Ajustes → Gestor web → **Textos**. Hay una tarjeta por página (Inicio, Catálogo, Quiénes somos, Contacto, Ayuda, Tu pedido, Pie de página) y adentro cada sección se llama igual que en la tienda, así sabés qué estás cambiando. Si borrás un texto y guardás, vuelve el original.
+
+## Los vendedores que ve la clienta
+
+No se cargan en la tienda: salen de **Usuarios**. Toda persona con rol «Vendedor/a», activa y con su teléfono cargado aparece en «Contacto» y entre las opciones al armar el pedido. Si alguien no tiene que aparecer, sacale el teléfono o desactivalo en Usuarios.

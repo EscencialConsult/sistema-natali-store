@@ -1,28 +1,18 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, MessageCircle, Search, SearchX } from 'lucide-react'
 import { useConfigTienda } from '../data/catalogo.js'
 import { useAjustesTienda } from '../contexto.js'
 import { enlaceWhatsApp } from '../lib/whatsapp.js'
 import { normalizar } from '../lib/catalogo.js'
-import {
-  COMO_TRABAJAMOS,
-  DIFERENCIALES,
-  PASOS_POR_DEFECTO,
-  PREGUNTAS_FRECUENTES,
-  QUIENES_SOMOS_POR_DEFECTO,
-  TEMAS_AYUDA,
-  validarComoComprar,
-  validarContactos,
-  validarHorarios,
-  validarLocales,
-  validarQuienesSomos,
-} from '../lib/configTienda.js'
+import { TEMAS_AYUDA, validarHorarios, validarLocales } from '../lib/configTienda.js'
+import { textosDe } from '../lib/textos.js'
 import { RUTA_AYUDA, RUTA_CATALOGO, RUTA_CONTACTO, RUTA_QUIENES_SOMOS } from '../rutas.js'
 import MapaDeLocales from './mapa/MapaDeLocales.jsx'
 import { useVolverArriba } from './useVolverArriba.js'
 
 // Todo lo que viene de la configuración pasa por las mismas validaciones que al guardar, y se muestra como texto.
+// Los textos de cada página se editan desde el Gestor web (pestaña «Textos»), con los mismos nombres de sección que acá.
 
 const botonPrimario = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-(--t-vino) px-6 text-sm font-semibold text-white hover:bg-(--t-vino-oscuro)'
 const botonWhatsapp = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-whatsapp px-6 text-sm font-semibold text-sobre-tinta hover:brightness-95'
@@ -47,11 +37,10 @@ function TituloSeccion({ id, children, bajada }) {
   )
 }
 
-// WhatsApp principal: el de la tienda; si no está cargado, el de la primera persona de la lista de contactos.
+// WhatsApp principal: el de la tienda; si no está cargado, el del primer vendedor.
 function useWhatsappPrincipal(mensaje) {
-  const { ajustes } = useAjustesTienda()
-  const config = useConfigTienda().datos
-  const telefono = ajustes?.whatsapp_tienda || validarContactos(config?.contactos).valor[0]?.telefono
+  const { ajustes, vendedores } = useAjustesTienda()
+  const telefono = ajustes?.whatsapp_tienda || vendedores[0]?.telefono
   return enlaceWhatsApp(telefono, mensaje)
 }
 
@@ -70,17 +59,19 @@ function BandaFinal({ titulo, texto, children }) {
 export function QuienesSomosPage() {
   useVolverArriba()
   const config = useConfigTienda().datos
-  const propios = validarQuienesSomos(config?.quienes_somos).valor
-  const parrafos = propios.length ? propios : QUIENES_SOMOS_POR_DEFECTO
+  const t = textosDe(config)
   const locales = validarLocales(config?.locales).valor
   const wa = useWhatsappPrincipal('Hola, quiero consultar por el catálogo mayorista.')
-  const [primero, ...resto] = parrafos
+  const [primero, ...resto] = t('quienes_somos')
+  const ofrecemos = t('quienes.ofrecemos')
+  const trabajamos = t('quienes.trabajamos')
+  const distingue = t('quienes.distingue')
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      <Encabezado id="titulo-quienes" etiqueta="Quiénes somos" titulo="Indumentaria femenina por mayor, con atención de cerca." />
+      <Encabezado id="titulo-quienes" etiqueta="Quiénes somos" titulo={t('quienes.titulo')} />
 
-      <section aria-label="Nuestra historia" className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:gap-16">
+      <section aria-label="Presentación" className="grid gap-8 md:grid-cols-[1fr_1.1fr] md:gap-16">
         <p className="font-titulo text-2xl font-medium leading-snug tracking-tight md:text-3xl">{primero}</p>
         <div className="flex flex-col gap-4 text-lg leading-relaxed">
           {resto.map((p, i) => <p key={i}>{p}</p>)}
@@ -88,26 +79,22 @@ export function QuienesSomosPage() {
       </section>
 
       <section aria-labelledby="que-ofrecemos" className="flex flex-col gap-8">
-        <TituloSeccion id="que-ofrecemos">Qué ofrecemos</TituloSeccion>
+        <TituloSeccion id="que-ofrecemos">{t('quienes.ofrecemos_titulo')}</TituloSeccion>
         <ul className="grid gap-px overflow-hidden rounded-3xl border border-(--t-beige) bg-(--t-beige) md:grid-cols-3">
-          {[
-            ['Venta por docena y media docena', 'Cada modelo se compra por docena o por media docena, surtida en talles y colores, para que armes tu stock sin comprar de más.'],
-            ['Atención directa', 'Un vendedor te atiende por WhatsApp: confirma disponibilidad, precio final y los datos para pagar.'],
-            [locales.length > 1 ? `${locales.length} locales para retirar` : 'Local para retirar', 'Podés pasar a ver las prendas y retirar tu pedido, o coordinar la entrega con tu vendedor.'],
-          ].map(([titulo, texto]) => (
-            <li key={titulo} className="flex flex-col gap-3 bg-(--t-crema) p-6 md:p-8">
-              <h3 className="font-titulo text-xl font-semibold tracking-tight">{titulo}</h3>
-              <p className="t-suave leading-relaxed">{texto}</p>
+          {ofrecemos.map((item, i) => (
+            <li key={i} className="flex flex-col gap-3 bg-(--t-crema) p-6 md:p-8">
+              <h3 className="font-titulo text-xl font-semibold tracking-tight">{item.titulo}</h3>
+              <p className="t-suave leading-relaxed">{item.texto}</p>
             </li>
           ))}
         </ul>
       </section>
 
       <section aria-labelledby="como-trabajamos" className="flex flex-col gap-8">
-        <TituloSeccion id="como-trabajamos" bajada="De elegir un modelo a retirar el pedido, en cuatro pasos.">Cómo trabajamos</TituloSeccion>
+        <TituloSeccion id="como-trabajamos" bajada={t('quienes.trabajamos_bajada')}>{t('quienes.trabajamos_titulo')}</TituloSeccion>
         <ol className="grid gap-8 md:grid-cols-4 md:gap-6">
-          {COMO_TRABAJAMOS.map((paso, i) => (
-            <li key={paso.titulo} className="flex flex-col gap-2 border-t-2 border-(--t-vino) pt-4">
+          {trabajamos.map((paso, i) => (
+            <li key={i} className="flex flex-col gap-2 border-t-2 border-(--t-vino) pt-4">
               <span className="font-titulo text-3xl font-semibold text-(--t-vino)" aria-hidden="true">{i + 1}</span>
               <h3 className="text-lg font-semibold">{paso.titulo}</h3>
               <p className="t-suave leading-relaxed">{paso.texto}</p>
@@ -117,10 +104,10 @@ export function QuienesSomosPage() {
       </section>
 
       <section aria-labelledby="diferenciales" className="grid gap-8 md:grid-cols-[1fr_1.6fr] md:gap-16">
-        <TituloSeccion id="diferenciales">Lo que nos distingue</TituloSeccion>
+        <TituloSeccion id="diferenciales">{t('quienes.distingue_titulo')}</TituloSeccion>
         <dl className="flex flex-col divide-y divide-(--t-beige) border-y border-(--t-beige)">
-          {DIFERENCIALES.map((d) => (
-            <div key={d.titulo} className="flex flex-col gap-1 py-5">
+          {distingue.map((d, i) => (
+            <div key={i} className="flex flex-col gap-1 py-5">
               <dt className="font-titulo text-lg font-semibold">{d.titulo}</dt>
               <dd className="t-suave leading-relaxed">{d.texto}</dd>
             </div>
@@ -130,12 +117,12 @@ export function QuienesSomosPage() {
 
       {locales.length > 0 && (
         <section aria-labelledby="donde-estamos" className="flex flex-col gap-8">
-          <TituloSeccion id="donde-estamos" bajada="Pasá a ver las prendas y a retirar tu pedido.">Dónde estamos</TituloSeccion>
+          <TituloSeccion id="donde-estamos" bajada={t('quienes.donde_bajada')}>{t('quienes.donde_titulo')}</TituloSeccion>
           <MapaDeLocales locales={locales} />
         </section>
       )}
 
-      <BandaFinal titulo="Armá tu pedido cuando quieras" texto="Mirá los modelos con sus precios por docena y, cuando estés lista, tu vendedor te acompaña con el resto.">
+      <BandaFinal titulo={t('quienes.final_titulo')} texto={t('quienes.final_texto')}>
         <Link to={RUTA_CATALOGO} className="inline-flex min-h-12 items-center rounded-lg bg-(--t-crema) px-6 text-sm font-semibold text-(--t-vino) hover:bg-white">Ver el catálogo</Link>
         {wa ? (
           <a href={wa} target="_blank" rel="noopener noreferrer" className={botonWhatsapp}><MessageCircle size={18} aria-hidden /> Hablar por WhatsApp</a>
@@ -176,21 +163,19 @@ function Pregunta({ pregunta, abierta, onAlternar }) {
 export function AyudaPage() {
   useVolverArriba()
   const config = useConfigTienda().datos
-  const propios = validarComoComprar(config?.como_comprar).valor
-  const pasos = propios.length ? propios : PASOS_POR_DEFECTO
+  const t = textosDe(config)
+  const pasos = t('como_comprar')
+  const preguntas = t('ayuda.preguntas')
   const wa = useWhatsappPrincipal('Hola, tengo una consulta sobre el catálogo mayorista.')
   const [busqueda, setBusqueda] = useState('')
   const [abiertas, setAbiertas] = useState(() => new Set())
 
   const q = normalizar(busqueda)
-  const grupos = useMemo(
-    () =>
-      TEMAS_AYUDA.map((t) => ({
-        ...t,
-        preguntas: PREGUNTAS_FRECUENTES.filter((f) => f.tema === t.id && (!q || normalizar(`${f.p} ${f.r}`).includes(q))),
-      })).filter((g) => g.preguntas.length > 0),
-    [q],
-  )
+  // Son pocas preguntas: se filtra en cada render, sin memo (las preguntas vienen de la configuración, que cambia por render).
+  const grupos = TEMAS_AYUDA.map((tema) => ({
+    ...tema,
+    preguntas: preguntas.filter((f) => f.tema === tema.id && (!q || normalizar(`${f.p} ${f.r}`).includes(q))),
+  })).filter((g) => g.preguntas.length > 0)
   const total = grupos.reduce((n, g) => n + g.preguntas.length, 0)
   const alternar = (clave) =>
     setAbiertas((previas) => {
@@ -202,15 +187,10 @@ export function AyudaPage() {
 
   return (
     <div className="flex flex-col gap-16 md:gap-20">
-      <Encabezado
-        id="titulo-ayuda"
-        etiqueta="Ayuda"
-        titulo="Cómo comprar y respuestas a lo que más nos preguntan."
-        bajada="Si algo no está acá, tu vendedor te lo confirma por WhatsApp."
-      />
+      <Encabezado id="titulo-ayuda" etiqueta="Ayuda" titulo={t('ayuda.titulo')} bajada={t('ayuda.bajada')} />
 
       <section aria-labelledby="como-comprar" className="flex flex-col gap-8">
-        <TituloSeccion id="como-comprar">Cómo comprar</TituloSeccion>
+        <TituloSeccion id="como-comprar">{t('ayuda.comprar_titulo')}</TituloSeccion>
         <ol className="grid gap-x-10 gap-y-6 md:grid-cols-2">
           {pasos.map((p, i) => (
             <li key={i} className="flex items-start gap-5 border-t border-(--t-beige) pt-5">
@@ -222,7 +202,7 @@ export function AyudaPage() {
       </section>
 
       <section aria-labelledby="preguntas" className="flex flex-col gap-8">
-        <TituloSeccion id="preguntas">Preguntas frecuentes</TituloSeccion>
+        <TituloSeccion id="preguntas">{t('ayuda.preguntas_titulo')}</TituloSeccion>
         <label className="relative block max-w-md">
           <span className="sr-only">Buscar en las preguntas</span>
           <Search size={16} aria-hidden className="t-suave pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
@@ -258,7 +238,7 @@ export function AyudaPage() {
         )}
       </section>
 
-      <BandaFinal titulo="¿No encontraste lo que buscabas?" texto="Escribinos por WhatsApp y una persona del equipo te responde.">
+      <BandaFinal titulo={t('ayuda.final_titulo')} texto={t('ayuda.final_texto')}>
         {wa && <a href={wa} target="_blank" rel="noopener noreferrer" className={botonWhatsapp}><MessageCircle size={18} aria-hidden /> Escribir por WhatsApp</a>}
         <Link to={RUTA_CONTACTO} className={botonSobreVino}>Ver contacto</Link>
       </BandaFinal>
@@ -266,42 +246,32 @@ export function AyudaPage() {
   )
 }
 
-const QUE_CONTARNOS = [
-  'Qué modelos te interesan (el código o el nombre alcanza).',
-  'Cuántas docenas o medias docenas pensás llevar.',
-  'Si retirás en uno de los locales o necesitás coordinar la entrega.',
-  'Si querés que te pasemos los datos para transferir.',
-]
-
-// Contacto: locales con dirección, horario y cómo llegar, y las personas de atención con su WhatsApp.
+// Contacto: locales con dirección, horario y cómo llegar, y los vendedores con su WhatsApp (salen solos de Usuarios).
 export function ContactoPage() {
   useVolverArriba()
   const config = useConfigTienda().datos
+  const t = textosDe(config)
+  const { vendedores } = useAjustesTienda()
   const locales = validarLocales(config?.locales).valor
   const horarios = validarHorarios(config?.horarios).valor
-  const contactos = validarContactos(config?.contactos).valor
+  const contarnos = t('contacto.contarnos')
   const wa = useWhatsappPrincipal('Hola, quiero consultar por el catálogo mayorista.')
-  const vacio = !locales.length && !horarios.length && !contactos.length && !wa
+  const vacio = !locales.length && !horarios.length && !vendedores.length && !wa
 
   return (
     <div className="flex flex-col gap-16 md:gap-20">
-      <Encabezado
-        id="titulo-contacto"
-        etiqueta="Contacto"
-        titulo="Escribinos o pasá por el local."
-        bajada="Atendemos por WhatsApp y en nuestros locales. Elegí la forma que te quede mejor."
-      />
+      <Encabezado id="titulo-contacto" etiqueta="Contacto" titulo={t('contacto.titulo')} bajada={t('contacto.bajada')} />
       {vacio && <p className="t-suave">Pronto vas a encontrar acá nuestras direcciones y horarios.</p>}
 
-      {(wa || contactos.length > 0) && (
+      {(wa || vendedores.length > 0) && (
         <section aria-labelledby="hablar" className="grid gap-8 md:grid-cols-[1fr_1.4fr] md:gap-16">
           <div className="flex flex-col gap-5">
-            <TituloSeccion id="hablar" bajada="La forma más rápida de pedir o consultar.">Hablá con nosotros</TituloSeccion>
+            <TituloSeccion id="hablar" bajada={t('contacto.hablar_bajada')}>{t('contacto.hablar_titulo')}</TituloSeccion>
             {wa && <a href={wa} target="_blank" rel="noopener noreferrer" className={`${botonWhatsapp} self-start`}><MessageCircle size={18} aria-hidden /> WhatsApp de la tienda</a>}
           </div>
-          {contactos.length > 0 && (
+          {vendedores.length > 0 && (
             <ul className="flex flex-col divide-y divide-(--t-beige) border-y border-(--t-beige)">
-              {contactos.map((c, i) => (
+              {vendedores.map((c, i) => (
                 <li key={`${c.nombre}-${i}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
                     <p className="font-titulo text-lg font-semibold">{c.nombre}</p>
@@ -325,7 +295,7 @@ export function ContactoPage() {
 
       {locales.length > 0 && (
         <section aria-labelledby="locales" className="flex flex-col gap-8">
-          <TituloSeccion id="locales" bajada="Direcciones, horarios y cómo llegar.">Nuestros locales</TituloSeccion>
+          <TituloSeccion id="locales" bajada={t('contacto.locales_bajada')}>{t('contacto.locales_titulo')}</TituloSeccion>
           <MapaDeLocales locales={locales} conIndicaciones />
         </section>
       )}
@@ -333,19 +303,19 @@ export function ContactoPage() {
       <section className="grid gap-10 md:grid-cols-2 md:gap-16">
         {horarios.length > 0 && (
           <div role="group" aria-labelledby="horarios" className="flex flex-col gap-4">
-            <TituloSeccion id="horarios">Horarios de atención</TituloSeccion>
+            <TituloSeccion id="horarios">{t('contacto.horarios_titulo')}</TituloSeccion>
             <ul className="flex flex-col divide-y divide-(--t-beige) border-y border-(--t-beige)">
               {horarios.map((h) => <li key={h} className="py-3">{h}</li>)}
             </ul>
           </div>
         )}
         <div role="group" aria-labelledby="que-contarnos" className="flex flex-col gap-4">
-          <TituloSeccion id="que-contarnos" bajada="Así te respondemos más rápido.">Qué contarnos para atenderte</TituloSeccion>
+          <TituloSeccion id="que-contarnos" bajada={t('contacto.contarnos_bajada')}>{t('contacto.contarnos_titulo')}</TituloSeccion>
           <ul className="flex flex-col gap-3">
-            {QUE_CONTARNOS.map((t) => (
-              <li key={t} className="flex items-start gap-3 leading-relaxed">
+            {contarnos.map((texto, i) => (
+              <li key={i} className="flex items-start gap-3 leading-relaxed">
                 <span aria-hidden="true" className="mt-2.5 size-1.5 shrink-0 rounded-full bg-(--t-vino)" />
-                {t}
+                {texto}
               </li>
             ))}
           </ul>

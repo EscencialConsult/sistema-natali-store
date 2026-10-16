@@ -157,6 +157,20 @@ describe('tienda_schema.sql sobre el esquema real de Renzo', () => {
     })
   })
 
+  describe('vendedores públicos', () => {
+    it('solo rol vendedor, activo y con teléfono; nombre y teléfono normalizado, nada más', async () => {
+      await db.query(`update naty_perfiles set telefono = '+591 7000-1234' where rol = 'vendedor'`)
+      await db.query(`update naty_perfiles set telefono = '+591 7000-9999' where rol <> 'vendedor'`)
+      const filas = await como(db, null, () => q(db, `select * from tienda_vendedores_publicos`))
+      expect(filas).toHaveLength(1)
+      expect(filas[0].telefono).toBe('59170001234')
+      expect(Object.keys(filas[0]).sort()).toEqual(['id', 'nombre', 'telefono'])
+      await db.query(`update naty_perfiles set activo = false where rol = 'vendedor'`)
+      expect(await como(db, null, () => q(db, `select * from tienda_vendedores_publicos`))).toEqual([])
+      await db.query(`update naty_perfiles set activo = true, telefono = null`)
+    })
+  })
+
   describe('matriz de permisos (un principal por vez)', () => {
     // Cualquiera de estas es un rechazo: sin permiso, bloqueada por RLS, o la vista ni siquiera admite escritura.
     const rechazado = /permission denied|row-level security|violates row-level|cannot (update|insert|delete)/i

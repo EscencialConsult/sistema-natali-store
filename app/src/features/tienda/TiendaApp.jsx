@@ -2,8 +2,9 @@ import { useEffect, useMemo } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
-import { useAjustes, useConfigTienda } from './data/catalogo.js'
-import { validarContactos, validarEstadoTienda, validarLocales } from './lib/configTienda.js'
+import { useAjustes, useConfigTienda, useVendedores } from './data/catalogo.js'
+import { validarEstadoTienda, validarLocales, vendedoresDe } from './lib/configTienda.js'
+import { textosDe } from './lib/textos.js'
 import { esErrorSinTabla } from './lib/errores.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
@@ -39,7 +40,10 @@ function Marco({ children }) {
   // El WhatsApp principal es el de la tienda; si todavía no está cargado, el de la primera encargada de la lista de contactos.
   const c = useConfigTienda()
   const config = c.datos
-  const principal = ajustes?.whatsapp_tienda || validarContactos(config?.contactos).valor[0]?.telefono
+  const vend = useVendedores()
+  const vendedores = vendedoresDe(vend.datos, config)
+  const principal = ajustes?.whatsapp_tienda || vendedores[0]?.telefono
+  const t = textosDe(config)
   const wa = enlaceWhatsApp(principal)
   const locales = validarLocales(config?.locales).valor
   const cantidadModelos = useCarrito().lineas.length
@@ -83,7 +87,7 @@ function Marco({ children }) {
   if (cerrada && !previa) return <MantenimientoPage nombre={nombre} mensaje={estadoTienda.mensaje} whatsapp={wa} locales={locales} />
 
   return (
-    <AjustesTienda.Provider value={{ ajustes, cargando: a.cargando, enCache: a.enCache, error: a.error }}>
+    <AjustesTienda.Provider value={{ ajustes, vendedores, cargando: a.cargando, enCache: a.enCache, error: a.error }}>
       <div className="tienda relative flex min-h-dvh flex-col overflow-x-clip">
         {cerrada && (
           <p role="status" className="relative z-30 bg-(--t-vino) px-4 py-2 text-center text-sm text-white">
@@ -132,7 +136,7 @@ function Marco({ children }) {
           </a>
         )}
 
-        <Pie nombre={nombre} enlaces={ENLACES} locales={locales} whatsapp={wa} />
+        <Pie nombre={nombre} enlaces={ENLACES} locales={locales} whatsapp={wa} frase={t('pie.frase')} localesTitulo={t('pie.locales_titulo')} />
       </div>
     </AjustesTienda.Provider>
   )
@@ -140,6 +144,11 @@ function Marco({ children }) {
 
 // Se monta fuera de Arranque, AuthProvider y SyncRunner: no toca la base local ni la cola de Renzo.
 export default function TiendaApp() {
+  // La tienda se ve como con el navegador al 120 % en pantallas grandes (ver tienda.css). Solo mientras está montada.
+  useEffect(() => {
+    document.documentElement.classList.add('tienda-activa')
+    return () => document.documentElement.classList.remove('tienda-activa')
+  }, [])
   if (!hayBackendPublico) {
     return (
       <main className="tienda flex min-h-dvh items-center justify-center p-6">

@@ -153,3 +153,11 @@ export function useCatalogoCompleto() {
   }, [])
   return estado
 }
+
+// Vendedores con WhatsApp: las personas con rol vendedor/a, activas y con teléfono en el sistema (vista pública, solo nombre y teléfono).
+export async function pedirVendedores() {
+  const { data, error } = await (await cliente()).from('tienda_vendedores_publicos').select('id,nombre,telefono').order('nombre').limit(50)
+  if (error) throw error
+  return data
+}
+export const useVendedores = () => useConCache('vendedores', pedirVendedores, 6 * 3600000)

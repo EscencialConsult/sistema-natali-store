@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigationType, useSearchParams } from 'react-router-dom'
 import { Search, SearchX, WifiOff } from 'lucide-react'
 import { EmptyState, Skeleton } from '../../../components/ui/index.js'
-import { guardarScroll, leerScroll, useCatalogoCompleto } from '../data/catalogo.js'
+import { useConfigTienda, guardarScroll, leerScroll, useCatalogoCompleto } from '../data/catalogo.js'
+import { textosDe } from '../lib/textos.js'
 import { useAjustesTienda } from '../contexto.js'
 import { contarPorCategoria, filtrarYOrdenar, ORDENES, paginar, paginaDesdeTexto, textoModelos, textoRango } from '../lib/catalogo.js'
 import MenuOrden from './MenuOrden.jsx'
@@ -16,6 +17,7 @@ export default function CatalogoPage() {
   const tipoNavegacion = useNavigationType()
   const { ajustes } = useAjustesTienda()
   const c = useCatalogoCompleto()
+  const textos = textosDe(useConfigTienda().datos)
 
   const q = params.get('q') ?? ''
   const categoriaId = params.get('categoria') ?? ''
@@ -108,8 +110,8 @@ export default function CatalogoPage() {
     <div className="relative">
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <h1 className="font-titulo text-3xl font-semibold tracking-tight md:text-4xl">Catálogo</h1>
-          <p className="t-suave">Elegí un modelo para ver sus fotos y precios por docena.</p>
+          <h1 className="font-titulo text-3xl font-semibold tracking-tight md:text-4xl">{textos('catalogo.titulo')}</h1>
+          <p className="t-suave">{textos('catalogo.bajada')}</p>
         </header>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-8">

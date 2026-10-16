@@ -52,3 +52,7 @@ Nunca a mano. `app/scripts/aplicar-tienda.mjs` hace, en una sola transacción:
 ## Cómo se retira la tienda
 
 Solo con OK explícito, porque borra objetos de la tienda (nunca de Renzo): volver `App.jsx` a como estaba y, si hace falta, retirar las dos vistas y las dos tablas `tienda_*`. Los datos de `tienda_config` son lo único que se pierde.
+
+## Vista pública de vendedores (16/10)
+
+`tienda_vendedores_publicos` lee `naty_perfiles` (rol `vendedor`, `activo`, con teléfono de 8 dígitos o más) y expone solo `id`, `nombre` y `telefono` normalizado. Es una vista nueva con prefijo `tienda_`, como las demás: no cambia nada de `naty_perfiles`. Lo que la tienda espera de Renzo: que `rol`, `activo` y `telefono` sigan significando lo mismo.

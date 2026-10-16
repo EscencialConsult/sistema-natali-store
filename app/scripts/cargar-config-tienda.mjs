@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { validarComoComprar, validarContactos, validarEstadoTienda, validarHorarios, validarLocales, validarQuienesSomos, validarTransferencia } from '../src/features/tienda/lib/configTienda.js'
+import { validarTextos } from '../src/features/tienda/lib/textos.js'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -28,6 +29,8 @@ export const VALIDADORES = {
   quienes_somos: validarQuienesSomos,
   // { "cerrada": true } publica la tienda cerrada al público; se abre después desde el Gestor web.
   tienda: validarEstadoTienda,
+  // Textos de las páginas (ver lib/textos.js); lo normal es editarlos desde el Gestor web.
+  textos: validarTextos,
 }
 
 /** @returns {{ filas: {clave: string, valor: any}[], errores: string[] }} */

@@ -94,6 +94,15 @@ select
   coalesce((select valor = 'true'::jsonb from naty_config where clave = 'mostrar_precios_publico'), false) as mostrar_precios,
   nullif(regexp_replace(coalesce((select valor #>> '{}' from naty_config where clave = 'whatsapp_tienda'), ''), '[^0-9]', '', 'g'), '') as whatsapp_tienda;
 
+-- ── Vista pública de vendedores ─────────────────────────────────────────────────
+-- Las personas con rol vendedor/a, activas y con teléfono: son los contactos que ve la clienta y entre los que elige al
+-- armar el pedido. Solo nombre y teléfono normalizado (el teléfono ya sale impreso en la nota de venta); nada más del perfil.
+create or replace view tienda_vendedores_publicos with (security_barrier = true) as
+select p.id, p.nombre, regexp_replace(coalesce(p.telefono, ''), '[^0-9]', '', 'g') as telefono
+from naty_perfiles p
+where p.rol = 'vendedor' and p.activo and length(regexp_replace(coalesce(p.telefono, ''), '[^0-9]', '', 'g')) >= 8
+order by p.nombre;
+
 -- ── Seguridad a nivel de fila ───────────────────────────────────────────────────
 alter table tienda_config enable row level security;
 alter table tienda_oculto enable row level security;
@@ -120,10 +129,10 @@ create policy "tienda_oculto_admin_actualizar" on tienda_oculto for update to au
   using (naty_es_rol('admin')) with check (naty_es_rol('admin'));
 
 -- ── Privilegios mínimos (solo objetos tienda_*) ─────────────────────────────────
-revoke all on table tienda_config, tienda_oculto, tienda_catalogo_publico, tienda_ajustes_publicos from public, anon, authenticated;
+revoke all on table tienda_config, tienda_oculto, tienda_catalogo_publico, tienda_ajustes_publicos, tienda_vendedores_publicos from public, anon, authenticated;
 revoke all on function tienda_tocar_updated_at() from public, anon, authenticated;
 
-grant select on tienda_catalogo_publico, tienda_ajustes_publicos to anon, authenticated;
+grant select on tienda_catalogo_publico, tienda_ajustes_publicos, tienda_vendedores_publicos to anon, authenticated;
 grant select on tienda_config to anon, authenticated;
 grant insert, update on tienda_config to authenticated;
 grant select, insert, update on tienda_oculto to authenticated;

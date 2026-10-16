@@ -9,7 +9,8 @@ import { supabaseUrl } from '../data/clientePublico.js'
 import { guardarCarrito, useCarrito } from '../data/carritoStore.js'
 import { useAjustesTienda } from '../contexto.js'
 import { cambiarCantidad, quitarLinea } from '../lib/carrito.js'
-import { NOMBRE_MONEDA, estadoCuenta, formatearCuit, validarContactos, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { NOMBRE_MONEDA, estadoCuenta, formatearCuit, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { textosDe } from '../lib/textos.js'
 import { fotosDe } from '../lib/fotos.js'
 import { armarEnvio, detallePedido } from '../lib/mensaje.js'
 import { monedasDisponibles, resumirPedido, sinConfirmar } from '../lib/pedido.js'
@@ -19,23 +20,11 @@ import { useVolverArriba } from './useVolverArriba.js'
 
 const telefonoValido = (t) => soloDigitos(t).length >= 8
 
-// La configuración la edita la administración: se valida con las mismas reglas que al guardar.
-const contactosDe = (config, respaldo) => {
-  const validos = validarContactos(config?.contactos).valor
-  if (validos.length) return validos
-  return telefonoValido(respaldo) ? [{ nombre: '', telefono: respaldo }] : []
-}
 const localesDe = (config) => validarLocales(config?.locales).valor.map((l) => l.nombre)
 
 const docenasTexto = (n) => `${textoCantidad(n)} ${n === 1 ? 'docena' : 'docenas'}`
 const prendasTexto = (docenas) => `${aPrendas(docenas)} prendas`
 
-const PASOS = ['Revisá los modelos y las cantidades', 'Elegí cómo pagás y cómo retirás', 'Envialo por WhatsApp a tu vendedor']
-const DESPUES = [
-  'Tu vendedor te confirma disponibilidad y precio final.',
-  'Transferís o pagás en el local, y le mandás el comprobante.',
-  'Retirás por el local o coordinan la entrega.',
-]
 
 function Cantidad({ valor, onCambiar, nombre }) {
   return (
@@ -81,7 +70,7 @@ function Dato({ etiqueta, valor, copiable, copiado, onCopiar }) {
   )
 }
 
-function Vacio() {
+function Vacio({ titulo, texto }) {
   const pistas = [
     [Layers, 'Por docena o media docena', 'Cada modelo se pide de a 12 o de a 6 prendas.'],
     [Shirt, 'Surtido en talles y colores', 'La docena viene variada; el color no se elige por prenda.'],
@@ -92,8 +81,8 @@ function Vacio() {
       <span className="flex size-20 items-center justify-center rounded-full bg-(--t-rosa)"><ShoppingBag size={30} strokeWidth={1.75} aria-hidden className="text-(--t-vino)" /></span>
       <div className="flex flex-col gap-3">
         <p className="t-suave text-xs font-semibold uppercase tracking-[0.18em]">Tu pedido</p>
-        <h1 className="font-titulo text-3xl font-semibold tracking-tight text-balance md:text-4xl">Todavía no elegiste ningún modelo</h1>
-        <p className="t-suave mx-auto max-w-md text-balance leading-relaxed">Recorré el catálogo, abrí los modelos que te gusten y agregalos. Acá los vas a ver juntos para mandárselos a tu vendedor.</p>
+        <h1 className="font-titulo text-3xl font-semibold tracking-tight text-balance md:text-4xl">{titulo}</h1>
+        <p className="t-suave mx-auto max-w-md text-balance leading-relaxed">{texto}</p>
       </div>
       <Link to={RUTA_CATALOGO} className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-(--t-vino) px-7 text-sm font-semibold text-white hover:bg-(--t-vino-oscuro)">
         Ver el catálogo <ArrowRight size={16} aria-hidden />
@@ -114,8 +103,9 @@ function Vacio() {
 export default function PedidoPage() {
   useVolverArriba()
   const carrito = useCarrito()
-  const { ajustes } = useAjustesTienda()
+  const { ajustes, vendedores } = useAjustesTienda()
   const config = useConfigTienda().datos
+  const t = textosDe(config)
   const ids = useMemo(() => carrito.lineas.map((l) => l.id), [carrito.lineas])
   const { vigentes, listo, cargando, error } = useVigentes(ids)
 
@@ -128,7 +118,8 @@ export default function PedidoPage() {
   const [local, setLocal] = useState('')
   const [copiado, setCopiado] = useState('')
 
-  const contactos = contactosDe(config, ajustes?.whatsapp_tienda)
+  // Vendedores: salen de Usuarios (rol vendedor/a con teléfono); sin ninguno, el WhatsApp de la tienda.
+  const contactos = vendedores.length ? vendedores : telefonoValido(ajustes?.whatsapp_tienda) ? [{ nombre: '', telefono: ajustes.whatsapp_tienda }] : []
   const locales = localesDe(config)
   const elegido = contactos.length === 1 ? contactos[0] : contactos[Number(vendedor)] ?? null
   const transferencia = validarTransferencia(config?.transferencia).valor
@@ -158,7 +149,7 @@ export default function PedidoPage() {
     }
   }
 
-  if (!carrito.lineas.length) return <Vacio />
+  if (!carrito.lineas.length) return <Vacio titulo={t('pedido.vacio_titulo')} texto={t('pedido.vacio_texto')} />
 
   const necesitaVendedor = contactos.length > 1 && !elegido
   const bloqueado = resumen.hayNoDisponibles || necesitaVendedor
@@ -168,13 +159,13 @@ export default function PedidoPage() {
       <header className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <p className="t-suave text-xs font-semibold uppercase tracking-[0.18em]">Tu pedido</p>
-          <h1 className="font-titulo text-3xl font-semibold tracking-tight md:text-4xl">Revisá y enviá tu pedido</h1>
+          <h1 className="font-titulo text-3xl font-semibold tracking-tight md:text-4xl">{t('pedido.titulo')}</h1>
           <p className="t-suave">
             {carrito.lineas.length} {carrito.lineas.length === 1 ? 'modelo' : 'modelos'} · {docenasTexto(totalDocenas)} · {prendasTexto(totalDocenas)}
           </p>
         </div>
         <ol className="grid gap-3 sm:grid-cols-3">
-          {PASOS.map((p, i) => (
+          {t('pedido.pasos').map((p, i) => (
             <li key={p} className="flex items-center gap-3 rounded-xl border border-(--t-beige) bg-white/60 px-4 py-3 text-sm">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--t-vino) text-xs font-semibold text-white">{i + 1}</span>
               {p}
@@ -364,9 +355,9 @@ export default function PedidoPage() {
       </div>
 
       <section aria-labelledby="despues" className="flex flex-col gap-4 rounded-2xl bg-(--t-vino) px-6 py-7 text-white md:px-10">
-        <h2 id="despues" className="font-titulo text-xl font-semibold tracking-tight">Qué pasa después de enviar</h2>
+        <h2 id="despues" className="font-titulo text-xl font-semibold tracking-tight">{t('pedido.despues_titulo')}</h2>
         <ol className="grid gap-4 md:grid-cols-3">
-          {DESPUES.map((d, i) => (
+          {t('pedido.despues').map((d, i) => (
             <li key={d} className="flex items-start gap-3 text-sm leading-snug text-white/85">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">{i + 1}</span>
               {d}

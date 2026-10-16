@@ -5,7 +5,6 @@ import { resumenGlobal } from '../lib/gestor.js'
 import Cuenta from './secciones/Cuenta.jsx'
 import Contacto from './secciones/Contacto.jsx'
 import Direcciones from './secciones/Direcciones.jsx'
-import Estado from './secciones/Estado.jsx'
 import Modelos from './secciones/Modelos.jsx'
 import Resumen from './secciones/Resumen.jsx'
 import Textos from './secciones/Textos.jsx'
@@ -19,7 +18,7 @@ const PESTANAS = [
   { id: 'direcciones', nombre: 'Direcciones' },
 ]
 
-export default function GestorWeb({ configInicial, naty, soloLectura }) {
+export default function GestorWeb({ configInicial, naty, equipo = [], soloLectura }) {
   const [config, setConfig] = useState(configInicial)
   const [pestana, setPestana] = useState('resumen')
   const pestanas = useRef({})
@@ -38,7 +37,9 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
   // Las secciones avisan lo que guardaron para que el resumen y los avisos se pongan al día sin recargar.
   const alGuardar = (clave, valor) => setConfig((c) => ({ ...c, [clave]: valor }))
   const origen = typeof window === 'undefined' ? '' : window.location.origin
-  const resumen = useMemo(() => resumenGlobal({ config, naty, origen }), [config, naty, origen])
+  // Vendedores que ve la clienta: rol vendedor/a, activos y con teléfono (se administran en Usuarios).
+  const vendedores = useMemo(() => equipo.filter((p) => p.rol === 'vendedor' && p.activo && String(p.telefono ?? '').replace(/\D/g, '').length >= 8), [equipo])
+  const resumen = useMemo(() => resumenGlobal({ config, naty, origen, vendedores }), [config, naty, origen, vendedores])
   const urgentes = resumen.alertas.filter((a) => a.nivel !== 'info').length
 
   return (
@@ -48,7 +49,6 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
         <p className="text-sm text-texto-suave">Todo lo que ve la clienta en la tienda pública. Solo para la administración.</p>
       </div>
 
-      <Estado config={config} soloLectura={soloLectura} alGuardar={alGuardar} origen={origen} />
 
       <div role="tablist" aria-label="Secciones del gestor web" className="flex gap-1 overflow-x-auto border-b border-borde/70">
         {PESTANAS.map((p, i) => (
@@ -77,7 +77,7 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
       {[
         ['resumen', <Resumen key="r" resumen={resumen} irA={irA} />],
         ['cuenta', <Cuenta key="c" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
-        ['contacto', <Contacto key="co" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
+        ['contacto', <Contacto key="co" config={config} equipo={equipo} soloLectura={soloLectura} alGuardar={alGuardar} />],
         ['textos', <Textos key="t" config={config} soloLectura={soloLectura} alGuardar={alGuardar} />],
         ['modelos', <Modelos key="m" soloLectura={soloLectura} />],
         ['direcciones', <Direcciones key="d" resumen={resumen} />],

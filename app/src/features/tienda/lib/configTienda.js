@@ -273,3 +273,12 @@ export function validarEstadoTienda(obj) {
     errores: [],
   }
 }
+
+// ── Vendedores que ve la clienta ──────────────────────────────────────────────────
+/** Los de la vista pública (rol vendedor/a, activos, con teléfono). Si no hay ninguno, la lista manual `contactos` (respaldo). */
+export function vendedoresDe(lista, config) {
+  const validos = (Array.isArray(lista) ? lista : [])
+    .map((v) => ({ nombre: cortar(v?.nombre, 60), telefono: String(v?.telefono ?? '').replace(/\D/g, '') }))
+    .filter((v) => v.nombre && v.telefono.length >= 8)
+  return validos.length ? validos : validarContactos(config?.contactos).valor
+}

@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useCatalogoCompleto } from '../data/catalogo.js'
+import { useCatalogoCompleto, useConfigTienda } from '../data/catalogo.js'
 import { supabaseUrl } from '../data/clientePublico.js'
 import { useAjustesTienda } from '../contexto.js'
 import { contarPorCategoria, textoModelos } from '../lib/catalogo.js'
 import { fotosDe } from '../lib/fotos.js'
+import { textosDe } from '../lib/textos.js'
 import PrecioBloque from './PrecioBloque.jsx'
 import { RUTA_CATALOGO, rutaCategoria, rutaProducto } from '../rutas.js'
 import { useVolverArriba } from './useVolverArriba.js'
@@ -17,6 +18,7 @@ export default function HomePage() {
   useVolverArriba()
   const { ajustes } = useAjustesTienda()
   const { items } = useCatalogoCompleto()
+  const t = textosDe(useConfigTienda().datos)
 
   const conFoto = useMemo(() => (items ?? []).filter((p) => primeraFoto(p)), [items])
   const destacado = conFoto.find((p) => p.nuevo) ?? conFoto[0]
@@ -30,10 +32,10 @@ export default function HomePage() {
       <section aria-labelledby="titulo-inicio" className="relative pb-6 pt-10 md:pb-10 md:pt-16">
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[1.1fr_1fr]">
           <div className="flex flex-col items-start gap-5">
-            <h1 id="titulo-inicio" className="font-titulo text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">Nueva temporada</h1>
-            <p className="max-w-md text-lg">Elegí tu modelo, armá tu pedido y coordiná el pago y la entrega con tu vendedor.</p>
+            <h1 id="titulo-inicio" className="font-titulo text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">{t('inicio.titulo')}</h1>
+            <p className="max-w-md text-lg">{t('inicio.bajada')}</p>
             <Link to={RUTA_CATALOGO} className="inline-flex min-h-12 items-center rounded-lg bg-(--t-vino) px-7 text-sm font-medium text-white shadow-sm hover:bg-(--t-vino-oscuro)">
-              Ver catálogo
+              {t('inicio.boton')}
             </Link>
           </div>
 
@@ -55,7 +57,7 @@ export default function HomePage() {
 
       {categorias.length > 0 && (
         <section aria-labelledby="titulo-categorias" className="mx-auto flex w-full max-w-6xl flex-col gap-5">
-          <h2 id="titulo-categorias" className="font-titulo text-2xl font-semibold tracking-tight md:text-3xl">Categorías</h2>
+          <h2 id="titulo-categorias" className="font-titulo text-2xl font-semibold tracking-tight md:text-3xl">{t('inicio.categorias')}</h2>
           <ul className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 md:mx-0 md:px-0">
             {categorias.map((k) => (
               <li key={k.id} className="w-40 shrink-0 snap-start sm:w-44">

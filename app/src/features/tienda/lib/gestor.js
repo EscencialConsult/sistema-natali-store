@@ -1,7 +1,7 @@
 // Resumen de la configuración global de la tienda para el Gestor web: qué cuenta está conectada, qué conversión se usa,
 // por dónde se contacta y qué cosas necesitan atención. Es lectura pura: no escribe nada ni toca datos de Renzo.
 import { fechaDia } from '../../../lib/fechas.js'
-import { diasDesde, estadoCuenta, NOMBRE_MONEDA, validarContactos, validarEstadoTienda, validarLocales, validarTransferencia } from './configTienda.js'
+import { diasDesde, estadoCuenta, NOMBRE_MONEDA, validarEstadoTienda, validarLocales, validarTransferencia, vendedoresDe } from './configTienda.js'
 
 const soloDigitos = (t) => String(t ?? '').replace(/\D/g, '')
 const tasaValida = (n) => Number.isFinite(n) && n > 0
@@ -16,13 +16,14 @@ export const enmascarar = (digitos) => {
 export const DIAS_COTIZACION_VIEJA = 3
 
 /**
- * @param {{ config?: Record<string, any>, naty?: Record<string, any>, origen?: string, ahora?: number }} p
+ * @param {{ config?: Record<string, any>, naty?: Record<string, any>, origen?: string, ahora?: number, vendedores?: any[] }} p
+ *   vendedores: perfiles con rol vendedor/a, activos y con teléfono (de Usuarios). Sin ellos, la lista manual `contactos`.
  *   config: claves de tienda_config. naty: claves de naty_config (solo lectura, son de Renzo). origen: https://sitio
  */
-export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Date.now() } = {}) {
+export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Date.now(), vendedores } = {}) {
   const transferencia = validarTransferencia(config.transferencia).valor
   const cuenta = estadoCuenta(transferencia, ahora)
-  const contactos = validarContactos(config.contactos).valor
+  const contactos = vendedoresDe(vendedores, config)
   const locales = validarLocales(config.locales).valor
   const tienda = validarEstadoTienda(config.tienda).valor
 
@@ -45,7 +46,7 @@ export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Dat
   const alertas = []
   const alerta = (id, nivel, texto, pestana) => alertas.push({ id, nivel, texto, pestana })
 
-  if (tienda.cerrada) alerta('tienda-cerrada', 'media', 'La tienda está cerrada al público: las clientas ven el aviso de mantenimiento. Abrila desde «Estado de la tienda» cuando esté todo listo.', null)
+  if (tienda.cerrada) alerta('tienda-cerrada', 'media', 'La tienda está cerrada al público (clave «tienda» de la configuración): las clientas ven el aviso de mantenimiento.', null)
 
   if (cuenta.estado === 'sin_datos') {
     alerta('cuenta-sin-datos', 'alta', 'Todavía no cargaste la cuenta de transferencia. La clienta no sabe a dónde pagar.', 'cuenta')
@@ -65,7 +66,7 @@ export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Dat
 
   if (!preciosVisibles) alerta('precios-ocultos', 'media', 'Los precios no se muestran en la tienda: dicen "a consultar". Se activan en Ajustes, tarjeta "Catálogo y código QR".', null)
   if (!principal) alerta('sin-contacto', 'alta', 'No hay ningún WhatsApp cargado: la clienta no puede escribirles.', 'contacto')
-  if (!contactos.length) alerta('sin-vendedores', 'media', 'No hay vendedores en la lista: el pedido sale sin elegir vendedor.', 'contacto')
+  if (!contactos.length) alerta('sin-vendedores', 'media', 'No hay vendedores con teléfono: en Usuarios, cargá el teléfono de cada vendedor/a. Hasta entonces el pedido sale sin elegir vendedor.', 'contacto')
   if (!locales.length) alerta('sin-locales', 'media', 'No hay locales cargados en "Contacto".', 'contacto')
   if (!urlQr) alerta('sin-qr', 'info', 'La nota de venta no imprime el QR porque no hay dirección del catálogo (Ajustes, "Catálogo y código QR").', null)
   else if (urlPublica && urlQr.replace(/\/+$/, '') !== urlPublica.replace(/\/+$/, '')) {

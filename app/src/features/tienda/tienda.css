@@ -137,3 +137,16 @@
     transition: none;
   }
 }
+
+/* La tienda se ve como con el navegador al 120 %: en pantallas grandes la base pasa de 16 a 19,2 px y todo escala (es rem).
+   En celular queda al 100 %. El sistema interno (/admin) no cambia: la clase está solo mientras la tienda está montada. */
+@media (min-width: 48rem) {
+  html.tienda-activa {
+    font-size: 110%;
+  }
+}
+@media (min-width: 64rem) {
+  html.tienda-activa {
+    font-size: 120%;
+  }
+}

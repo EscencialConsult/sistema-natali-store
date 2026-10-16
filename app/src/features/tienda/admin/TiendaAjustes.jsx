@@ -1,7 +1,7 @@
 // Punto de entrada del Gestor web dentro de Ajustes. Es lo único que la página Ajustes de Renzo importa de la tienda.
 // Lo ve la administración (admin y superadmin), en Ajustes, pestaña «Gestor web». Si la tabla tienda_config no existe aún, lo explica.
 import { useEffect, useState } from 'react'
-import { useConfig } from '../../../data/hooks.js'
+import { useConfig, usePerfiles } from '../../../data/hooks.js'
 import { useAuth } from '../../auth/AuthContext.js'
 import { leerTodo, sinTabla } from './api.js'
 import GestorWeb from './GestorWeb.jsx'
@@ -10,6 +10,8 @@ export default function TiendaAjustes({ soloLectura }) {
   const { usuario } = useAuth()
   const esAdministracion = usuario?.rol === 'superadmin' || usuario?.rol === 'admin'
   const cfg = useConfig()
+  // Lectura de los perfiles de Renzo (solo lectura): los vendedores con teléfono son los contactos de la tienda.
+  const equipo = usePerfiles()
   const [estado, setEstado] = useState({ cargando: true, config: null, motivo: null })
   const [intento, setIntento] = useState(0)
 
@@ -25,7 +27,7 @@ export default function TiendaAjustes({ soloLectura }) {
   }, [esAdministracion, intento])
 
   if (!esAdministracion) return null
-  if (estado.cargando || cfg.cargando) return <p className="text-sm text-texto-suave">Cargando…</p>
+  if (estado.cargando || cfg.cargando || equipo.cargando) return <p className="text-sm text-texto-suave">Cargando…</p>
   if (!estado.config && estado.motivo === 'error') {
     return (
       <div role="alert" className="flex flex-col items-start gap-3 rounded-tarjeta bg-error-fondo p-4 text-sm text-error">
@@ -50,5 +52,5 @@ export default function TiendaAjustes({ soloLectura }) {
       </p>
     )
   }
-  return <GestorWeb configInicial={estado.config} naty={cfg.datos ?? {}} soloLectura={soloLectura} />
+  return <GestorWeb configInicial={estado.config} naty={cfg.datos ?? {}} equipo={equipo.datos ?? []} soloLectura={soloLectura} />
 }
