@@ -19,11 +19,14 @@ Compila la app y la deja andando en **http://localhost:4300**. Para apagarla: `C
 
 ## Usuarios
 
-Todos con la contraseña **`Demo-Naty-2026`**. Son de ejemplo y solo existen mientras la demostración está abierta.
+Todos con la contraseña **`Demo-Naty-2026`**.
+
+> **Datos reales en la demo.** Si existe `~\.claude\secretos\modas-naty-tienda-config-inicial.json` (la configuración real de la tienda, fuera del repo), el servidor demo la carga en lugar de la cuenta de ejemplo, así la tienda se ve con los datos verdaderos conectados por la base. Solo se sirve en `127.0.0.1`. Para usar otro archivo: variable `DEMO_CONFIG_TIENDA`. Son de ejemplo y solo existen mientras la demostración está abierta.
 
 | Usuario | Rol | Para probar |
 |---|---|---|
 | `natali` | superadmin | Todo: Ajustes de la tienda, usuarios, limpieza |
+| `fabiana` | admin | Ajustes y Gestor web, sin gestión de usuarios |
 | `pamela` | encargada de tienda | Lo que ve una encargada |
 | `ariel` | vendedor | Que NO pueda cambiar la configuración de la tienda |
 

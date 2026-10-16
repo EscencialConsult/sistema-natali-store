@@ -1,4 +1,4 @@
-// Servidor LOCAL de demostración. Para ver y probar la tienda y el sistema de notas sin tocar ninguna base real.
+﻿// Servidor LOCAL de demostración. Para ver y probar la tienda y el sistema de notas sin tocar ninguna base real.
 //
 // Qué es: un único proceso (sin Docker) que
 //   · corre el esquema REAL de Renzo (naty_schema.sql) y el de la tienda (tienda_schema.sql) en un Postgres en memoria (PGlite),
@@ -15,7 +15,7 @@
 import http from 'node:http'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
@@ -28,12 +28,16 @@ const RAIZ = resolve(APP, '..')
 const DIST = join(APP, 'dist-demo')
 const FOTOS = join(RAIZ, 'Docs', 'biblioteca-provisional', 'imagenes')
 const PUERTO = Number(process.argv[process.argv.indexOf('--puerto') + 1]) || 4300
+// Datos reales de la tienda (cuenta, locales), guardados FUERA del repo. Si el archivo existe, la demo los usa en vez de los de ejemplo;
+// solo se sirven en 127.0.0.1. Se puede apuntar a otro archivo con DEMO_CONFIG_TIENDA.
+const RUTA_CONFIG_REAL = process.env.DEMO_CONFIG_TIENDA ?? join(homedir(), '.claude', 'secretos', 'modas-naty-tienda-config-inicial.json')
 const ANON_KEY = 'clave-publica-de-demostracion'
 const JWT_SECRET = randomBytes(32).toString('hex')
 const ALMACEN = join(tmpdir(), `modas-naty-demo-${process.pid}`)
 
 export const USUARIOS_DEMO = [
   { usuario: 'natali', nombre: 'Natali (superadmin demo)', rol: 'superadmin', clave: 'Demo-Naty-2026', telefono: '59170000010' },
+  { usuario: 'fabiana', nombre: 'Fabiana (admin demo)', rol: 'admin', clave: 'Demo-Naty-2026', telefono: '59170000011' },
   { usuario: 'pamela', nombre: 'Pamela Aramayo', rol: 'enc_tienda', clave: 'Demo-Naty-2026', telefono: '59170000001' },
   { usuario: 'ariel', nombre: 'Ariel Maydana', rol: 'vendedor', clave: 'Demo-Naty-2026', telefono: '59170000002' },
 ]
@@ -71,7 +75,7 @@ const CATEGORIAS = [
 const categoriaDe = (f) => CATEGORIAS.find(([re]) => re.test(f))?.[1] ?? 'ACCESORIOS'
 const bonito = (f) => f.replace(/\.jpg$/i, '').replace(/-+/g, ' ').replace(/^./, (c) => c.toUpperCase())
 
-async function crearBase(puerto) {
+async function crearBase(puerto, configReal) {
   const db = new PGlite({ extensions: { pgcrypto } })
   await db.exec(STUB)
   await db.exec(readFileSync(join(APP, 'supabase', 'naty_schema.sql'), 'utf8'))
@@ -115,22 +119,32 @@ async function crearBase(puerto) {
     i += 1
   }
 
-  // Configuración de la tienda de ejemplo (cuenta FICTICIA; los locales y horarios son los reales y públicos).
-  const r = await cargarConfig({
-    consulta: (s, p) => db.query(s, p),
-    ejecutar: (s) => db.exec(s),
-    aplicar: true,
-    datos: {
-      transferencia: { titular: 'Cuenta de demostración', cuit: '20-12345678-6', banco: 'Banco de ejemplo', cbu: '0140000000000000000001', alias: 'demo.modas.naty', cuenta: '0000000001' },
-      // lat/lng de demostración (aproximadas, no son las reales: las carga Natali en el Gestor web).
-      locales: [
-        { nombre: 'Local 27 de Mayo', direccion: 'Calle sin nombre, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 12:00 y 14:00 a 16:00', lat: -22.7326, lng: -64.3412 },
-        { nombre: 'Local Chalanitas', direccion: 'Calle 23 de Marzo, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 13:00 y 14:00 a 17:00', lat: -22.7298, lng: -64.3386 },
-      ],
-      contactos: USUARIOS_DEMO.filter((u) => u.rol !== 'superadmin').map((u) => ({ nombre: u.nombre, telefono: u.telefono })),
-    },
-  })
+  // Configuración de ejemplo: cuenta FICTICIA; locales y horarios reales y públicos, con la esquina según OpenStreetMap
+  // (Chalanitas exacta; 27 de Mayo aproximada: su calle no tiene nombre en el mapa. Las definitivas las carga la administración).
+  const ejemplo = {
+    transferencia: { titular: 'Cuenta de demostración', cuit: '20-12345678-6', banco: 'Banco de ejemplo', cbu: '0140000000000000000001', alias: 'demo.modas.naty', cuenta: '0000000001' },
+    locales: [
+      { nombre: 'Local 27 de Mayo', direccion: 'Calle sin nombre, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 12:00 y 14:00 a 16:00', lat: -22.73105, lng: -64.3486 },
+      { nombre: 'Local Chalanitas', direccion: 'Calle 23 de Marzo, esquina Colorados', horario: 'Lunes a sábado: 6:00 a 13:00 y 14:00 a 17:00', lat: -22.7307161, lng: -64.3502285 },
+    ],
+    contactos: USUARIOS_DEMO.filter((u) => u.rol === 'vendedor' || u.rol === 'enc_tienda').map((u) => ({ nombre: u.nombre, telefono: u.telefono })),
+  }
+  let datos = ejemplo
+  let origenConfig = 'de ejemplo (cuenta ficticia)'
+  if (configReal) {
+    // Lo real pisa lo de ejemplo; un local real sin coordenadas toma las del local de ejemplo con el mismo nombre.
+    const real = JSON.parse(readFileSync(configReal, 'utf8'))
+    const locales = (real.locales ?? ejemplo.locales).map((l) => {
+      if (l.lat != null && l.lng != null) return l
+      const base = ejemplo.locales.find((e) => e.nombre === l.nombre)
+      return base ? { ...l, lat: base.lat, lng: base.lng } : l
+    })
+    datos = { ...ejemplo, ...real, locales, contactos: real.contactos ?? ejemplo.contactos }
+    origenConfig = `REAL, leída de ${configReal} (solo se sirve en esta máquina)`
+  }
+  const r = await cargarConfig({ consulta: (s, p) => db.query(s, p), ejecutar: (s) => db.exec(s), aplicar: true, datos })
   if (r.estado !== 'APLICADO') throw new Error(`No se pudo cargar la configuración de la tienda: ${r.errores.join('; ')}`)
+  console.log(`Configuración de la tienda: ${origenConfig}`)
   return { db, productos: archivos.length }
 }
 
@@ -240,8 +254,9 @@ function estadoDeError(e, rol) {
 }
 
 // puerto: 0 elige uno libre (lo usan las pruebas automáticas).
-export async function iniciarServidor({ puerto = PUERTO } = {}) {
-  const { db, productos } = await crearBase(puerto)
+// configReal: ruta a un JSON con la configuración real (ver RUTA_CONFIG_REAL); las pruebas no lo pasan y usan la de ejemplo.
+export async function iniciarServidor({ puerto = PUERTO, configReal } = {}) {
+  const { db, productos } = await crearBase(puerto, configReal)
   mkdirSync(ALMACEN, { recursive: true })
 
   // PGlite es de una sola conexión: las operaciones se encolan.
@@ -525,7 +540,7 @@ export async function iniciarServidor({ puerto = PUERTO } = {}) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  iniciarServidor()
+  iniciarServidor({ configReal: existsSync(RUTA_CONFIG_REAL) ? RUTA_CONFIG_REAL : undefined })
     .then(({ url, productos }) => {
       console.log('\n=== Modas Naty · servidor de demostración ===')
       console.log(`Tienda:   ${url}/`)

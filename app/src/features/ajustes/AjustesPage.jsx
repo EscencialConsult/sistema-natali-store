@@ -205,10 +205,10 @@ export default function AjustesPage() {
   const cfg = useConfig()
   const equipo = usePerfiles()
   const soloLectura = !puede(usuario.rol, 'ajustes.editar')
-  // Dos pestañas para el superadmin: los ajustes del sistema y todo lo que toca la tienda web (Gestor web).
-  const esSuperadmin = usuario.rol === 'superadmin'
+  // Dos pestañas para la administración (admin y superadmin): los ajustes del sistema y todo lo que toca la tienda web (Gestor web).
+  const esAdministracion = usuario.rol === 'superadmin' || usuario.rol === 'admin'
   const [params, setParams] = useSearchParams()
-  const pestana = esSuperadmin && params.get('pestana') === 'gestor' ? 'gestor' : 'general'
+  const pestana = esAdministracion && params.get('pestana') === 'gestor' ? 'gestor' : 'general'
   // Una vez abierto, el Gestor web queda montado para no perder lo que se estaba escribiendo al volver de pestaña.
   const [gestorAbierto, setGestorAbierto] = useState(pestana === 'gestor')
   const elegirPestana = (v) => {
@@ -228,7 +228,7 @@ export default function AjustesPage() {
         titulo="Ajustes"
         descripcion={soloLectura ? 'Podés ver los ajustes, pero solo la administración puede cambiarlos.' : 'Datos del negocio, tipo de cambio, catálogo, teléfonos de la nota e inventario.'}
       />
-      {esSuperadmin && (
+      {esAdministracion && (
         <Tabs
           valor={pestana}
           onChange={elegirPestana}
@@ -241,7 +241,7 @@ export default function AjustesPage() {
         />
       )}
       {/* Escritorio: dos columnas que se apilan solas; celular: una sola. */}
-      <div id="panel-general" role={esSuperadmin ? 'tabpanel' : undefined} aria-labelledby={esSuperadmin ? 'tab-general' : undefined} hidden={pestana !== 'general'} className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+      <div id="panel-general" role={esAdministracion ? 'tabpanel' : undefined} aria-labelledby={esAdministracion ? 'tab-general' : undefined} hidden={pestana !== 'general'} className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">
           <Negocio cfg={cfg.datos} soloLectura={soloLectura} />
           <Catalogo cfg={cfg.datos} soloLectura={soloLectura} />
@@ -254,7 +254,7 @@ export default function AjustesPage() {
         </div>
       </div>
       {/* Gestor web (solo superadmin): avisa solo si la tienda todavía no está activada en la base. */}
-      {esSuperadmin && (gestorAbierto || pestana === 'gestor') && (
+      {esAdministracion && (gestorAbierto || pestana === 'gestor') && (
         <div id="panel-gestor" role="tabpanel" aria-labelledby="tab-gestor" hidden={pestana !== 'gestor'}>
           <TiendaAjustes soloLectura={soloLectura} />
         </div>

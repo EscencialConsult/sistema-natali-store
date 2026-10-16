@@ -39,7 +39,7 @@ La cuenta de transferencia se cambia cada dos meses, y cuando cambia puede cambi
 2. Reemplazá los datos que cambiaron: titular, CUIT o CUIL, banco, CBU, alias y número de cuenta.
 3. Tocá **Guardar**.
 
-Solo la administración (el superadmin) puede hacerlo. Para que no se pase por alto, el sistema te ayuda de dos formas:
+Solo la administración (admin o superadmin) puede hacerlo, desde Ajustes, pestaña «Gestor web». Para que no se pase por alto, el sistema te ayuda de dos formas:
 
 - A los 50 días de la última vez que lo guardaste, la tarjeta te muestra un aviso para que lo revises.
 - Si pasan 60 días, la tienda le dice a la clienta "la cuenta cambia cada tanto: antes de transferir, confirmá estos datos con tu vendedor".

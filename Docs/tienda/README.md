@@ -33,7 +33,7 @@ La tienda pública vive en la raíz del sitio y el sistema de notas de Renzo en 
 | Carpeta | Qué hay |
 |---|---|
 | `app/src/features/tienda/publico/` | Páginas que ve la clienta |
-| `app/src/features/tienda/admin/` | Gestor web (solo superadmin) |
+| `app/src/features/tienda/admin/` | Gestor web (admin y superadmin) |
 | `app/src/features/tienda/lib/` | Reglas puras: precios, pedido, cuenta, mensaje |
 | `app/src/features/tienda/data/` | Acceso a la base, caché y carrito |
 | `app/src/features/tienda/pruebas/` | Pruebas de la tienda |

@@ -66,7 +66,7 @@ describe('servidor de demostración', { timeout: 60_000 }, () => {
     const { cuerpo } = await sesion('natali')
     const h = conToken(cuerpo.access_token)
     const perfiles = await (await get('/rest/v1/naty_perfiles?select=usuario,rol&order=usuario.asc', h)).json()
-    expect(perfiles.map((p) => p.usuario)).toEqual(['ariel', 'natali', 'pamela'])
+    expect(perfiles.map((p) => p.usuario)).toEqual(['ariel', 'fabiana', 'natali', 'pamela'])
     const dos = await (await get('/rest/v1/naty_productos?select=codigo&order=codigo.asc&limit=2&offset=1', h)).json()
     expect(dos.map((p) => p.codigo)).toEqual(['F0031', 'F0032'])
     const uso = await (await fetch(`${base}/rest/v1/rpc/naty_uso_almacenamiento`, { method: 'POST', headers: h, body: '{}' })).json()

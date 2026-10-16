@@ -24,7 +24,7 @@ Registro de lo que llegó por WhatsApp y dónde quedó. **No incluye datos banca
 | Banco | **Brubank** |
 | ¿En qué moneda transfieren? | **Pesos argentinos** |
 | Cambio de cuenta | **Se cambia cada dos meses, para no pagar impuestos.** Cambia la cuenta entera, no solo el alias |
-| Quién la actualiza | El superadmin, a mano, desde Ajustes |
+| Quién la actualiza | La administración (admin o superadmin), a mano, desde Ajustes, pestaña «Gestor web» |
 | WhatsApp principal | El de las **encargadas de tienda** (Pamela y otra de quien no recordaban el nombre). Están en el sistema |
 | Vendedores y sus teléfonos | Ya están en el sistema |
 | Precios | **Se muestran, en dólares y también en pesos**, con la cotización del día que carga la clienta. Quiere las dos alternativas |
@@ -47,4 +47,4 @@ Registro de lo que llegó por WhatsApp y dónde quedó. **No incluye datos banca
 | Activar "Mostrar precios en el catálogo público" | **Confirmado: se muestran.** Hoy está en falso en el sistema; lo activa la administración en Ajustes al publicar |
 | Textos de "Cómo comprar" con sus palabras | Si no, se usan los pasos por defecto |
 
-Resuelto el 15/10: banco (Brubank), moneda de transferencia (pesos argentinos), quién actualiza la cuenta (superadmin), días de atención (lunes a sábado en los dos locales), que los precios se muestran, y no hace falta "cómo llegar a pie".
+Resuelto el 15/10: banco (Brubank), moneda de transferencia (pesos argentinos), quién actualiza la cuenta (la administración), días de atención (lunes a sábado en los dos locales), que los precios se muestran, y no hace falta "cómo llegar a pie".

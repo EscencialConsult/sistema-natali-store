@@ -27,7 +27,7 @@ Qué dato existe, dónde vive, quién lo puede escribir y quién lo puede ver. S
 
 | Quién | Qué | Por dónde |
 |---|---|---|
-| Superadmin | `tienda_config` y `tienda_oculto` | Gestor web (Ajustes), con la sesión de la persona |
+| Admin o superadmin | `tienda_config` y `tienda_oculto` | Gestor web (Ajustes), con la sesión de la persona |
 | Facundo | Carga inicial de `tienda_config` | `app/scripts/cargar-config-tienda.mjs` (simulacro por defecto, archivo fuera del repo) |
 | Facundo | Esquema `tienda_*` | `app/scripts/aplicar-tienda.mjs` (simulacro y vuelta atrás automáticos) |
 

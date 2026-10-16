@@ -1,4 +1,4 @@
-// Gestor web: todo lo que toca la tienda pública, en un solo lugar y solo para el superadministrador.
+// Gestor web: todo lo que toca la tienda pública, en un solo lugar, para la administración (admin y superadmin).
 // Lee la configuración del sistema (naty_config) sin modificarla; escribe únicamente en las tablas tienda_*.
 import { useMemo, useRef, useState } from 'react'
 import { resumenGlobal } from '../lib/gestor.js'
@@ -44,7 +44,7 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
     <section className="flex flex-col gap-5 lg:col-span-2" aria-labelledby="gestor-web">
       <div>
         <h2 id="gestor-web" className="text-xl">Gestor web</h2>
-        <p className="text-sm text-texto-suave">Todo lo que ve la clienta en la tienda pública. Solo para el superadministrador.</p>
+        <p className="text-sm text-texto-suave">Todo lo que ve la clienta en la tienda pública. Solo para la administración.</p>
       </div>
 
       <div role="tablist" aria-label="Secciones del gestor web" className="flex gap-1 overflow-x-auto border-b border-borde/70">

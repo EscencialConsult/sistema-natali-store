@@ -1,5 +1,5 @@
 // Punto de entrada del Gestor web dentro de Ajustes. Es lo único que la página Ajustes de Renzo importa de la tienda.
-// Solo lo ve el superadministrador (Ajustes, pestaña «Gestor web»). Si la tabla tienda_config no existe aún, lo explica.
+// Lo ve la administración (admin y superadmin), en Ajustes, pestaña «Gestor web». Si la tabla tienda_config no existe aún, lo explica.
 import { useEffect, useState } from 'react'
 import { useConfig } from '../../../data/hooks.js'
 import { useAuth } from '../../auth/AuthContext.js'
@@ -8,13 +8,13 @@ import GestorWeb from './GestorWeb.jsx'
 
 export default function TiendaAjustes({ soloLectura }) {
   const { usuario } = useAuth()
-  const esSuperadmin = usuario?.rol === 'superadmin'
+  const esAdministracion = usuario?.rol === 'superadmin' || usuario?.rol === 'admin'
   const cfg = useConfig()
   const [estado, setEstado] = useState({ cargando: true, config: null, motivo: null })
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    if (!esSuperadmin) return undefined
+    if (!esAdministracion) return undefined
     let vigente = true
     leerTodo()
       .then((config) => vigente && setEstado({ cargando: false, config, motivo: null }))
@@ -22,9 +22,9 @@ export default function TiendaAjustes({ soloLectura }) {
     return () => {
       vigente = false
     }
-  }, [esSuperadmin, intento])
+  }, [esAdministracion, intento])
 
-  if (!esSuperadmin) return null
+  if (!esAdministracion) return null
   if (estado.cargando || cfg.cargando) return <p className="text-sm text-texto-suave">Cargando…</p>
   if (!estado.config && estado.motivo === 'error') {
     return (

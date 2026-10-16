@@ -17,7 +17,7 @@ Los archivos **nuevos** que no pisan nada de él se anotan en la segunda tabla.
 | 8 | `app/src/app/Layout.jsx` | Menú lateral minimizable (se recuerda en el navegador) | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
 | 9 | `app/src/app/ConexionPildora.jsx` | Indicador de conexión discreto (punto y palabra) en lugar de la insignia de color | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
 | 10 | `app/src/features/auth/LoginPage.jsx` | Pantalla de ingreso con el logo real | Pedido del dueño 15/10 | Restaurar el archivo | **Hecho 15/10** |
-| 11 | `app/src/features/ajustes/AjustesPage.jsx` (ampliación) | Dos pestañas para el superadmin: «Ajustes generales» y «Gestor web». Muestra el logo de fábrica en la tarjeta del logo | Pedido del dueño 15/10 | Restaurar el archivo y la línea del import | **Hecho 15/10** |
+| 11 | `app/src/features/ajustes/AjustesPage.jsx` (ampliación) | Dos pestañas para la administración (admin y superadmin): «Ajustes generales» y «Gestor web». Muestra el logo de fábrica en la tarjeta del logo | Pedido del dueño 15/10 | Restaurar el archivo y la línea del import | **Hecho 15/10** |
 | 12 | `app/src/components/ui/Tabs.jsx` | Navegación con flechas, Inicio y Fin; alto mínimo de 44 px (antes 40). Se nota en todas las pantallas que usan pestañas | Accesibilidad, hallazgo del duelo de IA 15/10 | Restaurar el archivo | **Hecho 15/10** |
 | 13 | `app/vite.config.js` (ampliación) | `globIgnores` excluye del precaché el mapa de la tienda (`MapaLibre*`, `maplibre-gl*`) | Que la app instalada del equipo no descargue 1,5 MB que no usa | Quitar esos dos patrones | **Hecho 15/10** |
 
