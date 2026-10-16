@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
+import { validarEstadoTienda, DIAS_ALIAS_VIGENTE, diasDesde, formatearCuit, MAX_CONTACTOS, PASOS_POR_DEFECTO, PREGUNTAS_FRECUENTES, QUIENES_SOMOS_POR_DEFECTO, validarQuienesSomos, urlMapaSegura, validarComoComprar, validarContactos, validarHorarios, validarLocales, validarTransferencia } from '../lib/configTienda.js'
 
 describe('urlMapaSegura', () => {
   it('acepta enlaces https de Google Maps', () => {
@@ -229,5 +229,18 @@ describe('coordenadas de los locales', () => {
   it('rechaza una sola coordenada o fuera de rango', () => {
     expect(validarLocales([{ nombre: 'L', lat: '-17.7' }]).errores.join(' ')).toMatch(/latitud y la longitud/)
     expect(validarLocales([{ nombre: 'L', lat: '95', lng: '10' }]).errores.length).toBe(1)
+  })
+})
+
+describe('validarEstadoTienda', () => {
+  it('sin dato la tienda está abierta', () => {
+    expect(validarEstadoTienda(undefined).valor).toMatchObject({ cerrada: false, mensaje: '' })
+    expect(validarEstadoTienda(null).valor.cerrada).toBe(false)
+  })
+  it('solo cierra con true explícito y limita el mensaje', () => {
+    expect(validarEstadoTienda({ cerrada: 'si' }).valor.cerrada).toBe(false)
+    const r = validarEstadoTienda({ cerrada: true, mensaje: 'Volvemos el lunes.' })
+    expect(r.valor).toMatchObject({ cerrada: true, mensaje: 'Volvemos el lunes.' })
+    expect(validarEstadoTienda({ cerrada: true, mensaje: 'x'.repeat(400) }).valor.mensaje.length).toBeLessThanOrEqual(300)
   })
 })

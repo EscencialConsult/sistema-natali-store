@@ -1,7 +1,7 @@
 // Resumen de la configuración global de la tienda para el Gestor web: qué cuenta está conectada, qué conversión se usa,
 // por dónde se contacta y qué cosas necesitan atención. Es lectura pura: no escribe nada ni toca datos de Renzo.
 import { fechaDia } from '../../../lib/fechas.js'
-import { diasDesde, estadoCuenta, NOMBRE_MONEDA, validarContactos, validarLocales, validarTransferencia } from './configTienda.js'
+import { diasDesde, estadoCuenta, NOMBRE_MONEDA, validarContactos, validarEstadoTienda, validarLocales, validarTransferencia } from './configTienda.js'
 
 const soloDigitos = (t) => String(t ?? '').replace(/\D/g, '')
 const tasaValida = (n) => Number.isFinite(n) && n > 0
@@ -24,6 +24,7 @@ export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Dat
   const cuenta = estadoCuenta(transferencia, ahora)
   const contactos = validarContactos(config.contactos).valor
   const locales = validarLocales(config.locales).valor
+  const tienda = validarEstadoTienda(config.tienda).valor
 
   const tc = naty.tipo_cambio ?? {}
   const ars = Number(tc.ars)
@@ -43,6 +44,8 @@ export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Dat
 
   const alertas = []
   const alerta = (id, nivel, texto, pestana) => alertas.push({ id, nivel, texto, pestana })
+
+  if (tienda.cerrada) alerta('tienda-cerrada', 'media', 'La tienda está cerrada al público: las clientas ven el aviso de mantenimiento. Abrila desde «Estado de la tienda» cuando esté todo listo.', null)
 
   if (cuenta.estado === 'sin_datos') {
     alerta('cuenta-sin-datos', 'alta', 'Todavía no cargaste la cuenta de transferencia. La clienta no sabe a dónde pagar.', 'cuenta')
@@ -96,6 +99,7 @@ export function resumenGlobal({ config = {}, naty = {}, origen = '', ahora = Dat
     },
     contacto: { principal, contactos: contactos.length, locales: locales.length },
     sitio: { urlPublica, urlQr, urlSistema: origen ? `${origen}/admin/` : '' },
+    tienda,
     alertas,
     hayAlertasAltas: alertas.some((a) => a.nivel === 'alta'),
   }

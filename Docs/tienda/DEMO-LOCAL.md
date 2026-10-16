@@ -52,3 +52,5 @@ Lo que **no** se puede probar acá: Mercado Pago (descartado), el envío real de
 - **Si cambiás el código y recompilás, recargá con `Ctrl+F5`.** El sistema de notas guarda una copia para funcionar sin internet y el navegador puede mostrarte la versión anterior.
 - **Escucha solo en tu compu** (`127.0.0.1`). Nadie más de tu red la ve.
 - El código está en `app/scripts/servidor-demo.mjs` y tiene su prueba automática.
+
+**Tienda cerrada.** En Ajustes → Gestor web, «Estado de la tienda», se puede cerrar la tienda al público: `http://localhost:4300/` pasa a mostrar la pantalla de mantenimiento y `http://localhost:4300/?previa=1` la sigue mostrando abierta para el equipo.

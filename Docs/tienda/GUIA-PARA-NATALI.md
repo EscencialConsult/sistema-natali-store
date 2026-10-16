@@ -77,3 +77,7 @@ Por ahora llegan por WhatsApp al vendedor. No se guardan en el sistema.
 - **La tienda dice "El catálogo no está disponible":** probablemente no hay internet. Probá de nuevo en unos minutos.
 - **No aparece un modelo:** revisá que esté activo, que tenga foto y que esté tildado en «modelos visibles».
 - **Los precios dicen "a consultar":** la casilla "Mostrar precios en el catálogo público" está destildada, o el tipo de cambio todavía es de ejemplo.
+
+## Cerrar la tienda un rato
+
+Si necesitás que las clientas no vean la tienda por un tiempo (por ejemplo mientras cambiás la cuenta o cargás modelos nuevos), en Ajustes → Gestor web, arriba de todo, está «Estado de la tienda». Tocá **Cerrar al público…**, escribí si querés un mensaje, y confirmá. Las clientas van a ver un aviso con tu WhatsApp y los locales; vos seguís usando el sistema igual. Para volver a abrirla, **Abrir la tienda** en el mismo lugar. Con el enlace «Ver la tienda (vista previa)» la ves vos aunque esté cerrada.

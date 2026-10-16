@@ -5,6 +5,7 @@ import { resumenGlobal } from '../lib/gestor.js'
 import Cuenta from './secciones/Cuenta.jsx'
 import Contacto from './secciones/Contacto.jsx'
 import Direcciones from './secciones/Direcciones.jsx'
+import Estado from './secciones/Estado.jsx'
 import Modelos from './secciones/Modelos.jsx'
 import Resumen from './secciones/Resumen.jsx'
 import Textos from './secciones/Textos.jsx'
@@ -46,6 +47,8 @@ export default function GestorWeb({ configInicial, naty, soloLectura }) {
         <h2 id="gestor-web" className="text-xl">Gestor web</h2>
         <p className="text-sm text-texto-suave">Todo lo que ve la clienta en la tienda pública. Solo para la administración.</p>
       </div>
+
+      <Estado config={config} soloLectura={soloLectura} alGuardar={alGuardar} origen={origen} />
 
       <div role="tablist" aria-label="Secciones del gestor web" className="flex gap-1 overflow-x-auto border-b border-borde/70">
         {PESTANAS.map((p, i) => (

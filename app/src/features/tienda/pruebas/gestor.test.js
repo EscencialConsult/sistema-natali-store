@@ -88,3 +88,12 @@ describe('resumenGlobal', () => {
     expect(r.alertas.map((a) => a.id)).toEqual(expect.arrayContaining(['cuenta-sin-datos', 'sin-contacto']))
   })
 })
+
+describe('resumenGlobal: estado de la tienda', () => {
+  it('abierta por defecto; cerrada avisa', () => {
+    expect(resumenGlobal({ ahora: AHORA }).tienda.cerrada).toBe(false)
+    const r = resumenGlobal({ config: { tienda: { cerrada: true, mensaje: 'Volvemos pronto' } }, ahora: AHORA })
+    expect(r.tienda).toMatchObject({ cerrada: true, mensaje: 'Volvemos pronto' })
+    expect(r.alertas.map((a) => a.id)).toContain('tienda-cerrada')
+  })
+})

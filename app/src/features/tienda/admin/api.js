@@ -2,8 +2,9 @@
 // cliente autenticado de la app. Nunca en `naty_config` ni en ninguna tabla de Renzo (por eso no usa config.guardar).
 import { obtenerSupabase } from '../../../data/supabase.js'
 
-export const sinTabla = (e) =>
-  e?.code === '42P01' || e?.code === 'PGRST205' || (/tienda_config/.test(e?.message ?? '') && /does not exist|schema cache/i.test(e?.message ?? ''))
+import { esErrorSinTabla } from '../lib/errores.js'
+
+export const sinTabla = esErrorSinTabla
 
 export async function leerTodo() {
   const sb = await obtenerSupabase()

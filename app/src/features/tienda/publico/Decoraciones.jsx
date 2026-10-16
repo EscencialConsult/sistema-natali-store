@@ -1,6 +1,6 @@
-// Formas orgánicas de la referencia de diseño. Son puramente decorativas (aria-hidden, sin clics).
-// El catálogo las dibuja en una capa por detrás del contenido (ver TiendaApp). La portada tiene su propia composición
-// dentro del panel de la portada (HomePage), así lo que se recorta lo recorta un solo contenedor.
+// Formas orgánicas de la referencia de diseño: manchas vino, beige y rosa, hojas y líneas punteadas.
+// Son puramente decorativas (aria-hidden, sin clics). Se dibujan en una capa a todo el ancho de la pantalla (ver TiendaApp),
+// pegadas a los bordes, y quedan por detrás del contenido: nunca deben tapar un texto.
 
 export function Hoja({ className = '', color = 'var(--t-terracota)', style }) {
   return (
@@ -16,6 +16,33 @@ const Mancha = ({ className = '', color, d, viewBox = '0 0 400 400' }) => (
     <path d={d} fill={color} />
   </svg>
 )
+
+const Punteada = ({ className = '', d }) => (
+  <svg viewBox="0 0 200 200" className={className} aria-hidden="true" focusable="false">
+    <path d={d} fill="none" stroke="var(--t-vino)" strokeWidth="2" strokeDasharray="7 9" strokeLinecap="round" />
+  </svg>
+)
+
+const BEIGE = 'M60 30C130 -10 250 10 300 90C350 170 310 290 220 330C130 370 30 320 10 220C-10 140 20 60 60 30Z'
+const ROSA = 'M80 40C150 -10 290 0 340 80C395 170 360 290 270 340C170 395 40 350 15 250C-5 170 20 80 80 40Z'
+// La mancha vino entra desde el borde izquierdo con el lomo curvo: sin borde recto arriba, así no parece cortada bajo el menú.
+const VINO_INICIO = 'M0 0C110 -6 232 34 304 104C338 138 318 162 276 190C206 236 160 282 70 326C34 348 10 344 0 334Z'
+
+// Portada: mancha vino en la esquina de arriba a la izquierda (sin llegar a los textos), rosa y beige detrás del destacado.
+export function DecorInicio() {
+  return (
+    <div className="absolute inset-0" aria-hidden="true">
+      <Mancha className="absolute -left-28 top-14 hidden w-[25rem] max-w-none md:block" color="var(--t-vino)" d={VINO_INICIO} />
+      <Mancha className="absolute left-[30%] top-2 hidden w-32 md:block" color="var(--t-beige)" d={BEIGE} />
+      <Mancha className="absolute right-[2%] top-28 w-[20rem] max-w-none md:right-[5%] md:top-20 md:w-[30rem]" color="var(--t-rosa)" d={ROSA} />
+      <Mancha className="absolute -right-24 top-[22rem] hidden w-[20rem] max-w-none opacity-80 md:block" color="var(--t-beige)" d={BEIGE} />
+      <Hoja className="absolute left-[25%] top-20 hidden w-12 rotate-[28deg] md:block" />
+      <Hoja className="absolute right-[3%] top-20 hidden w-12 -rotate-[24deg] md:block" color="var(--t-coral)" />
+      <Hoja className="absolute right-[10%] top-[26rem] hidden w-14 rotate-[18deg] md:block" />
+      <Punteada className="absolute -left-6 top-80 hidden w-40 md:block" d="M10 190C40 90 120 40 190 10" />
+    </div>
+  )
+}
 
 // Catálogo: esquina vino arriba a la derecha y hojas, discretas, sin tocar la barra de categorías ni la grilla.
 export function DecorCatalogo() {

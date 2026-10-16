@@ -14,6 +14,7 @@ Qué dato existe, dónde vive, quién lo puede escribir y quién lo puede ver. S
 | Vendedores y teléfonos | `tienda_config.contactos` | **Sí**, a propósito | Administración |
 | Locales, horarios, textos | `tienda_config.locales / horarios / como_comprar / quienes_somos` | Sí | Administración |
 | Modelos ocultos | `tienda_oculto` | No (solo el efecto: el modelo no aparece) | Administración |
+| Tienda abierta o cerrada, mensaje de mantenimiento | `tienda_config.tienda` | Sí (es lo que decide qué pantalla ve) | Administración, «Estado de la tienda» en el Gestor web |
 | Pedido armado | `localStorage` del navegador de la clienta y mensaje de WhatsApp | Es suyo | La clienta |
 | Copia de configuración y ajustes | `localStorage`, claves `tienda-v1:*` | Es de cada navegador | La tienda (vence: config 1 h, ajustes 6 h) |
 

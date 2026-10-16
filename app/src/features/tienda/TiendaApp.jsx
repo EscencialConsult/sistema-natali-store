@@ -1,16 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { MessageCircle, Search, ServerCrash, ShoppingBag } from 'lucide-react'
 import { EmptyState } from '../../components/ui/index.js'
 import { useAjustes, useConfigTienda } from './data/catalogo.js'
-import { validarContactos, validarLocales } from './lib/configTienda.js'
+import { validarContactos, validarEstadoTienda, validarLocales } from './lib/configTienda.js'
+import { esErrorSinTabla } from './lib/errores.js'
 import { useCarrito } from './data/carritoStore.js'
 import { hayBackendPublico } from './data/clientePublico.js'
 import { AjustesTienda, enlaceWhatsApp } from './contexto.js'
 import { BASE_ADMIN, RUTA_AYUDA, RUTA_CATALOGO, RUTA_CONTACTO, RUTA_INICIO, RUTA_PEDIDO, RUTA_PRODUCTO, RUTA_QUIENES_SOMOS, RUTAS_ANTERIORES } from './rutas.js'
 import CatalogoPage from './publico/CatalogoPage.jsx'
-import { DecorCatalogo } from './publico/Decoraciones.jsx'
+import { DecorCatalogo, DecorInicio } from './publico/Decoraciones.jsx'
 import HomePage from './publico/HomePage.jsx'
+import MantenimientoPage from './publico/MantenimientoPage.jsx'
 import { AyudaPage, ContactoPage, QuienesSomosPage } from './publico/InfoPages.jsx'
 import Pie from './publico/Pie.jsx'
 import PedidoPage from './publico/PedidoPage.jsx'
@@ -35,12 +37,29 @@ function Marco({ children }) {
   const ajustes = a.datos
   const nombre = ajustes?.negocio_nombre || 'Modas Naty'
   // El WhatsApp principal es el de la tienda; si todavía no está cargado, el de la primera encargada de la lista de contactos.
-  const config = useConfigTienda().datos
+  const c = useConfigTienda()
+  const config = c.datos
   const principal = ajustes?.whatsapp_tienda || validarContactos(config?.contactos).valor[0]?.telefono
   const wa = enlaceWhatsApp(principal)
   const locales = validarLocales(config?.locales).valor
   const cantidadModelos = useCarrito().lineas.length
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+
+  // Vista previa para el equipo: con ?previa=1 esta pestaña ve la tienda abierta aunque esté cerrada al público.
+  const previa = useMemo(() => {
+    const pedida = new URLSearchParams(search).get('previa') === '1'
+    try {
+      if (pedida) sessionStorage.setItem('tienda-previa', '1')
+      return sessionStorage.getItem('tienda-previa') === '1'
+    } catch {
+      return pedida
+    }
+  }, [search])
+  const estadoTienda = validarEstadoTienda(config?.tienda).valor
+  // Cerrada por la administración, o todavía sin activar en la base (la tabla no existe): pantalla de mantenimiento.
+  const cerrada = estadoTienda.cerrada || (!config && esErrorSinTabla(c.error))
+  // Primera visita sin copia local: se espera la configuración para no mostrar la tienda y taparla un instante después.
+  const primeraCarga = c.cargando && !config && !c.error
 
   useEffect(() => {
     document.title = `Catálogo mayorista · ${nombre}`
@@ -54,11 +73,26 @@ function Marco({ children }) {
     document.querySelector('link[rel="manifest"]')?.remove()
   }, [])
 
+  if (primeraCarga) {
+    return (
+      <main className="tienda flex min-h-dvh items-center justify-center" aria-busy="true" aria-label="Cargando">
+        <img src="/brand/isotipo.png" width="240" height="134" alt="" className="h-12 w-auto opacity-60" />
+      </main>
+    )
+  }
+  if (cerrada && !previa) return <MantenimientoPage nombre={nombre} mensaje={estadoTienda.mensaje} whatsapp={wa} locales={locales} />
+
   return (
     <AjustesTienda.Provider value={{ ajustes, cargando: a.cargando, enCache: a.enCache, error: a.error }}>
       <div className="tienda relative flex min-h-dvh flex-col overflow-x-clip">
+        {cerrada && (
+          <p role="status" className="relative z-30 bg-(--t-vino) px-4 py-2 text-center text-sm text-white">
+            Vista previa del equipo: la tienda está cerrada al público. Las clientas ven el aviso de mantenimiento.
+          </p>
+        )}
         {/* Capa decorativa a todo el ancho, por detrás de todo: las manchas se pegan a los bordes de la pantalla. */}
         <div className="t-decor absolute inset-x-0 top-0 z-0 h-[44rem] overflow-hidden" aria-hidden="true">
+          {pathname === RUTA_INICIO && <DecorInicio />}
           {pathname === RUTA_CATALOGO && <DecorCatalogo />}
         </div>
         <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">

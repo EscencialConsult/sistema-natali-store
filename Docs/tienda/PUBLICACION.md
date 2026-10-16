@@ -74,3 +74,14 @@ Antes de aplicar, completar en ese archivo lo que falte (banco y enlaces de mapa
 | El sistema interno no abre en `/admin` | Idem: volver al deploy anterior. La base no se modificó por esto |
 | Hay que retirar la tienda de la base | Solo con OK explícito: borra objetos **de la tienda** (nunca de Renzo): las dos vistas y las dos tablas `tienda_*`. Se pierden solo los datos de `tienda_config` y `tienda_oculto` |
 | Cualquier duda sobre datos de Renzo | Comparar con `respaldo.mjs` del 15/10 (huellas SHA-256 en su `MANIFIESTO.json`) |
+
+## Publicar con la tienda cerrada (sin pantalla de mantenimiento para el equipo)
+
+El sistema del equipo **no** se pone en mantenimiento: es offline-first, cada celular guarda las ventas en su cola local y las envía cuando puede, y el despliegue en Netlify es atómico (la versión nueva reemplaza a la vieja de un golpe). Lo único que cambia para el equipo es que la app pasa a vivir en `/admin`; ver la nota del service worker más arriba y hacerlo fuera del horario de ventas.
+
+La tienda pública sí se publica cerrada, para que ninguna clienta la vea a medio cargar:
+
+1. En el JSON de configuración inicial (fuera del repo) agregar `"tienda": { "cerrada": true }` antes de correr `cargar-config-tienda.mjs`.
+2. Mientras la tabla `tienda_config` no exista o la clave diga `cerrada`, la raíz muestra la pantalla «Estamos preparando la tienda» con el WhatsApp y los locales. `/admin` funciona normal.
+3. Revisar la tienda como la vería la clienta entrando a `https://modas-naty.netlify.app/?previa=1` (la vista previa vale para esa pestaña).
+4. Cuando precios, cuenta y locales estén bien, abrirla desde Ajustes → Gestor web → «Estado de la tienda» → **Abrir la tienda**. Se puede volver a cerrar en cualquier momento desde el mismo lugar.

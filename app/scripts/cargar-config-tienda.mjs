@@ -9,12 +9,12 @@
 //   node app/scripts/cargar-config-tienda.mjs C:\ruta\fuera-del-repo\config-inicial.json            # prueba y revierte
 //   node app/scripts/cargar-config-tienda.mjs C:\ruta\fuera-del-repo\config-inicial.json --aplicar  # guarda
 //
-// Formato del archivo: { "transferencia": {...}, "locales": [...], "horarios": [...], "contactos": [...], "como_comprar": [...] }
+// Formato del archivo: { "transferencia": {...}, "locales": [...], "horarios": [...], "contactos": [...], "como_comprar": [...], "tienda": { "cerrada": true } }
 import { createRequire } from 'node:module'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { validarComoComprar, validarContactos, validarHorarios, validarLocales, validarQuienesSomos, validarTransferencia } from '../src/features/tienda/lib/configTienda.js'
+import { validarComoComprar, validarContactos, validarEstadoTienda, validarHorarios, validarLocales, validarQuienesSomos, validarTransferencia } from '../src/features/tienda/lib/configTienda.js'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -26,6 +26,8 @@ export const VALIDADORES = {
   contactos: validarContactos,
   como_comprar: validarComoComprar,
   quienes_somos: validarQuienesSomos,
+  // { "cerrada": true } publica la tienda cerrada al público; se abre después desde el Gestor web.
+  tienda: validarEstadoTienda,
 }
 
 /** @returns {{ filas: {clave: string, valor: any}[], errores: string[] }} */

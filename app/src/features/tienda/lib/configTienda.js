@@ -261,3 +261,15 @@ export function enlaceComoLlegar(local) {
   if (!consulta) return null
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`
 }
+
+// ── Estado de la tienda: abierta o cerrada al público (modo mantenimiento) ───────────────────────────
+export const MENSAJE_CERRADA_POR_DEFECTO = 'Estamos preparando la tienda. Mientras tanto, escribinos por WhatsApp o pasá por el local.'
+
+/** Clave `tienda` de tienda_config: { cerrada, mensaje, actualizado_en }. Sin dato, la tienda está abierta. */
+export function validarEstadoTienda(obj) {
+  const o = obj && typeof obj === 'object' ? obj : {}
+  return {
+    valor: { cerrada: o.cerrada === true, mensaje: cortar(o.mensaje, 300), actualizado_en: typeof o.actualizado_en === 'string' ? o.actualizado_en : '' },
+    errores: [],
+  }
+}
