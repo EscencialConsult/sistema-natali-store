@@ -1,5 +1,6 @@
 // Repositorio de ventas.
 //   crear(datos) · anular(id, { motivo, usuario_id }) · obtener(id) · listar(filtros) · listarConItems(filtros)
+//   marcarComision(ids, { pagada, oculta })
 // Crear una venta es UNA transacción: nota + ítems + descuento de stock + cola de sincronización.
 // Si algo falla no queda nada a medias. Las ventas se anulan; solo el superadmin borra notas viejas (limpieza.js).
 import { z } from 'zod'
@@ -155,7 +156,7 @@ export const ventas = {
     return { ...venta, items: await db.venta_items.where('venta_id').equals(id).toArray() }
   },
 
-  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta } = {}) {
+  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta, comision_pagada, comision_oculta } = {}) {
     let lista = await db.ventas.toArray()
     if (vendedor_id) lista = lista.filter((v) => v.vendedor_id === vendedor_id)
     if (moneda) lista = lista.filter((v) => v.moneda === moneda)
@@ -164,6 +165,8 @@ export const ventas = {
     if (estado) lista = lista.filter((v) => v.estado === estado)
     if (desde) lista = lista.filter((v) => v.creada_en >= desde)
     if (hasta) lista = lista.filter((v) => v.creada_en <= hasta)
+    if (comision_pagada !== undefined) lista = lista.filter((v) => !!v.comision_pagada === comision_pagada)
+    if (comision_oculta !== undefined) lista = lista.filter((v) => !!v.comision_oculta === comision_oculta)
     return lista.sort((a, b) => b.creada_en.localeCompare(a.creada_en))
   },
   // Para exportar: cada venta con sus ítems.
@@ -171,5 +174,28 @@ export const ventas = {
     const lista = await ventas.listar(filtros)
     const items = await db.venta_items.where('venta_id').anyOf(lista.map((v) => v.id)).toArray()
     return lista.map((v) => ({ ...v, items: items.filter((i) => i.venta_id === v.id) }))
+  },
+  // Comisión pagada / oculta de la pantalla (no toca la nota ni el stock). Una entrada de cola por venta,
+  // así cada una vuelve a 'synced' por su cuenta y la descarga no pisa las que están por enviarse.
+  async marcarComision(ids, { pagada, oculta } = {}) {
+    const lista = Array.isArray(ids) ? ids : [ids]
+    if (!lista.length) return
+    const ahora = new Date().toISOString()
+    const cambios = { sync_status: 'pending' }
+    const payload = {}
+    if (pagada !== undefined) {
+      payload.comision_pagada = !!pagada
+      Object.assign(cambios, { comision_pagada: !!pagada, comision_pagada_en: pagada ? ahora : null })
+    }
+    if (oculta !== undefined) {
+      payload.comision_oculta = !!oculta
+      Object.assign(cambios, { comision_oculta: !!oculta, comision_oculta_en: oculta ? ahora : null })
+    }
+    await db.transaction('rw', db.ventas, db.cola_sync, async () => {
+      for (const id of lista) {
+        await db.ventas.update(id, cambios)
+        await encolar({ operacion: 'comision', entidad: 'venta', entidad_id: id, payload: { id, ...payload } })
+      }
+    })
   },
 }

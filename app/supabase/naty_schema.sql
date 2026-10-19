@@ -995,3 +995,42 @@ select gen_random_uuid(), s.producto_id,
        'ajuste', (round(s.total / 6.0) * 6)::int - s.total, 'Redondeo a media docena', now()
   from (select producto_id, sum(delta)::int as total from naty_movimientos_stock group by producto_id) s
  where s.total % 6 <> 0;
+
+-- ── 2026-10-19 · Comisiones: marcar como pagadas y eliminarlas de la pantalla ──
+-- "Eliminar" solo oculta la comisión (comision_oculta): la nota, sus ítems y el stock no se tocan.
+alter table naty_ventas add column if not exists comision_pagada boolean not null default false;
+alter table naty_ventas add column if not exists comision_pagada_en timestamptz;
+alter table naty_ventas add column if not exists comision_oculta boolean not null default false;
+alter table naty_ventas add column if not exists comision_oculta_en timestamptz;
+
+-- p = { id | ids, comision_pagada?, comision_oculta? }. Solo admin o superadmin.
+create or replace function naty_actualizar_comision_venta(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_ids uuid[];
+  v_pagada boolean := case when p ? 'comision_pagada' then (p ->> 'comision_pagada')::boolean end;
+  v_oculta boolean := case when p ? 'comision_oculta' then (p ->> 'comision_oculta')::boolean end;
+begin
+  if not naty_es_rol('admin') then
+    raise exception 'Solo la administración puede gestionar comisiones' using errcode = '42501';
+  end if;
+  if p ? 'ids' then
+    select array_agg(x::uuid) into v_ids from jsonb_array_elements_text(p -> 'ids') as x;
+  elsif p ? 'id' then
+    v_ids := array[(p ->> 'id')::uuid];
+  else
+    raise exception 'Falta id o ids de ventas' using errcode = '22023';
+  end if;
+
+  update naty_ventas set
+    comision_pagada = coalesce(v_pagada, comision_pagada),
+    comision_pagada_en = case when v_pagada then coalesce(comision_pagada_en, clock_timestamp()) when not v_pagada then null else comision_pagada_en end,
+    comision_oculta = coalesce(v_oculta, comision_oculta),
+    comision_oculta_en = case when v_oculta then coalesce(comision_oculta_en, clock_timestamp()) when not v_oculta then null else comision_oculta_en end
+  where id = any(v_ids);
+
+  return jsonb_build_object('ok', true, 'afectadas', cardinality(v_ids));
+end $$;
+
+revoke all on function naty_actualizar_comision_venta(jsonb) from public, anon, authenticated;
+grant execute on function naty_actualizar_comision_venta(jsonb) to authenticated;

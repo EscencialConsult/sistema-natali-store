@@ -22,10 +22,11 @@ const SYNC = { pending: ['alerta', 'Por enviar'], synced: ['exito', 'Enviada'], 
 const OPC_PAGO = [TODOS, { valor: 'efectivo', etiqueta: 'Efectivo' }, { valor: 'transferencia', etiqueta: 'Transferencia' }]
 const OPC_ENVIO = [TODOS, { valor: 'pending', etiqueta: 'Por enviar' }, { valor: 'synced', etiqueta: 'Enviadas' }, { valor: 'error', etiqueta: 'Con problema' }]
 const OPC_ESTADO = [TODOS, { valor: 'activa', etiqueta: 'Activas' }, { valor: 'anulada', etiqueta: 'Anuladas' }]
+const OPC_COMISION = [TODOS, { valor: 'no_pagada', etiqueta: 'No pagada' }, { valor: 'pagada', etiqueta: 'Pagada' }]
 const OPC_ENTREGA = [TODOS, ...Object.entries(METODOS_ENTREGA).map(([valor, etiqueta]) => ({ valor, etiqueta }))]
 const VENDEN = ['vendedor', 'enc_tienda', 'enc_ventas', 'admin', 'superadmin']
 
-const FILTROS_VACIOS = { moneda: '', metodo_pago: '', sync_status: '', estado: '', vendedor_id: '', desde: '', hasta: '' }
+const FILTROS_VACIOS = { moneda: '', metodo_pago: '', sync_status: '', estado: '', vendedor_id: '', desde: '', hasta: '', comision_pagada: '' }
 
 export default function VentasPage() {
   const { usuario } = useAuth()
@@ -44,6 +45,7 @@ export default function VentasPage() {
       metodo_pago: f.metodo_pago || undefined,
       sync_status: f.sync_status || undefined,
       estado: f.estado || undefined,
+      comision_pagada: f.comision_pagada === 'pagada' ? true : f.comision_pagada === 'no_pagada' ? false : undefined,
       vendedor_id: verTodas ? f.vendedor_id || undefined : usuario.id,
       desde: desdeDeFecha(f.desde) ?? r.desde ?? undefined,
       hasta: hastaDeFecha(f.hasta) ?? r.hasta ?? undefined,
@@ -67,12 +69,14 @@ export default function VentasPage() {
     { tipo: 'select', clave: 'metodo_pago', etiqueta: 'Forma de pago', opciones: OPC_PAGO },
     { tipo: 'select', clave: 'metodo_entrega', etiqueta: 'Entrega', opciones: OPC_ENTREGA },
     { tipo: 'select', clave: 'estado', etiqueta: 'Estado', opciones: OPC_ESTADO },
+    { tipo: 'select', clave: 'comision_pagada', etiqueta: 'Comisión', opciones: OPC_COMISION },
   ]
   const generarExcel = async (x) => {
     const lista = (
       await repoVentas.listarConItems({
         metodo_pago: x.metodo_pago || undefined,
         estado: x.estado || undefined,
+        comision_pagada: x.comision_pagada === 'pagada' ? true : x.comision_pagada === 'no_pagada' ? false : undefined,
         vendedor_id: verTodas ? x.vendedor_id || undefined : usuario.id,
         desde: x.desde,
         hasta: x.hasta,
@@ -86,6 +90,7 @@ export default function VentasPage() {
       ['Pago', etiquetaDe(OPC_PAGO, x.metodo_pago)],
       ['Entrega', etiquetaDe(OPC_ENTREGA, x.metodo_entrega)],
       ['Estado', etiquetaDe(OPC_ESTADO, x.estado)],
+      ['Comisión', etiquetaDe(OPC_COMISION, x.comision_pagada)],
     ]
     return { libro: libroVentas(lista, filtrosTexto), nombre: nombreArchivo('ventas') }
   }
@@ -115,6 +120,7 @@ export default function VentasPage() {
           <Select etiqueta="Forma de pago" opciones={OPC_PAGO} valor={f.metodo_pago} onChange={cambiar('metodo_pago')} />
           <Select etiqueta="Envío" opciones={OPC_ENVIO} valor={f.sync_status} onChange={cambiar('sync_status')} />
           <Select etiqueta="Estado" opciones={OPC_ESTADO} valor={f.estado} onChange={cambiar('estado')} />
+          <Select etiqueta="Comisión" opciones={OPC_COMISION} valor={f.comision_pagada} onChange={cambiar('comision_pagada')} />
           <Input etiqueta="Desde" type="date" value={f.desde} onChange={(e) => cambiar('desde')(e.target.value)} />
           <Input etiqueta="Hasta" type="date" value={f.hasta} onChange={(e) => cambiar('hasta')(e.target.value)} />
           {hayFiltros && <Button variante="fantasma" className="self-end sm:col-span-2 sm:justify-self-start lg:col-span-1" onClick={() => setF(FILTROS_VACIOS)}>Limpiar filtros</Button>}

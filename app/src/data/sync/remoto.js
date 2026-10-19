@@ -103,6 +103,8 @@ export async function enviarRemoto(sb, item) {
       return rpc(sb, 'naty_registrar_venta', armarVenta(item.payload))
     case 'venta/anular':
       return rpc(sb, 'naty_anular_venta', { id: item.entidad_id, motivo: item.payload.motivo, anulada_en: item.payload.anulada_en, movimientos: item.payload.movimientos.map(movimiento) })
+    case 'venta/comision':
+      return rpc(sb, 'naty_actualizar_comision_venta', item.payload)
     case 'producto/guardar':
       return enviarProducto(sb, item.entidad_id)
     case 'movimiento/registrar':
@@ -246,7 +248,7 @@ export async function descargar(sb) {
     const items = await traer(sb, 'naty_venta_items', { orden: 'id', filtros: (q) => q.in('venta_id', ids) })
     await db.transaction('rw', db.ventas, db.venta_items, async () => {
       await db.venta_items.where('venta_id').anyOf(ids).delete()
-      await db.ventas.bulkPut(lote.map((v) => ({ ...pick(v, ['id', 'numero', 'vendedor_id', 'vendedor_nombre', 'moneda', 'metodo_pago', 'cliente_nombre', 'cliente_telefono', 'cliente_email', 'cliente_direccion', 'metodo_entrega', 'estado', 'anulada_en', 'anulacion_motivo', 'creada_en']), tipo_cambio: Number(v.tipo_cambio), total_cent: Number(v.total_cent), sync_status: 'synced' })))
+      await db.ventas.bulkPut(lote.map((v) => ({ ...pick(v, ['id', 'numero', 'vendedor_id', 'vendedor_nombre', 'moneda', 'metodo_pago', 'cliente_nombre', 'cliente_telefono', 'cliente_email', 'cliente_direccion', 'metodo_entrega', 'estado', 'anulada_en', 'anulacion_motivo', 'creada_en']), tipo_cambio: Number(v.tipo_cambio), total_cent: Number(v.total_cent), comision_pagada: !!v.comision_pagada, comision_pagada_en: v.comision_pagada_en ?? null, comision_oculta: !!v.comision_oculta, comision_oculta_en: v.comision_oculta_en ?? null, sync_status: 'synced' })))
       await db.venta_items.bulkPut(items.map((i) => ({ ...pick(i, ['id', 'venta_id', 'producto_id', 'color_id', 'codigo', 'nombre', 'color_nombre', 'unidad', 'unidades']), cantidad: Number(i.cantidad), precio_cent: Number(i.precio_cent), subtotal_cent: Number(i.subtotal_cent) })))
     })
   }
