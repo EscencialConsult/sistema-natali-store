@@ -21,7 +21,7 @@ export function libroComisiones(ventas, nombres, filtrosTexto = []) {
     .filter((v) => v.estado !== 'anulada')
     .map((v) => {
       const docenas = docenasDe(v.items)
-      return { fecha: v.creada_en, numero: v.numero, vendedor: nombres.get(v.vendedor_id) ?? v.vendedor_nombre, cliente: v.cliente_nombre, docenas, comision: comisionDeDocenas(docenas) / 100, moneda: META_MONEDA[v.moneda].corto, total: v.total_cent / 100 }
+      return { fecha: v.creada_en, numero: v.numero, vendedor: nombres.get(v.vendedor_id) ?? v.vendedor_nombre, cliente: v.cliente_nombre, docenas, comision: comisionDeDocenas(docenas) / 100, estado_comision: v.comision_pagada ? 'Pagada' : 'Pendiente', moneda: META_MONEDA[v.moneda].corto, total: v.total_cent / 100 }
     })
 
   return {
@@ -48,6 +48,7 @@ export function libroComisiones(ventas, nombres, filtrosTexto = []) {
           { titulo: 'Cliente', clave: 'cliente', ancho: 22 },
           { titulo: 'Docenas', clave: 'docenas', tipo: 'docenas', ancho: 10 },
           { titulo: 'Comisión (USD)', clave: 'comision', tipo: 'dinero', ancho: 15 },
+          { titulo: 'Estado comisión', clave: 'estado_comision', ancho: 16 },
           { titulo: 'Moneda', clave: 'moneda', ancho: 9 },
           { titulo: 'Total de la nota', clave: 'total', tipo: 'dinero', ancho: 16 },
         ],

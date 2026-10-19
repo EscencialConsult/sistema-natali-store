@@ -28,7 +28,7 @@ try {
   ok(vista[0].anon && vista[0].auth, 'el catálogo público (vista) se puede leer sin login')
 
   const funcion = async (firma, rol) => (await q('select has_function_privilege($1, $2, $3) as p', [rol, firma, 'execute']))[0].p
-  for (const f of ['naty_registrar_venta(jsonb)', 'naty_anular_venta(jsonb)', 'naty_guardar_producto(jsonb)']) {
+  for (const f of ['naty_registrar_venta(jsonb)', 'naty_anular_venta(jsonb)', 'naty_actualizar_comision_venta(jsonb)', 'naty_guardar_producto(jsonb)']) {
     ok(!(await funcion(f, 'anon')) && (await funcion(f, 'authenticated')), `${f}: anon NO, authenticated sí`)
   }
   const alta = 'naty_configurar_usuario(text, naty_rol_usuario, text, text, text)'

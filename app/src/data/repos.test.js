@@ -155,6 +155,36 @@ describe('venta, stock y cola', () => {
     await expect(ventas.anular(v.id, { motivo: 'otra vez', usuario_id: 'p-admin' })).rejects.toThrow(/anulada/)
   })
 
+  it('comisiones: marcar como pagadas (en lote) y ocultarlas de la pantalla', async () => {
+    const { p, color } = await productoConStock()
+    const nueva = () => ventas.crear({
+      vendedor_id: 'p-ariel',
+      moneda: 'usd',
+      tipo_cambio: 1,
+      metodo_pago: 'efectivo',
+      items: [{ producto_id: p.id, color_id: color.id, cantidad: 1, precio_cent: 500 }],
+    })
+    const [a, b] = [await nueva(), await nueva()]
+    expect(a.comision_pagada).toBeFalsy()
+
+    await ventas.marcarComision([a.id, b.id], { pagada: true })
+    expect((await ventas.obtener(b.id)).comision_pagada).toBe(true)
+    expect((await ventas.obtener(b.id)).comision_pagada_en).toBeTruthy()
+    // Una entrada de cola por venta (si no, la segunda quedaría "por enviar" para siempre).
+    const cola = await db.cola_sync.filter((i) => i.operacion === 'comision').toArray()
+    expect(cola.map((i) => i.entidad_id).sort()).toEqual([a.id, b.id].sort())
+    expect((await ventas.listar({ comision_pagada: true })).map((v) => v.id)).toEqual(expect.arrayContaining([a.id, b.id]))
+
+    await ventas.marcarComision(a.id, { oculta: true })
+    expect((await ventas.listar({ comision_oculta: false })).some((v) => v.id === a.id)).toBe(false)
+
+    await ventas.marcarComision(a.id, { pagada: false, oculta: false })
+    const revertida = await ventas.obtener(a.id)
+    expect(revertida.comision_pagada).toBe(false)
+    expect(revertida.comision_oculta).toBe(false)
+    expect(revertida.comision_pagada_en).toBeNull()
+  })
+
   it('la cola se vacía al sincronizar y reintenta con espera si falla', async () => {
     const falla = async () => {
       throw new Error('sin servidor')
