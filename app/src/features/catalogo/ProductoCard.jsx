@@ -11,6 +11,7 @@ export default function ProductoCard({ producto, onAbrir, mostrarPrecio = true, 
         <span className="absolute inset-x-2.5 top-2.5 flex flex-wrap gap-1.5">
           {producto.nuevo && <Badge tono="tinta" className="shadow-boton">Nuevo</Badge>}
           {agotado && <Badge tono="error" className="bg-superficie">Sin stock</Badge>}
+          {!producto.activo && <Badge className="bg-superficie">Dado de baja</Badge>}
         </span>
         <span className="absolute bottom-2.5 left-2.5 rounded-pildora bg-superficie/90 px-2 py-0.5 text-xs font-semibold tabular-nums text-texto shadow-tarjeta backdrop-blur-sm">
           {producto.codigo}

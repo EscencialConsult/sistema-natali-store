@@ -64,10 +64,11 @@ export const productos = {
   },
 
   // "mn5", "MN-005", "5" → MN-005 primero. Si no parece un código ("blazer"), busca por nombre.
-  async buscarPorCodigo(texto, limite = 12) {
+  // incluirBaja: la administración también encuentra los dados de baja (para verlos y editarlos; no se venden).
+  async buscarPorCodigo(texto, limite = 12, { incluirBaja = false } = {}) {
     const q = String(texto ?? '').trim()
     if (!q) return []
-    const activos = (await db.productos.toArray()).filter((p) => p.activo)
+    const activos = (await db.productos.toArray()).filter((p) => incluirBaja || p.activo)
     const { letras, digitos, resto } = partirCodigo(q)
     const pareceCodigo = digitos !== '' || (letras !== '' && resto === '' && letras.length <= 3)
     let encontrados = []

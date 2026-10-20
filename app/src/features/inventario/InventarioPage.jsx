@@ -24,7 +24,9 @@ export default function InventarioPage() {
   const [abierto, setAbierto] = useState(null)
   const [visibles, setVisibles] = useState(TANDA)
   const [importando, setImportando] = useState(false)
-  const prods = useProductos()
+  // La administración ve también los dados de baja (para cargarles stock antes de reactivarlos).
+  const administra = puede(usuario.rol, 'catalogo.editar')
+  const prods = useProductos({ soloActivos: !administra })
   const stock = useStockResumen()
   const cfg = useConfig()
 
@@ -60,7 +62,7 @@ export default function InventarioPage() {
   const resumen = filas.reduce((r, f) => ({ prendas: r.prendas + Math.max(f.total, 0), agotados: r.agotados + f.agotado, bajos: r.bajos + f.bajo }), { prendas: 0, agotados: 0, bajos: 0 })
   const q = norm(texto.trim())
   const lista = filas
-    .filter((f) => (filtro === 'agotados' ? f.agotado : filtro === 'bajos' ? f.bajo : true))
+    .filter((f) => (filtro === 'agotados' ? f.agotado : filtro === 'bajos' ? f.bajo : filtro === 'baja' ? !f.p.activo : true))
     .filter((f) => !q || norm(`${f.p.codigo} ${f.p.nombre}`).includes(q))
 
   const cargando = prods.cargando || stock.cargando || cfg.cargando
@@ -98,6 +100,7 @@ export default function InventarioPage() {
             <Chip activo={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todos</Chip>
             <Chip activo={filtro === 'bajos'} onClick={() => setFiltro('bajos')}>Con stock bajo</Chip>
             <Chip activo={filtro === 'agotados'} onClick={() => setFiltro('agotados')}>Agotados</Chip>
+            {administra && <Chip activo={filtro === 'baja'} onClick={() => setFiltro('baja')}>Dados de baja</Chip>}
           </div>
 
           {lista.length === 0 ? (
@@ -115,6 +118,7 @@ export default function InventarioPage() {
                         {p.colores[0] && <span className="text-xs text-texto-suave">{p.colores[0].nombre}</span>}
                         {agotado && <Badge tono="error">Agotado</Badge>}
                         {bajo && <Badge tono="alerta">Stock bajo</Badge>}
+                        {!p.activo && <Badge>Dado de baja</Badge>}
                       </span>
                     </span>
                     <span className="text-right"><span className="block font-titulo text-xl font-semibold tabular-nums">{textoCantidad(aDocenas(total))}</span><span className="text-xs text-texto-suave">docenas</span></span>

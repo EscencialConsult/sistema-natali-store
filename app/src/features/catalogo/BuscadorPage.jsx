@@ -18,7 +18,8 @@ export default function BuscadorPage() {
   const [abierto, setAbierto] = useState(null)
   const { recientes, agregar } = useRecientes()
   const q = texto.trim()
-  const res = useBusquedaCodigo(q, 12)
+  const administra = puede(usuario.rol, 'catalogo.editar')
+  const res = useBusquedaCodigo(q, 12, administra)
 
   const abrir = (p) => {
     agregar(p.codigo)
@@ -34,7 +35,7 @@ export default function BuscadorPage() {
       <Encabezado
         titulo="Catálogo"
         descripcion="Escribí el código del modelo para ver fotos, color y stock al instante."
-        acciones={puede(usuario.rol, 'catalogo.editar') && (
+        acciones={administra && (
           <Link to="/catalogo/admin">
             <Button variante="secundario" icono={Settings2}>Administrar</Button>
           </Link>
@@ -61,7 +62,7 @@ export default function BuscadorPage() {
         )}
       </form>
 
-      {!q && <GrillaProductos onAbrir={abrir} />}
+      {!q && <GrillaProductos onAbrir={abrir} incluirBaja={administra} />}
 
       {q && res.cargando && <Skeleton className="h-64" />}
       {q && res.error && <ErrorState mensaje="No pudimos buscar. Probá de nuevo." onReintentar={res.reintentar} />}

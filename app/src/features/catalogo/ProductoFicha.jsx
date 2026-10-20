@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ReceiptText } from 'lucide-react'
+import { Pencil, ReceiptText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, ErrorState, Skeleton } from '../../components/ui/index.js'
 import { useConfig, useProducto, useStockDe } from '../../data/hooks.js'
@@ -33,7 +33,9 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
   if (!p) return <ErrorState mensaje="Ese producto ya no existe." />
 
   const mostrarPrecio = !publico || cfg.datos?.mostrar_precios_publico
-  const puedeVender = !publico && puede(usuario?.rol, 'venta.crear')
+  // Un producto dado de baja se ve (administración) pero no se vende.
+  const puedeVender = !publico && p.activo && puede(usuario?.rol, 'venta.crear')
+  const puedeEditar = !publico && puede(usuario?.rol, 'catalogo.editar')
   const umbral = cfg.datos?.stock_bajo_unidades ?? 24
   const sinStock = !publico && stock.datos !== undefined && stock.datos <= 0
 
@@ -46,6 +48,7 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
             <span className="rounded-pildora bg-tinte px-3 py-1 font-titulo text-base font-semibold tabular-nums text-sobre-tinte">{p.codigo}</span>
             {p.nuevo && <Badge tono="tinta">Nuevo</Badge>}
             {sinStock && <Badge tono="error">Sin stock</Badge>}
+            {!p.activo && <Badge>Dado de baja</Badge>}
           </div>
           <h2 className="text-2xl leading-tight md:text-3xl">{p.nombre}</h2>
           {mostrarPrecio && <Precio usdCent={p.precio_docena_usd_cent} equivalentes={!publico} className="text-lg" />}
@@ -70,6 +73,11 @@ export default function ProductoFicha({ productoId, publico = false, compacta = 
         {puedeVender && (
           <Button icono={ReceiptText} ancho onClick={() => navigate('/venta', { state: { productoId: p.id } })}>
             Agregar a venta
+          </Button>
+        )}
+        {puedeEditar && (
+          <Button variante="secundario" icono={Pencil} ancho onClick={() => navigate(`/catalogo/admin/${p.id}`)}>
+            {p.activo ? 'Editar producto' : 'Editar o reactivar'}
           </Button>
         )}
       </div>

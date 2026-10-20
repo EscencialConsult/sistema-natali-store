@@ -24,7 +24,7 @@ export function useConsulta(consulta, deps = []) {
 
 export const useProductos = (filtros) => useConsulta(() => productos.listar(filtros), [JSON.stringify(filtros ?? {})])
 export const useProducto = (id) => useConsulta(() => (id ? productos.obtener(id) : undefined), [id])
-export const useBusquedaCodigo = (texto, limite) => useConsulta(() => productos.buscarPorCodigo(texto, limite), [texto, limite])
+export const useBusquedaCodigo = (texto, limite, incluirBaja = false) => useConsulta(() => productos.buscarPorCodigo(texto, limite, { incluirBaja }), [texto, limite, incluirBaja])
 export const useCategorias = () => useConsulta(() => categorias.listar(), [])
 export const useVentas = (filtros) => useConsulta(() => ventas.listar(filtros), [JSON.stringify(filtros ?? {})])
 export const useVentasConItems = (filtros) => useConsulta(() => ventas.listarConItems(filtros), [JSON.stringify(filtros ?? {})])

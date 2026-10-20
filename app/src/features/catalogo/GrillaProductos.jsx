@@ -17,12 +17,13 @@ const ordenar = {
 }
 
 // Grilla con filtro por categoría y carga por tandas (no se piden 138 fotos juntas).
-export default function GrillaProductos({ onAbrir, publico = false }) {
+// incluirBaja: la administración ve también los dados de baja, marcados.
+export default function GrillaProductos({ onAbrir, publico = false, incluirBaja = false }) {
   const [categoria, setCategoria] = useState(null)
   const [orden, setOrden] = useState('codigo')
   const [visibles, setVisibles] = useState(TANDA)
   const cats = useCategorias()
-  const prods = useProductos({ categoria_id: categoria })
+  const prods = useProductos({ categoria_id: categoria, soloActivos: publico || !incluirBaja })
   const stock = useStockResumen()
   const cfg = useConfig()
   const centinela = useRef(null)
