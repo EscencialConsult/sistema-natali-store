@@ -28,7 +28,7 @@ const ADMIN = [
 
 export const PERMISOS = {
   vendedor: VENDEDOR,
-  enc_tienda: [...VENDEDOR, 'ventas.ver_todas', 'stock.ver', 'dashboard.ver_global'],
+  enc_tienda: [...VENDEDOR, 'ventas.ver_todas', 'ventas.anular', 'stock.ver', 'dashboard.ver_global'],
   enc_ventas: [...VENDEDOR, 'ventas.ver_todas', 'ventas.exportar', 'comisiones.ver_todas', 'dashboard.ver_global'],
   enc_deposito: ['catalogo.ver', 'catalogo.editar', 'stock.ver', 'stock.mover'],
   admin: ADMIN,
@@ -41,7 +41,7 @@ export const DESCRIPCION_ROL = {
   superadmin: 'Todo el sistema, más la gestión de usuarios y roles y la limpieza de datos.',
   admin: 'Todo el negocio: ventas, catálogo, stock, comisiones y ajustes.',
   enc_ventas: 'Vende, ve todas las ventas, exporta y ve comisiones del equipo.',
-  enc_tienda: 'Vende, ve todas las ventas y consulta el stock.',
+  enc_tienda: 'Vende, ve y anula ventas y consulta el stock.',
   enc_deposito: 'Edita el catálogo y mueve el stock. No vende.',
   vendedor: 'Busca modelos, vende y ve sus propias ventas y comisión.',
 }

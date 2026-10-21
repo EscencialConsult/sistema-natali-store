@@ -146,6 +146,22 @@ describe('anular', () => {
     expect(await stock.stockDe(PROD)).toBe(200)
   })
 
+  it('la encargada de tienda anula una venta ajena y el stock vuelve', async () => {
+    await dispositivoNuevo()
+    await bajar(U.ariel)
+    const antes = await stockServidor()
+    const v = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [itemVenta(1, 10000)] })
+    await enviar(U.ariel)
+
+    await dispositivoNuevo()
+    await bajar(U.pamela)
+    await ventas.anular(v.id, { motivo: 'Cliente devolvió', usuario_id: U.pamela.id })
+    expect(await enviar(U.pamela)).toEqual({ enviadas: 1, errores: 0 })
+    expect(await stockServidor()).toBe(antes)
+    const [fila] = await q('select estado from naty_ventas where id = $1', [v.id])
+    expect(fila.estado).toBe('anulada')
+  })
+
   it('un vendedor no puede anular: el servidor lo rechaza y la cola lo marca con problema', async () => {
     await dispositivoNuevo()
     await bajar(U.ariel)

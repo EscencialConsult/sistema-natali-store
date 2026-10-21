@@ -15,7 +15,7 @@ Fuente: cuadro "Personal registrado" compartido por Fabiana (Escencial) — "col
 
 ## Roles a modelar en el ERP
 - **Vendedor** (3): crea ventas, ve "Mis ventas" y su comisión.
-- **Encargada de tienda**: probablemente supervisa ventas/caja; su teléfono va en el pie de la nota A5.
+- **Encargada de tienda**: probablemente supervisa ventas/caja; su teléfono va en el pie de la nota A5. Puede anular ventas (pedido de Natali, 21/10/2026).
 - **Encargada de ventas**: probablemente ve ventas de todos y comisiones.
 - **Encargada de depósito**: inventario / movimientos de stock.
 - El ERP demo hoy solo distingue admin vs vendedor → hay que ampliar a 4 roles (confirmar permisos con Natali).
