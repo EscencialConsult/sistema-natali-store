@@ -1,22 +1,18 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitest/config'
 
-// Versión que se muestra en Ajustes: fecha y hora de la compilación + commit. Sirve para saber en un segundo qué versión tiene cada equipo.
-const commit = (() => {
-  try {
-    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
-  } catch {
-    return 'sin-git'
-  }
-})()
+// Versión que se muestra en la app (menú y Ajustes): el número de package.json, que se sube a propósito en cada publicación
+// (1.2.0 → 1.2.1 arreglo chico, 1.3.0 novedad, 2.0.0 cambio grande). Sirve para saber en un segundo qué versión tiene cada equipo.
+// La fecha de compilación va aparte (Ajustes) por si dos compilaciones salen con el mismo número.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 const ahora = new Date(Date.now() - 3 * 3600 * 1000).toISOString() // hora de Argentina/Bolivia
-const VERSION = `${ahora.slice(0, 10)} ${ahora.slice(11, 16)} · ${commit}`
+const COMPILADA = `${ahora.slice(8, 10)}/${ahora.slice(5, 7)}/${ahora.slice(0, 4)} ${ahora.slice(11, 16)}`
 
 export default defineConfig({
-  define: { __VERSION_APP__: JSON.stringify(VERSION) },
+  define: { __VERSION_APP__: JSON.stringify(version), __COMPILADA_APP__: JSON.stringify(COMPILADA) },
   plugins: [
     react(),
     tailwindcss(),

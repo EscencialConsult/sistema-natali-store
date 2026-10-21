@@ -13,7 +13,7 @@ import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
-import { VERSION_APP } from '../../lib/version.js'
+import { COMPILADA_APP, VERSION_APP } from '../../lib/version.js'
 import TiendaAjustes from '../tienda/admin/TiendaAjustes.jsx'
 
 const RESULTADO_ACTUALIZACION = {
@@ -35,7 +35,7 @@ function VersionApp() {
   }
   return (
     <div className="flex flex-col items-center gap-2 text-xs text-texto-tenue">
-      <p>Versión de la app: {VERSION_APP}</p>
+      <p>Versión de la app: {VERSION_APP}{COMPILADA_APP && ` (compilada el ${COMPILADA_APP})`}</p>
       <Button variante="secundario" icono={RefreshCw} cargando={buscando} onClick={buscar}>Buscar actualización</Button>
     </div>
   )
