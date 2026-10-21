@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { Button, Skeleton } from '../components/ui/index.js'
-import { detalleDelError, pendientesSinEnviar, prepararBase, restablecerDispositivo } from '../data/base.js'
+import { detalleDelError, prepararBase } from '../data/base.js'
 
 // Un fallo al abrir el almacenamiento del navegador suele ser pasajero (la PC recién despertó, otra ventana lo tenía tomado):
 // se reintenta solo antes de molestar a la persona.
@@ -49,20 +49,9 @@ export default function Arranque({ children }) {
   )
 }
 
+// Sin botón para borrar datos: apretarlo sin querer haría perder ventas sin enviar. Si el almacenamiento del navegador quedó dañado,
+// lo resuelve soporte con el detalle que muestra esta pantalla (ver estabilidad/_comun.md del cerebro).
 function ErrorArranque({ error, onReintentar }) {
-  const [confirmando, setConfirmando] = useState(false)
-  const [sinEnviar, setSinEnviar] = useState(undefined)
-  const [restableciendo, setRestableciendo] = useState(false)
-
-  const pedirRestablecer = async () => {
-    setSinEnviar(await pendientesSinEnviar())
-    setConfirmando(true)
-  }
-  const restablecer = async () => {
-    setRestableciendo(true)
-    await restablecerDispositivo()
-  }
-
   return (
     <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 py-12 text-center">
       <span className="mb-1 flex size-14 items-center justify-center rounded-full bg-error-fondo text-error">
@@ -70,29 +59,10 @@ function ErrorArranque({ error, onReintentar }) {
       </span>
       <p className="text-sm text-texto">No pudimos preparar los datos de este dispositivo.</p>
       <p className="text-sm text-texto-suave">
-        Probá cerrar todas las ventanas de Chrome y abrir la app de nuevo. Si sigue igual, usá «Restablecer este equipo»: hace falta internet para volver a bajar el catálogo.
+        Probá cerrar todas las ventanas de Chrome y abrir la app de nuevo. Si sigue igual, avisá a la administración y mostrales esta pantalla: tus ventas guardadas no se borran.
       </p>
       <p className="break-words rounded-control bg-superficie-2 px-3 py-2 text-left font-mono text-xs text-texto-suave">Detalle para soporte: {detalleDelError(error)}</p>
-      {!confirmando ? (
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button variante="primario" onClick={onReintentar}>Reintentar</Button>
-          <Button variante="secundario" onClick={pedirRestablecer}>Restablecer este equipo</Button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-3 rounded-tarjeta border border-borde p-4">
-          <p className="text-sm text-texto">
-            {sinEnviar > 0
-              ? `Hay ${sinEnviar} ${sinEnviar === 1 ? 'cambio' : 'cambios'} sin enviar en este equipo y se van a perder. Primero probá «Reintentar» o consultá a la administración.`
-              : sinEnviar === 0
-                ? 'No hay ventas sin enviar en este equipo. Se borra la copia local y se vuelve a bajar todo.'
-                : 'No se puede leer qué hay guardado en este equipo. Si había ventas sin enviar, se pierden.'}
-          </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button variante={sinEnviar > 0 ? 'peligro' : 'primario'} cargando={restableciendo} onClick={restablecer}>Restablecer igual</Button>
-            <Button variante="fantasma" deshabilitado={restableciendo} onClick={() => setConfirmando(false)}>Cancelar</Button>
-          </div>
-        </div>
-      )}
+      <Button variante="primario" onClick={onReintentar}>Reintentar</Button>
     </div>
   )
 }
