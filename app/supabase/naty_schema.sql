@@ -540,15 +540,15 @@ begin
   return v_id;
 end $$;
 
--- Anular una venta (administración y encargada de tienda). Idempotente. p = { id, motivo, anulada_en, movimientos: [ {id, producto_id, color_id, delta, motivo, creado_en} ] }
+-- Anular una venta (administración y encargadas de tienda y de ventas). Idempotente. p = { id, motivo, anulada_en, movimientos: [ {id, producto_id, color_id, delta, motivo, creado_en} ] }
 create or replace function naty_anular_venta(p jsonb) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
   v_id uuid := (p ->> 'id')::uuid;
   v_mov jsonb;
 begin
-  if not naty_es_rol('admin', 'enc_tienda') then
-    raise exception 'Solo la administración o la encargada de tienda pueden anular ventas' using errcode = '42501';
+  if not naty_es_rol('admin', 'enc_tienda', 'enc_ventas') then
+    raise exception 'Solo la administración o las encargadas de tienda y de ventas pueden anular ventas' using errcode = '42501';
   end if;
   if coalesce(trim(p ->> 'motivo'), '') = '' then
     raise exception 'Falta el motivo de la anulación' using errcode = '22023';

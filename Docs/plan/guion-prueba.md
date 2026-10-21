@@ -60,7 +60,7 @@ La instalación como app y el botón de compartir de WhatsApp solo funcionan con
 | E1 | Entrar | Arrancan en **Inicio**: ventas de hoy, por vendedor, stock |
 | E2 | *Ventas* → filtrá por vendedor, moneda y fechas | Los totales por moneda cambian y **no se mezclan** |
 | E3 | Jehovana: **Exportar a Excel** | Se descarga; las cifras coinciden con la pantalla |
-| E4 | Abrí una venta | Jehovana: no aparece "Anular venta". Pamela: sí aparece; anulá con motivo y el stock vuelve |
+| E4 | Abrí una venta | Pamela y Jehovana: aparece "Anular venta"; anulá con motivo y el stock vuelve |
 | E5 | Pamela: abrí *Inventario* | Ve el stock, **no** puede modificarlo |
 | E6 | *Comisiones* | Ve a todo el equipo, con la comisión "pendiente de definir" |
 

@@ -267,14 +267,13 @@ describe('registrar_venta', () => {
 })
 
 describe('anular_venta', () => {
-  it('administración y encargada de tienda, con motivo; devuelve el stock y es idempotente', async () => {
+  it('administración y encargadas de tienda y de ventas, con motivo; devuelve el stock y es idempotente', async () => {
     const v = venta({ numero: 'NV-AM-0003' })
     await registrar(U.ariel, v)
     const stockVendida = await stockDe(ROJO)
     const anulacion = { id: v.id, motivo: 'Error de carga', anulada_en: '2026-10-08T16:00:00Z', movimientos: [{ id: uuid(), producto_id: PROD, color_id: ROJO, delta: 24, motivo: 'Anulación', creado_en: '2026-10-08T16:00:00Z' }] }
     const anular = (u, p) => como(u, () => q('select naty_anular_venta($1::jsonb)', [JSON.stringify(p)]))
     await expect(anular(U.ariel, anulacion)).rejects.toThrow(/Solo la administración/)
-    await expect(anular(U.jehovana, anulacion)).rejects.toThrow(/Solo la administración/)
     await expect(anular(U.maria, anulacion)).rejects.toThrow(/Solo la administración/)
     await expect(anular(U.admin, { ...anulacion, motivo: '  ' })).rejects.toThrow(/motivo/)
     await anular(U.admin, anulacion)
@@ -288,6 +287,12 @@ describe('anular_venta', () => {
     const stockVendida2 = await stockDe(ROJO)
     await anular(U.pamela, { ...anulacion, id: v2.id, movimientos: [{ ...anulacion.movimientos[0], id: uuid() }] })
     expect(await stockDe(ROJO)).toBe(stockVendida2 + 24)
+
+    const v3 = venta({ numero: 'NV-AM-0005' })
+    await registrar(U.ariel, v3)
+    const stockVendida3 = await stockDe(ROJO)
+    await anular(U.jehovana, { ...anulacion, id: v3.id, movimientos: [{ ...anulacion.movimientos[0], id: uuid() }] })
+    expect(await stockDe(ROJO)).toBe(stockVendida3 + 24)
   })
 })
 
