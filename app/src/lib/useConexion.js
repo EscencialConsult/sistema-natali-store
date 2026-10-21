@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { registrarHoraServidor } from './relojServidor.js'
 
 const CADA_MS = 30_000
 const LENTA_MS = 2_500
@@ -14,6 +15,7 @@ async function medir() {
   try {
     const r = await fetch(`/favicon.svg?_=${Date.now()}`, { cache: 'no-store', signal: ctrl.signal })
     if (!r.ok) return 'sin_conexion'
+    registrarHoraServidor(r.headers.get('date'))
     return performance.now() - t0 > LENTA_MS ? 'lenta' : 'conectado'
   } catch {
     return ctrl.signal.aborted ? 'lenta' : 'sin_conexion'

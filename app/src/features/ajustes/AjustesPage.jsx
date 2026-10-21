@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
-import { ImagePlus } from 'lucide-react'
+import { ImagePlus, RefreshCw } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { Button, Encabezado, ErrorState, Input, Skeleton, Tabs, useToast } from '../../components/ui/index.js'
 import { IMAGOTIPO } from '../../components/useMarca.js'
 import { useConfig, usePerfiles } from '../../data/hooks.js'
 import { config, perfiles } from '../../data/repos/index.js'
+import { buscarActualizacion } from '../../lib/actualizacion.js'
 import { urlDeImagen } from '../../lib/blobUrl.js'
 import { aDocenas, aPrendas, leerDocenas, textoCantidad } from '../../lib/docenas.js'
 import { fechaLarga } from '../../lib/fechas.js'
@@ -12,7 +13,33 @@ import { prepararLogo } from '../../lib/imagen.js'
 import { puede, ROLES } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
 import { TarjetaAlmacenamiento } from '../almacenamiento/AvisoAlmacenamiento.jsx'
+import { VERSION_APP } from '../../lib/version.js'
 import TiendaAjustes from '../tienda/admin/TiendaAjustes.jsx'
+
+const RESULTADO_ACTUALIZACION = {
+  nueva: ['Hay una versión nueva. Se instala sola en unos segundos.', 'exito'],
+  al_dia: ['La app ya tiene la última versión.', 'exito'],
+  error: ['No se pudo buscar. Revisá que haya internet.', 'error'],
+  sin_sw: ['Esta copia no se actualiza sola: abrí la app instalada o recargá la página.', 'error'],
+}
+
+// Versión de lo que está corriendo en este equipo + búsqueda manual: para soporte y para no esperar el chequeo automático.
+function VersionApp() {
+  const avisar = useToast()
+  const [buscando, setBuscando] = useState(false)
+  const buscar = async () => {
+    setBuscando(true)
+    const resultado = await buscarActualizacion()
+    setBuscando(false)
+    avisar(...RESULTADO_ACTUALIZACION[resultado])
+  }
+  return (
+    <div className="flex flex-col items-center gap-2 text-xs text-texto-tenue">
+      <p>Versión de la app: {VERSION_APP}</p>
+      <Button variante="secundario" icono={RefreshCw} cargando={buscando} onClick={buscar}>Buscar actualización</Button>
+    </div>
+  )
+}
 
 const aTexto = (n) => (n == null ? '' : String(n).replace('.', ','))
 const aNumero = (t) => Number(String(t).trim().replace(',', '.'))
@@ -259,6 +286,7 @@ export default function AjustesPage() {
           <TiendaAjustes soloLectura={soloLectura} />
         </div>
       )}
+      <VersionApp />
     </div>
   )
 }

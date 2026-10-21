@@ -3,9 +3,12 @@
 //   encolar(tx, op) · procesar({ enviar }) · pendientes() · iniciarAutomatico()
 import { db } from '../db.js'
 import { nuevoId } from '../../lib/id.js'
+import { clasificar } from './errores.js'
 
 const ESPERA_BASE_MS = 5_000
 const ESPERA_MAX_MS = 5 * 60_000
+// Sesión o red caídas no son culpa de la venta: se reintenta pronto (la sesión suele renovarse en segundos).
+const ESPERA_TRANSITORIA_MAX_MS = 60_000
 
 // Se llama dentro de la transacción de la operación, para que venta y cola se guarden juntas o ninguna.
 export async function encolar({ operacion, entidad, entidad_id, payload = null }) {
@@ -35,6 +38,25 @@ export const pendientes = () => db.cola_sync.where('estado').anyOf('pendiente', 
 
 export const hayConexion = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false)
 
+// Reintento inmediato. Sin `soloTransitorios` (botón «Reintentar ahora») también se reintentan las rechazadas.
+export async function liberarEspera({ soloTransitorios = false } = {}) {
+  const items = db.cola_sync.where('estado').anyOf(soloTransitorios ? ['pendiente'] : ['pendiente', 'error'])
+  await items.modify({ proximo_intento: 0 })
+}
+
+// Envíos que quedaron «con problema» solo porque la sesión o la red fallaron (versiones anteriores los marcaban como rechazados).
+export async function rescatarTransitorios() {
+  const marcados = await db.cola_sync.where('estado').equals('error').filter((i) => clasificar(i.ultimo_error) !== 'rechazo').toArray()
+  if (!marcados.length) return 0
+  await db.transaction('rw', db.cola_sync, db.ventas, async () => {
+    for (const i of marcados) {
+      await db.cola_sync.update(i.id, { estado: 'pendiente', proximo_intento: 0 })
+      if (i.entidad === 'venta') await db.ventas.update(i.entidad_id, { sync_status: 'pending' })
+    }
+  })
+  return marcados.length
+}
+
 let procesando = false
 
 // enviar(item): manda un cambio al servidor (ver sync/remoto.js). Siempre es el servidor real: no hay envío simulado.
@@ -58,10 +80,20 @@ export async function procesar({ enviar, ahora = Date.now() } = {}) {
         resultado.enviadas++
       } catch (e) {
         const intentos = item.intentos + 1
-        const espera = Math.min(ESPERA_BASE_MS * 2 ** intentos, ESPERA_MAX_MS)
-        await db.cola_sync.update(item.id, { estado: 'error', intentos, ultimo_error: String(e?.message ?? e), proximo_intento: ahora + espera })
-        if (item.entidad === 'venta') await db.ventas.update(item.entidad_id, { sync_status: 'error' })
-        resultado.errores++
+        const ultimo_error = String(e?.message ?? e)
+        if (clasificar(e) === 'rechazo') {
+          const espera = Math.min(ESPERA_BASE_MS * 2 ** intentos, ESPERA_MAX_MS)
+          await db.cola_sync.update(item.id, { estado: 'error', intentos, ultimo_error, proximo_intento: ahora + espera })
+          if (item.entidad === 'venta') await db.ventas.update(item.entidad_id, { sync_status: 'error' })
+          resultado.errores++
+          continue
+        }
+        const espera = Math.min(ESPERA_BASE_MS * 2 ** Math.min(intentos, 4), ESPERA_TRANSITORIA_MAX_MS)
+        await db.cola_sync.update(item.id, { estado: 'pendiente', intentos, ultimo_error, proximo_intento: ahora + espera })
+        if (item.entidad === 'venta') await db.ventas.update(item.entidad_id, { sync_status: 'pending' })
+        resultado.transitorios = (resultado.transitorios ?? 0) + 1
+        resultado.ultimoFallo = e
+        break // el resto fallaría igual: se prueba en el próximo ciclo
       }
     }
   } finally {
@@ -71,7 +103,8 @@ export async function procesar({ enviar, ahora = Date.now() } = {}) {
 }
 
 // Reintenta al volver la conexión y cada 30 s. Devuelve una función para detenerlo.
-// opciones: { enviar, despues, onResultado }. `despues` corre luego de enviar (con servidor: baja lo nuevo).
+// opciones: { enviar, despues, onResultado, onCiclo }. `despues` corre luego de enviar (con servidor: baja lo nuevo).
+// onCiclo({ …resultado, falloBajada }) se llama al terminar cada vuelta con conexión: sirve para mostrar si la app se está actualizando.
 export function iniciarAutomatico(opciones) {
   let corriendo = false
   const correr = async () => {
@@ -79,7 +112,9 @@ export function iniciarAutomatico(opciones) {
     corriendo = true
     try {
       const r = await procesar(opciones)
-      if (opciones?.despues && hayConexion()) await opciones.despues().catch(() => {})
+      let falloBajada = null
+      if (opciones?.despues && hayConexion()) falloBajada = await opciones.despues().then(() => null, (e) => e)
+      if (hayConexion()) opciones?.onCiclo?.({ ...r, falloBajada })
       if (r.enviadas || r.errores) opciones?.onResultado?.(r)
     } catch {
       /* se reintenta en el próximo ciclo */
@@ -93,13 +128,18 @@ export function iniciarAutomatico(opciones) {
     clearTimeout(espera)
     espera = setTimeout(correr, 1_000)
   }
-  window.addEventListener('online', correr)
+  // Al volver la señal o la ventana, lo que esperaba por sesión/red se reintenta ya, sin esperar el turno de espera.
+  const reintentarYa = () => liberarEspera({ soloTransitorios: true }).then(correr, correr)
+  const alVolver = () => document.visibilityState === 'visible' && reintentarYa()
+  window.addEventListener('online', reintentarYa)
   window.addEventListener('naty:cola', pronto)
+  document.addEventListener('visibilitychange', alVolver)
   const t = setInterval(correr, 30_000)
-  correr()
+  rescatarTransitorios().then(correr, correr)
   return () => {
-    window.removeEventListener('online', correr)
+    window.removeEventListener('online', reintentarYa)
     window.removeEventListener('naty:cola', pronto)
+    document.removeEventListener('visibilitychange', alVolver)
     clearTimeout(espera)
     clearInterval(t)
   }

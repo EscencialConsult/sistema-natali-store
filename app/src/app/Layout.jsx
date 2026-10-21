@@ -8,6 +8,7 @@ import { cn } from '../lib/cn.js'
 import { puedeAlguna, ROLES } from '../lib/permisos.js'
 import { useConexion } from '../lib/useConexion.js'
 import AvisoAlmacenamiento from '../features/almacenamiento/AvisoAlmacenamiento.jsx'
+import AvisoSincronizacion from './AvisoSincronizacion.jsx'
 import ConexionPildora, { AvisoConexion } from './ConexionPildora.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { PANTALLAS, repartirBarra } from './navegacion.js'
@@ -139,6 +140,7 @@ export default function Layout() {
           </div>
         </div>
         <AvisoConexion estado={conexion} restablecida={restablecida} />
+        <AvisoSincronizacion sinConexion={conexion === 'sin_conexion'} />
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-5 md:px-8 md:pb-16 md:pt-8">

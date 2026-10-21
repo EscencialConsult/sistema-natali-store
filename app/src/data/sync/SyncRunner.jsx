@@ -3,6 +3,7 @@ import { useToast } from '../../components/ui/index.js'
 import { useAuth } from '../../features/auth/AuthContext.js'
 import { obtenerSupabase } from '../supabase.js'
 import { iniciarAutomatico } from './cola.js'
+import { registrarExito, registrarFallo } from './estado.js'
 import { descargar, enviarRemoto } from './remoto.js'
 
 // Sin interfaz. Cada 30 s, al volver la conexión y al entrar: envía lo pendiente y (con servidor) baja lo nuevo.
@@ -24,6 +25,12 @@ export default function SyncRunner() {
       detener = iniciarAutomatico({
         enviar: (item) => enviarRemoto(sb, item),
         despues: () => descargar(sb),
+        // Sesión o red caídas, o una bajada que falló, quedan a la vista (franja bajo la barra) en vez de pasar en silencio.
+        onCiclo: ({ ultimoFallo, falloBajada }) => {
+          const fallo = ultimoFallo ?? falloBajada
+          if (fallo) registrarFallo(fallo)
+          else registrarExito()
+        },
         onResultado: ({ errores }) => {
           // Lo enviado con éxito no se avisa (lo muestran la píldora "por enviar" y la franja de conexión).
           if (errores > erroresAvisados.current) avisar(errores === 1 ? '1 cambio no se pudo enviar. Se reintenta solo.' : `${errores} cambios no se pudieron enviar. Se reintenta solo.`, 'error')

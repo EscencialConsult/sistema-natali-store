@@ -1,9 +1,22 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vitest/config'
 
+// Versión que se muestra en Ajustes: fecha y hora de la compilación + commit. Sirve para saber en un segundo qué versión tiene cada equipo.
+const commit = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return 'sin-git'
+  }
+})()
+const ahora = new Date(Date.now() - 3 * 3600 * 1000).toISOString() // hora de Argentina/Bolivia
+const VERSION = `${ahora.slice(0, 10)} ${ahora.slice(11, 16)} · ${commit}`
+
 export default defineConfig({
+  define: { __VERSION_APP__: JSON.stringify(VERSION) },
   plugins: [
     react(),
     tailwindcss(),
