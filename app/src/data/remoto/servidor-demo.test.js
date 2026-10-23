@@ -1,4 +1,6 @@
 // Prueba el servidor de demostración local: que imite bien lo que la app necesita y que respete los permisos reales de Renzo.
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { iniciarServidor } from '../../../scripts/servidor-demo.mjs'
 
@@ -111,5 +113,153 @@ describe('servidor de demostración', { timeout: 60_000 }, () => {
     expect(foto.headers.get('content-type')).toBe('image/jpeg')
     const fuera = await get('/storage/v1/object/public/naty_productos/..%2F..%2F..%2Fpackage.json')
     expect(fuera.status).toBe(404)
+  })
+
+  // Pedido «contraseña = CI» (ficha de Bermejo, 23/10/2026). Datos inventados. Esta base tiene pgcrypto y el login con crypt:
+  // es la única donde se pueden ejecutar de verdad naty_crear_usuario y naty_cambiar_clave.
+  describe('[CLAVE-CI] contraseña = CI', () => {
+    const CI = '4829153'
+    const CI_NUEVO = '9175336'
+    const rpc = (token, funcion, args = {}) => fetch(`${base}/rest/v1/rpc/${funcion}`, { method: 'POST', headers: conToken(token), body: JSON.stringify(args) })
+    const tokenDe = async (usuario) => (await sesion(usuario)).cuerpo.access_token
+    let natali
+    let ariel
+    let fabiana
+    let lucia
+
+    beforeAll(async () => {
+      natali = await tokenDe('natali')
+      ariel = await tokenDe('ariel')
+      fabiana = await tokenDe('fabiana')
+    })
+
+    it('la superadmin crea a alguien con su CI como contraseña y esa persona entra con el CI', async () => {
+      const r = await rpc(natali, 'naty_crear_usuario', { p_usuario: 'lucia', p_nombre: 'Lucía Prueba', p_rol: 'vendedor', p_clave: CI })
+      expect(r.status).toBe(200)
+      lucia = await r.json()
+      expect((await sesion('lucia', CI)).estado).toBe(200)
+      expect((await sesion('lucia', CI_NUEVO)).estado).toBe(400)
+      expect((await sesion('lucia', `${CI}0`)).estado).toBe(400)
+    })
+
+    it('sin CI cargado, naty_ver_ci devuelve nada; después de guardarlo, lo devuelve', async () => {
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBeNull()
+      expect((await rpc(natali, 'naty_guardar_ci', { p_id: lucia, p_ci: CI })).status).toBe(200)
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI)
+    })
+
+    it('guardar de nuevo corrige el CI (no duplica la fila)', async () => {
+      await rpc(natali, 'naty_guardar_ci', { p_id: lucia, p_ci: CI_NUEVO })
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI_NUEVO)
+      const filas = await (await get('/rest/v1/naty_perfiles_ci?select=perfil_id,ci', conToken(natali))).json()
+      expect(filas.filter((x) => x.perfil_id === lucia)).toHaveLength(1)
+      await rpc(natali, 'naty_guardar_ci', { p_id: lucia, p_ci: CI })
+    })
+
+    it('restablecer cambia la contraseña: la vieja deja de servir y la nueva sirve', async () => {
+      expect((await rpc(natali, 'naty_cambiar_clave', { p_id: lucia, p_clave: CI_NUEVO })).status).toBe(200)
+      expect((await sesion('lucia', CI)).estado).toBe(400)
+      expect((await sesion('lucia', CI_NUEVO)).estado).toBe(200)
+      // Volver al CI guardado.
+      const guardado = await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()
+      expect((await rpc(natali, 'naty_cambiar_clave', { p_id: lucia, p_clave: guardado })).status).toBe(200)
+      expect((await sesion('lucia', CI)).estado).toBe(200)
+    })
+
+    it('una contraseña de menos de 6 caracteres se rechaza, al crear y al restablecer', async () => {
+      const crear = await rpc(natali, 'naty_crear_usuario', { p_usuario: 'corta', p_nombre: 'Clave Corta', p_rol: 'vendedor', p_clave: '12345' })
+      expect(crear.status).toBe(400)
+      expect((await crear.json()).message).toMatch(/al menos 6/)
+      const cambiar = await rpc(natali, 'naty_cambiar_clave', { p_id: lucia, p_clave: '12345' })
+      expect(cambiar.status).toBe(400)
+      expect((await cambiar.json()).message).toMatch(/al menos 6/)
+      expect((await sesion('lucia', CI)).estado).toBe(200)
+    })
+
+    it('el servidor rechaza un CI que no sea de 6 a 12 números, o de una persona que no existe', async () => {
+      for (const malo of ['12345', '1234567890123', '12.345.678', '1234567-1A', 'abcdefg', '']) {
+        const r = await rpc(natali, 'naty_guardar_ci', { p_id: lucia, p_ci: malo })
+        expect(r.status, `CI «${malo}»`).toBe(400)
+      }
+      const fantasma = await rpc(natali, 'naty_guardar_ci', { p_id: '00000000-0000-4000-8000-00000000dead', p_ci: CI })
+      expect(fantasma.status).toBe(400)
+      expect((await fantasma.json()).message).toMatch(/ya no existe/)
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI)
+    })
+
+    it('un vendedor y una administradora no pueden crear usuarios, cambiar claves ni guardar o ver CI', async () => {
+      const llamadas = [
+        ['naty_crear_usuario', { p_usuario: 'intruso', p_nombre: 'Intruso', p_rol: 'vendedor', p_clave: CI }],
+        ['naty_cambiar_clave', { p_id: lucia, p_clave: CI_NUEVO }],
+        ['naty_guardar_ci', { p_id: lucia, p_ci: CI_NUEVO }],
+        ['naty_ver_ci', { p_id: lucia }],
+      ]
+      for (const [quien, token] of [['vendedor', ariel], ['administradora', fabiana]]) {
+        for (const [funcion, args] of llamadas) {
+          const r = await rpc(token, funcion, args)
+          expect(r.status, `${quien} → ${funcion}`).toBe(403)
+          expect((await r.json()).message).toMatch(/Solo el superadmin/)
+        }
+      }
+      expect((await sesion('intruso')).estado).toBe(400)
+      expect((await sesion('lucia', CI)).estado).toBe(200)
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI)
+    })
+
+    it('un anónimo no puede llamar a ninguna de las dos funciones del CI', async () => {
+      for (const [funcion, args] of [['naty_guardar_ci', { p_id: lucia, p_ci: CI }], ['naty_ver_ci', { p_id: lucia }]]) {
+        const r = await fetch(`${base}/rest/v1/rpc/${funcion}`, { method: 'POST', headers: ANON, body: JSON.stringify(args) })
+        expect([401, 403], funcion).toContain(r.status)
+      }
+    })
+
+    it('la tabla del CI solo la lee la superadmin: el resto no ve ni una fila y nadie la escribe de a poco', async () => {
+      const suyas = await (await get('/rest/v1/naty_perfiles_ci?select=perfil_id,ci', conToken(natali))).json()
+      expect(suyas.find((x) => x.perfil_id === lucia)?.ci).toBe(CI)
+      for (const token of [ariel, fabiana]) {
+        const r = await get('/rest/v1/naty_perfiles_ci?select=*', conToken(token))
+        expect(r.status).toBe(200)
+        expect(await r.json()).toEqual([])
+      }
+      expect([401, 403]).toContain((await get('/rest/v1/naty_perfiles_ci?select=*')).status)
+      // Ni siquiera la superadmin escribe directo: solo por las funciones.
+      for (const token of [natali, ariel]) {
+        const r = await fetch(`${base}/rest/v1/naty_perfiles_ci`, { method: 'POST', headers: conToken(token), body: JSON.stringify({ perfil_id: lucia, ci: CI_NUEVO }) })
+        expect(r.status).toBe(403)
+      }
+      const patch = await fetch(`${base}/rest/v1/naty_perfiles_ci?perfil_id=eq.${lucia}`, { method: 'PATCH', headers: conToken(natali), body: JSON.stringify({ ci: CI_NUEVO }) })
+      expect(patch.status).toBe(403)
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI)
+    })
+
+    it('el CI no aparece en los perfiles que se descargan a los celulares', async () => {
+      for (const token of [ariel, fabiana, natali]) {
+        const filas = await (await get('/rest/v1/naty_perfiles?select=*', conToken(token))).json()
+        expect(filas.length).toBeGreaterThan(5)
+        for (const fila of filas) expect(Object.keys(fila)).not.toContain('ci')
+        const texto = JSON.stringify(filas)
+        expect(texto).not.toContain(CI)
+        expect(texto).not.toContain(CI_NUEVO)
+      }
+    })
+
+    it('si se borra el perfil, su CI se borra con él', async () => {
+      const { rows } = await srv.db.query(`select naty_crear_usuario_interno('temporal', 'Temporal Prueba', 'vendedor'::naty_rol_usuario, $1) as id`, [CI_NUEVO])
+      await rpc(natali, 'naty_guardar_ci', { p_id: rows[0].id, p_ci: CI_NUEVO })
+      expect((await srv.db.query('select count(*)::int as c from naty_perfiles_ci where perfil_id = $1', [rows[0].id])).rows[0].c).toBe(1)
+      await srv.db.query('delete from naty_perfiles where id = $1', [rows[0].id])
+      expect((await srv.db.query('select count(*)::int as c from naty_perfiles_ci where perfil_id = $1', [rows[0].id])).rows[0].c).toBe(0)
+    })
+
+    it('volver a aplicar el esquema completo no pierde el CI ni abre la tabla, y la registra una sola vez', async () => {
+      const esquema = readFileSync(fileURLToPath(new URL('../../../supabase/naty_schema.sql', import.meta.url)), 'utf8')
+      await srv.db.exec(esquema)
+      expect(await (await rpc(natali, 'naty_ver_ci', { p_id: lucia })).json()).toBe(CI)
+      expect((await rpc(ariel, 'naty_ver_ci', { p_id: lucia })).status).toBe(403)
+      expect(await (await get('/rest/v1/naty_perfiles_ci?select=*', conToken(ariel))).json()).toEqual([])
+      expect((await sesion('lucia', CI)).estado).toBe(200)
+      const { rows } = await srv.db.query(`select (select count(*)::int from jsonb_array_elements_text(tablas) t where t = 'naty_perfiles_ci') as veces from proyectos where identificador = 'naty'`)
+      expect(rows[0].veces).toBe(1)
+    })
   })
 })

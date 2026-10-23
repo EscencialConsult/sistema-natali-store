@@ -13,7 +13,7 @@ const ok = (cond, texto) => {
 await cliente.connect()
 try {
   const tablas = (await q("select c.relname as t, c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'naty\\_%' order by 1"))
-  ok(tablas.length === 10, `10 tablas naty_* (hay ${tablas.length})`)
+  ok(tablas.length === 11, `11 tablas naty_* (hay ${tablas.length})`)
   ok(tablas.every((t) => t.rls), 'RLS activado en todas las tablas naty_*')
   for (const t of tablas) console.log(`        ${t.t}: ${t.politicas} política(s)`)
 
@@ -49,12 +49,19 @@ try {
   const farpep = await q("select c.relname as t, c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'farpep\\_%'")
   // Gestión de usuarios: las funciones de la app sí; el alta interna (sin control) NUNCA desde la app.
   for (const f of ['naty_crear_usuario(text,text,naty_rol_usuario,text,text)', 'naty_editar_usuario(uuid,text,text,naty_rol_usuario,text,boolean)', 'naty_cambiar_clave(uuid,text)', 'naty_uso_almacenamiento()',
-    'naty_eliminar_productos(jsonb)', 'naty_eliminar_productos_de_baja(jsonb)', 'naty_borrar_ventas(jsonb)', 'naty_resumir_movimientos(jsonb)', 'naty_previsualizar_limpieza(jsonb)']) {
+    'naty_eliminar_productos(jsonb)', 'naty_eliminar_productos_de_baja(jsonb)', 'naty_borrar_ventas(jsonb)', 'naty_resumir_movimientos(jsonb)', 'naty_previsualizar_limpieza(jsonb)',
+    'naty_guardar_ci(uuid,text)', 'naty_ver_ci(uuid)']) {
     const [p] = await q(`select has_function_privilege('anon', '${f}', 'execute') as anon, has_function_privilege('authenticated', '${f}', 'execute') as auth`)
     ok(!p.anon && p.auth, `${f.split('(')[0]}: anon NO, authenticated sí (adentro exige superadmin)`)
   }
   const [interno] = await q("select has_function_privilege('authenticated', 'naty_crear_usuario_interno(text,text,naty_rol_usuario,text,text)', 'execute') as auth, has_function_privilege('anon', 'naty_crear_usuario_interno(text,text,naty_rol_usuario,text,text)', 'execute') as anon")
   ok(!interno.auth && !interno.anon, 'naty_crear_usuario_interno: ni anon ni authenticated')
+
+  // El CI (contraseña = CI) vive en su propia tabla: RLS con una sola política (select, solo superadmin) y sin escritura directa.
+  const ci = await q("select c.relrowsecurity as rls, (select count(*)::int from pg_policy p where p.polrelid = c.oid) as politicas, (select count(*)::int from pg_policy p where p.polrelid = c.oid and p.polcmd = 'r') as de_lectura, has_table_privilege('authenticated', c.oid, 'insert,update,delete') as escribe from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relname = 'naty_perfiles_ci'")
+  ok(ci.length === 1 && ci[0].rls && ci[0].politicas === 1 && ci[0].de_lectura === 1, 'naty_perfiles_ci: RLS activado y una sola política (de lectura)')
+  ok(ci.length === 1 && !ci[0].escribe, 'naty_perfiles_ci: authenticated NO escribe directo (solo por naty_guardar_ci)')
+  ok(!(await q("select 1 from information_schema.columns where table_schema = 'public' and table_name = 'naty_perfiles' and column_name = 'ci'")).length, 'naty_perfiles NO tiene columna ci (el CI no viaja a los celulares)')
 
   // Solo en la instancia compartida (donde vive FAREP). En un proyecto propio de Modas Naty no aplica.
   if (farpep.length) {

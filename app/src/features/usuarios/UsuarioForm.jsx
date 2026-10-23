@@ -1,24 +1,14 @@
 import { useState } from 'react'
-import { Check, Eye, EyeOff, KeyRound } from 'lucide-react'
+import { Check, KeyRound } from 'lucide-react'
 import { Button, Input, useToast } from '../../components/ui/index.js'
 import { perfiles } from '../../data/repos/index.js'
-import { CLAVE_MINIMA, normalizarUsuario } from '../../lib/clave.js'
+import { avisoCiSinGuardar, normalizarUsuario, resolverClave } from '../../lib/clave.js'
 import { cn } from '../../lib/cn.js'
 import { DESCRIPCION_ROL, ROLES } from '../../lib/permisos.js'
+import { ElegirClave } from './CamposClave.jsx'
+import RestablecerClave from './RestablecerClave.jsx'
 
 const ORDEN_ROLES = ['vendedor', 'enc_tienda', 'enc_ventas', 'enc_deposito', 'admin', 'superadmin']
-
-function CampoClave({ etiqueta, valor, onCambiar, error, autoFocus }) {
-  const [ver, setVer] = useState(false)
-  return (
-    <div className="relative">
-      <Input etiqueta={etiqueta} type={ver ? 'text' : 'password'} autoComplete="new-password" value={valor} onChange={(e) => onCambiar(e.target.value)} error={error} autoFocus={autoFocus} className="[&_input]:pr-12" />
-      <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={ver} className="absolute right-1 top-[1.625rem] flex size-11 items-center justify-center rounded-control text-texto-suave hover:text-texto">
-        {ver ? <EyeOff size={18} strokeWidth={1.75} aria-hidden /> : <Eye size={18} strokeWidth={1.75} aria-hidden />}
-      </button>
-    </div>
-  )
-}
 
 function ElegirRol({ valor, onCambiar }) {
   return (
@@ -45,7 +35,7 @@ function ElegirRol({ valor, onCambiar }) {
   )
 }
 
-// Alta y edición de un usuario. perfil=null → alta (con contraseña); con perfil → edición (+ restablecer contraseña aparte).
+// Alta y edición de un usuario. perfil=null → alta (la contraseña es su CI, o una a elección); con perfil → edición (+ restablecer contraseña aparte).
 export default function UsuarioForm({ perfil, actorId, onListo }) {
   const avisar = useToast()
   const nuevo = !perfil
@@ -55,42 +45,43 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
     rol: perfil?.rol ?? 'vendedor',
     telefono: perfil?.telefono ?? '',
     activo: perfil?.activo ?? true,
+    ci: '',
     clave: '',
     repetir: '',
   })
+  const [modoClave, setModoClave] = useState('ci') // alta: 'ci' (su CI es la contraseña) · 'otra' (una a elección)
+  const [enfocar, setEnfocar] = useState(false)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [cambiandoClave, setCambiandoClave] = useState(false)
   const set = (campo) => (v) => setF((x) => ({ ...x, [campo]: v }))
   const esYo = perfil?.id === actorId
+  const cambiarModoClave = (m) => {
+    setEnfocar(true)
+    setModoClave(m)
+  }
 
   const guardar = async (e) => {
     e.preventDefault()
     setError('')
-    if (nuevo && f.clave !== f.repetir) return setError('Las contraseñas no coinciden.')
+    const clave = nuevo ? resolverClave({ modo: modoClave, ci: f.ci, clave: f.clave, repetir: f.repetir }) : null
+    if (clave?.error) return setError(clave.error)
     setGuardando(true)
     try {
       if (nuevo) {
-        await perfiles.crear({ nombre: f.nombre, usuario: f.usuario, rol: f.rol, clave: f.clave, telefono: f.telefono })
+        const creado = await perfiles.crear({ nombre: f.nombre, usuario: f.usuario, rol: f.rol, clave: clave.clave, telefono: f.telefono })
         avisar(`Usuario creado: ${normalizarUsuario(f.usuario)}`, 'exito')
+        if (clave.ci) {
+          try {
+            await perfiles.guardarCi(creado.id, clave.ci)
+          } catch (err) {
+            avisar(avisoCiSinGuardar(err.message), 'error')
+          }
+        }
       } else {
         await perfiles.editar(perfil.id, f)
         avisar('Cambios guardados', 'exito')
       }
-      onListo()
-    } catch (err) {
-      setError(err.message)
-      setGuardando(false)
-    }
-  }
-
-  const restablecer = async () => {
-    setError('')
-    if (f.clave !== f.repetir) return setError('Las contraseñas no coinciden.')
-    setGuardando(true)
-    try {
-      await perfiles.cambiarClave(perfil.id, f.clave)
-      avisar('Contraseña actualizada', 'exito')
       onListo()
     } catch (err) {
       setError(err.message)
@@ -109,11 +100,14 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
       <ElegirRol valor={f.rol} onCambiar={set('rol')} />
 
       {nuevo && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <CampoClave etiqueta="Contraseña" valor={f.clave} onCambiar={set('clave')} />
-          <CampoClave etiqueta="Repetir contraseña" valor={f.repetir} onCambiar={set('repetir')} />
-          <p className="-mt-2 text-xs text-texto-suave sm:col-span-2">Mínimo {CLAVE_MINIMA} caracteres. Pasásela a la persona en privado.</p>
-        </div>
+        <ElegirClave
+          modo={modoClave}
+          onModo={cambiarModoClave}
+          f={f}
+          set={set}
+          enfocar={enfocar}
+          ayudaCi="Solo números. La persona ingresa con su usuario y su CI como contraseña."
+        />
       )}
 
       {!nuevo && (
@@ -133,22 +127,12 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">Contraseña</p>
-                <p className="text-xs text-texto-suave">Si la olvidó, asignale una nueva.</p>
+                <p className="text-xs text-texto-suave">Si la olvidó, volvé a dejarla en su CI o asignale otra.</p>
               </div>
               <Button variante="secundario" icono={KeyRound} onClick={() => setCambiandoClave(true)}>Restablecer</Button>
             </div>
           ) : (
-            <>
-              <p className="text-sm font-medium">Nueva contraseña</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <CampoClave etiqueta="Contraseña nueva" valor={f.clave} onCambiar={set('clave')} autoFocus />
-                <CampoClave etiqueta="Repetir contraseña" valor={f.repetir} onCambiar={set('repetir')} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variante="suave" icono={KeyRound} cargando={guardando} deshabilitado={!f.clave} onClick={restablecer}>Guardar contraseña</Button>
-                <Button variante="fantasma" onClick={() => { setCambiandoClave(false); set('clave')(''); set('repetir')('') }}>Cancelar</Button>
-              </div>
-            </>
+            <RestablecerClave perfil={perfil} onCancelar={() => setCambiandoClave(false)} onListo={onListo} />
           )}
         </section>
       )}
@@ -157,7 +141,7 @@ export default function UsuarioForm({ perfil, actorId, onListo }) {
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-borde pt-4">
         <Button variante="fantasma" onClick={onListo}>Cancelar</Button>
-        <Button type="submit" cargando={guardando && !cambiandoClave} deshabilitado={!f.nombre.trim() || !f.usuario.trim() || (nuevo && !f.clave)}>
+        <Button type="submit" cargando={guardando} deshabilitado={!f.nombre.trim() || !f.usuario.trim() || (nuevo && (modoClave === 'ci' ? !f.ci.trim() : !f.clave))}>
           {nuevo ? 'Crear usuario' : 'Guardar cambios'}
         </Button>
       </div>

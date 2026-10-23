@@ -17,6 +17,7 @@ Todo está en **un solo archivo idempotente: [`naty_schema.sql`](naty_schema.sql
 - **Solo leen los miembros** (perfil activo creado por la administración). En esta instancia compartida hay usuarios de otros proyectos: sin perfil no ven nada. No hay alta automática de perfiles.
 - Cada vendedor ve solo sus ventas; administración y encargadas de tienda y de ventas ven todas.
 - `anon` no tiene permisos sobre las tablas: el público solo lee la vista `naty_catalogo_publico` (sin stock ni costos; el precio, solo si la administración lo activa).
+- El CI de cada persona (su contraseña inicial) está en `naty_perfiles_ci`: solo la superadmin lo lee y nadie lo escribe directo (ver «Puesta en marcha», punto 6).
 - La clave de la app es la pública (`anon`). La `service_role` y la contraseña de Postgres **nunca** van en la app ni en el repo.
 - Detalle del modo de acceso y su excepción: [`../SUPABASE-REGLAS.md`](../SUPABASE-REGLAS.md).
 
@@ -26,11 +27,12 @@ Todo está en **un solo archivo idempotente: [`naty_schema.sql`](naty_schema.sql
    - `app/.env.servidor.local` (solo para configurar): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (clave *secret*), `DATABASE_URL` (Session pooler, puerto 5432, contraseña codificada para URL) y `SUPABASE_ACCESS_TOKEN` (opcional).
 2. **Esquema** (desde `app/`): `node --env-file=.env.servidor.local scripts/aplicar-schema.mjs --dry` (prueba y deshace) → lo mismo sin `--dry` (aplica) → `scripts/verificar-schema.mjs` (solo lectura).
 3. **Login**: registro libre apagado y confirmación de correo apagada (Authentication → Sign In / Providers, o por API con el access token).
-4. **Primer superadmin** (una sola vez, desde el SQL Editor o un script con `DATABASE_URL`): `select naty_crear_usuario_interno('<CI>', '<Nombre>', 'superadmin', '<contraseña>');`. El resto del equipo lo da de alta el superadmin desde la pantalla **Usuarios** de la app.
-5. **Ingreso**: cada persona entra con su **CI** y contraseña. Supabase Auth usa un correo interno `<ci>@ci.modasnaty.internal` (no recibe correos); la app lo arma sola.
-6. **Netlify**: cargar solo `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en las variables del sitio. Nunca la clave secreta.
+4. **Primer superadmin** (una sola vez, desde el SQL Editor o un script con `DATABASE_URL`): `select naty_crear_usuario_interno('<usuario>', '<Nombre>', 'superadmin', '<contraseña>');`. El resto del equipo lo da de alta el superadmin desde la pantalla **Usuarios** de la app.
+5. **Ingreso**: cada persona entra con su **usuario** (solo el nombre, ej. `ariel`) y su **contraseña**. Supabase Auth usa un correo interno `<usuario>@usuarios.modasnaty.internal` (no recibe correos); la app lo arma sola.
+6. **Contraseña = CI** (pedido de Natali, 2026-10-23): la contraseña de cada persona es su número de CI, **solo los dígitos** (sin puntos, letras ni complemento; mínimo 6). El alta de la pantalla **Usuarios** lo pide y lo aplica; «Restablecer → Volver a su CI» lo vuelve a dejar así. La superadmin (la dueña) puede usar otra contraseña propia. El CI se guarda en la tabla aparte `naty_perfiles_ci`: solo la superadmin la lee (RLS), se escribe únicamente con `naty_guardar_ci` y se consulta con `naty_ver_ci`; **no** está en `naty_perfiles` y la app **no** lo sincroniza a los celulares. La contraseña en sí vive cifrada en Supabase Auth.
+7. **Netlify**: cargar solo `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en las variables del sitio. Nunca la clave secreta.
 
-> Estado (2026-10-09): proyecto propio en São Paulo (sa-east-1) con el esquema aplicado y verificado, login configurado y un superadmin inicial (CI provisorio 1000000).
+> Estado (2026-10-09): proyecto propio en São Paulo (sa-east-1) con el esquema aplicado y verificado, login configurado y un superadmin inicial. Desde el 2026-10-09 el ingreso es por nombre de usuario (antes era por CI).
 
 ## Probar sin tocar la nube
 - **Pruebas automáticas** (sin Docker): `npm test` (desde `app/`) aplica `naty_schema.sql` (dos veces) sobre un Postgres real en memoria y comprueba permisos, ventas, anulaciones, catálogo, Storage, alta de usuarios, instancia compartida y la sincronización completa de la app.

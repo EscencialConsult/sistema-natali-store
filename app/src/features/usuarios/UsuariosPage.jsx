@@ -11,7 +11,7 @@ import UsuarioForm from './UsuarioForm.jsx'
 const norm = (s = '') => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const TONO_ROL = { superadmin: 'tinta', admin: 'tinte', enc_ventas: 'info', enc_tienda: 'info', enc_deposito: 'alerta', vendedor: 'neutro' }
 
-// Gestión de usuarios (solo superadmin): alta con rol y contraseña, edición, baja y restablecer contraseña.
+// Gestión de usuarios (solo superadmin): alta con rol y contraseña (su CI), edición, baja y restablecer contraseña.
 export default function UsuariosPage() {
   const { usuario } = useAuth()
   const equipo = usePerfiles({ soloActivos: false })
@@ -59,7 +59,7 @@ export default function UsuariosPage() {
     <div className="flex flex-col gap-6">
       <Encabezado
         titulo="Usuarios"
-        descripcion="Alta de personas del equipo, su rol y su contraseña. Cada rol ve solo las pantallas que le corresponden."
+        descripcion="Alta de personas del equipo y su rol. La contraseña de cada una es su número de CI, salvo que le asignes otra. Cada rol ve solo las pantallas que le corresponden."
         acciones={
           <>
             <ExportarExcel titulo="Exportar usuarios a Excel" campos={camposExportar} generar={generarExcel} deshabilitado={!equipo.datos} />
