@@ -1,12 +1,14 @@
 // Repositorio de perfiles (usuarios del sistema).
 //   listar({ soloActivos }) · obtener(id) · actualizar(id, cambios)
 //   Gestión (solo superadmin; el servidor lo controla): crear(datos) · editar(id, cambios) · cambiarClave(id, clave)
+//   CI (la contraseña inicial de cada persona; solo superadmin): verCi(id) · guardarCi(id, ci) · fijarClaveConCi(id, ci)
 // La lectura sale de la copia local (funciona sin internet). Crear, editar y cambiar contraseñas lo hace Supabase
 // (funciones que exigen superadmin) y después se actualiza la copia local. Eso necesita conexión.
+// El CI NUNCA se copia a la base local ni a la cola de envío: vive en su propia tabla del servidor y se pide cuando hace falta.
 import { db } from '../../db.js'
 import { obtenerSupabase } from '../../supabase.js'
 import { encolar } from '../../sync/cola.js'
-import { normalizarUsuario, validarClave, validarUsuario } from '../../../lib/clave.js'
+import { normalizarCi, normalizarUsuario, validarCi, validarClave, validarUsuario } from '../../../lib/clave.js'
 import { ROLES } from '../../../lib/permisos.js'
 
 const CAMPOS_PERFIL = ['id', 'nombre', 'iniciales', 'rol', 'telefono', 'activo', 'usuario']
@@ -75,5 +77,24 @@ export const perfiles = {
     const errC = validarClave(clave)
     if (errC) throw new Error(errC)
     await rpc('naty_cambiar_clave', { p_id: id, p_clave: clave })
+  },
+
+  // CI guardado de la persona, o null si todavía no se cargó.
+  async verCi(id) {
+    return (await rpc('naty_ver_ci', { p_id: id })) ?? null
+  },
+
+  async guardarCi(id, ci) {
+    const errCi = validarCi(ci)
+    if (errCi) throw new Error(errCi)
+    await rpc('naty_guardar_ci', { p_id: id, p_ci: normalizarCi(ci) })
+  },
+
+  // Deja la contraseña igual al CI y lo guarda. Primero la contraseña: si falla el segundo paso, ya entra con su CI y alcanza con reintentar el guardado.
+  async fijarClaveConCi(id, ci) {
+    const errCi = validarCi(ci)
+    if (errCi) throw new Error(errCi)
+    await perfiles.cambiarClave(id, normalizarCi(ci))
+    await perfiles.guardarCi(id, ci)
   },
 }

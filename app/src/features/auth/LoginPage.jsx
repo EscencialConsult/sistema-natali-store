@@ -39,7 +39,7 @@ export default function LoginPage() {
           <div>
             <h1 className="sr-only">{nombre}</h1>
             <p className="text-sm uppercase tracking-[0.14em] text-texto-suave">Sistema de ventas y stock</p>
-            <p className="mt-1 text-sm text-texto-suave">Ingresá con tu usuario y contraseña.</p>
+            <p className="mt-1 text-sm text-texto-suave">Ingresá con tu usuario. Tu contraseña es tu número de CI, sin puntos, salvo que la administración te haya dado otra.</p>
           </div>
         </div>
         <Input etiqueta="Usuario" autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus value={usuario} onChange={(e) => setUsuario(e.target.value)} />
