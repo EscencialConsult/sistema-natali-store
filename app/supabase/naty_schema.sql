@@ -1036,3 +1036,56 @@ end $$;
 
 revoke all on function naty_actualizar_comision_venta(jsonb) from public, anon, authenticated;
 grant execute on function naty_actualizar_comision_venta(jsonb) to authenticated;
+
+-- ── 2026-10-23 · Contraseña = CI: el CI se guarda aparte y solo lo ve la superadmin ──
+-- Pedido de Natali (ficha de Bermejo, 23/10/2026): cada persona ingresa con su usuario y su CI como contraseña.
+-- La contraseña vive en Supabase Auth (cifrada). El CI en sí se guarda acá para que la superadmin pueda volver a dejar la
+-- contraseña de alguien en su CI sin pedírselo de nuevo. NO va en naty_perfiles: esa tabla la lee todo miembro activo y se
+-- descarga a cada celular, y cualquier vendedor vería la clave de la superadmin. Acá: RLS solo superadmin, escritura solo por
+-- las dos funciones de abajo, y la app NO sincroniza esta tabla a los dispositivos (se pide al abrir una persona, con conexión).
+-- No toca el bloque que borra una columna `ci` vieja de naty_perfiles (es otra tabla).
+
+create table if not exists naty_perfiles_ci (
+  perfil_id uuid primary key references naty_perfiles (id) on delete cascade,
+  ci text not null check (ci ~ '^[0-9]{6,12}$'),
+  updated_at timestamptz not null default clock_timestamp()
+);
+alter table naty_perfiles_ci enable row level security;
+drop policy if exists "naty_perfiles_ci_leer" on naty_perfiles_ci;
+create policy "naty_perfiles_ci_leer" on naty_perfiles_ci for select to authenticated using (naty_es_rol('superadmin'));
+revoke all on table naty_perfiles_ci from public, anon, authenticated;
+grant select on naty_perfiles_ci to authenticated;
+
+-- Guarda (o corrige) el CI de una persona. Solo el superadmin. NO cambia la contraseña: eso lo hace naty_cambiar_clave.
+create or replace function naty_guardar_ci(p_id uuid, p_ci text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede gestionar usuarios' using errcode = '42501';
+  end if;
+  if p_ci is null or p_ci !~ '^[0-9]{6,12}$' then
+    raise exception 'El CI lleva entre 6 y 12 números, sin puntos ni letras' using errcode = '22023';
+  end if;
+  if not exists (select 1 from naty_perfiles where id = p_id) then
+    raise exception 'Ese usuario ya no existe' using errcode = '02000';
+  end if;
+  insert into naty_perfiles_ci (perfil_id, ci) values (p_id, p_ci)
+  on conflict (perfil_id) do update set ci = excluded.ci, updated_at = clock_timestamp();
+end $$;
+
+-- El CI guardado de una persona (null si todavía no se cargó). Solo el superadmin.
+create or replace function naty_ver_ci(p_id uuid) returns text
+language plpgsql security definer set search_path = public as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede gestionar usuarios' using errcode = '42501';
+  end if;
+  return (select ci from naty_perfiles_ci where perfil_id = p_id);
+end $$;
+
+revoke all on function naty_guardar_ci(uuid, text), naty_ver_ci(uuid) from public, anon, authenticated;
+grant execute on function naty_guardar_ci(uuid, text), naty_ver_ci(uuid) to authenticated;
+
+-- Registro del proyecto: suma la tabla nueva (el bloque 6 de arriba se vuelve a correr con la lista original en cada aplicación).
+update proyectos set tablas = tablas || '["naty_perfiles_ci"]'::jsonb
+ where identificador = 'naty' and not (tablas ? 'naty_perfiles_ci');
