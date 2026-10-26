@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { MapPin, MessageCircle } from 'lucide-react'
+import PieEscencial from '../../../components/PieEscencial.jsx'
 import { enlaceComoLlegar } from '../lib/configTienda.js'
 import { BASE_ADMIN } from '../rutas.js'
 
@@ -70,6 +71,8 @@ export default function Pie({ nombre, enlaces, locales, whatsapp, frase, locales
           <a href={`${BASE_ADMIN}/`} className="inline-flex min-h-11 items-center underline-offset-4 hover:text-white hover:underline">Acceso del equipo</a>
         </div>
       </div>
+
+      <PieEscencial tono="oscuro" />
     </footer>
   )
 }
