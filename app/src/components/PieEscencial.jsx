@@ -25,7 +25,8 @@ export default function PieEscencial({ tono = 'oscuro', compacto = false, classN
   if (compacto) {
     return (
       <div className={`flex flex-col items-center gap-1.5 text-center text-xs text-texto-tenue ${className}`}>
-        <a href={ESCENCIAL.web} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-texto hover:text-tinta" aria-label={`${ESCENCIAL.one} y ${ESCENCIAL.nombre}, abre en una pestaña nueva`}>
+        <a href={ESCENCIAL.web} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-texto hover:text-tinta" aria-label={`Desarrollado por ${ESCENCIAL.one} y ${ESCENCIAL.nombre}, abre en una pestaña nueva`}>
+          <span>Desarrollado por</span>
           <Logos claro alto="h-5" />
         </a>
         <a href={ESCENCIAL.whatsapp} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 font-medium underline-offset-4 hover:underline" aria-label="Soporte por WhatsApp, abre en una pestaña nueva">
@@ -44,7 +45,8 @@ export default function PieEscencial({ tono = 'oscuro', compacto = false, classN
   return (
     <div className={`border-t ${borde} ${className}`}>
       <div className={`mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-5 text-xs ${texto} md:flex-row md:flex-wrap md:justify-between md:gap-x-6 md:px-8`}>
-        <a href={ESCENCIAL.web} target="_blank" rel="noopener noreferrer" className={`inline-flex min-h-11 items-center gap-2 ${enlace}`} aria-label={`${ESCENCIAL.one} y ${ESCENCIAL.nombre}, abre en una pestaña nueva`}>
+        <a href={ESCENCIAL.web} target="_blank" rel="noopener noreferrer" className={`inline-flex min-h-11 items-center gap-2 ${enlace}`} aria-label={`Desarrollado por ${ESCENCIAL.one} y ${ESCENCIAL.nombre}, abre en una pestaña nueva`}>
+          <span>Desarrollado por</span>
           <Logos claro={claro} />
         </a>
         <p className="text-center">
