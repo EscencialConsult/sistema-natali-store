@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MessageCircle, SearchX } from 'lucide-react'
 import Logo from '../../../components/Logo.jsx'
+import PieEscencial from '../../../components/PieEscencial.jsx'
 import { CampoBusqueda, EmptyState, Sheet, Skeleton } from '../../../components/ui/index.js'
 import { useBusquedaCodigo, useConfig } from '../../../data/hooks.js'
 import FilaResultado from '../FilaResultado.jsx'
@@ -55,9 +56,12 @@ export default function CatalogoPublico() {
         )}
       </main>
 
-      <footer className="bg-pie px-4 py-10 text-center text-sm text-sobre-tinta/70">
-        <p className="font-titulo text-lg font-semibold text-sobre-tinta">{nombreNegocio}</p>
-        <p className="mt-1">Catálogo mayorista</p>
+      <footer className="bg-pie pt-10 text-sm text-sobre-tinta/70">
+        <div className="px-4 pb-8 text-center">
+          <p className="font-titulo text-lg font-semibold text-sobre-tinta">{nombreNegocio}</p>
+          <p className="mt-1">Catálogo mayorista</p>
+        </div>
+        <PieEscencial tono="oscuro" />
       </footer>
 
       {telefono && (

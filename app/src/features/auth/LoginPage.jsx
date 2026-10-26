@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { MarcaIcono } from '../../components/Logo.jsx'
+import PieEscencial from '../../components/PieEscencial.jsx'
 import { useMarca } from '../../components/useMarca.js'
 import { Button, Input, TARJETA } from '../../components/ui/index.js'
 import { useAuth } from './AuthContext.js'
@@ -51,6 +52,7 @@ export default function LoginPage() {
         </div>
         <Button type="submit" tamano="lg" ancho cargando={entrando} deshabilitado={!usuario.trim() || !clave}>Entrar</Button>
         <p className="text-center text-xs text-texto-tenue">¿Olvidaste tu contraseña? Pedísela a la administración.</p>
+        <PieEscencial compacto className="border-t border-borde pt-4" />
       </form>
     </main>
   )
