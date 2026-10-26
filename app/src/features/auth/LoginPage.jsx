@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { MarcaIcono } from '../../components/Logo.jsx'
 import { useMarca } from '../../components/useMarca.js'
 import { Button, Input, TARJETA } from '../../components/ui/index.js'
+import { VERSION_APP } from '../../lib/version.js'
 import { useAuth } from './AuthContext.js'
 
 // Ingreso del equipo (no es una pantalla comercial): usuario y contraseña que da la administración.
@@ -51,6 +52,7 @@ export default function LoginPage() {
         </div>
         <Button type="submit" tamano="lg" ancho cargando={entrando} deshabilitado={!usuario.trim() || !clave}>Entrar</Button>
         <p className="text-center text-xs text-texto-tenue">¿Olvidaste tu contraseña? Pedísela a la administración.</p>
+        <p className="text-center text-[0.6875rem] text-texto-tenue">Versión {VERSION_APP}</p>
       </form>
     </main>
   )

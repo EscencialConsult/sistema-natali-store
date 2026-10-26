@@ -12,3 +12,6 @@ export async function prepararBase() {
   await db.open()
   await db.config.put({ clave: 'origen', valor: ORIGEN })
 }
+
+// Lo que se le muestra a quien soporta el equipo: nombre técnico del error + mensaje (el texto genérico no alcanza para diagnosticar).
+export const detalleDelError = (e) => [e?.name, e?.message].filter(Boolean).join(': ').slice(0, 240) || String(e)

@@ -9,12 +9,15 @@ export const hayBackend = Boolean(url && claveAnonima)
 let cliente = null
 
 // El paquete de Supabase se carga recién cuando hace falta (la primera pantalla abre más rápido).
+// `fetchConRenovacion` repite una vez la consulta con token nuevo si el servidor responde «JWT expired» (ver sync/sesion.js).
 export function obtenerSupabase() {
   if (!hayBackend) return Promise.resolve(null)
-  cliente ??= import('@supabase/supabase-js').then(({ createClient }) =>
-    createClient(url, claveAnonima, {
+  cliente ??= Promise.all([import('@supabase/supabase-js'), import('./sync/sesion.js')]).then(([{ createClient }, { fetchConRenovacion }]) => {
+    const sb = createClient(url, claveAnonima, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-    }),
-  )
+      global: { fetch: fetchConRenovacion(() => sb) },
+    })
+    return sb
+  })
   return cliente
 }
