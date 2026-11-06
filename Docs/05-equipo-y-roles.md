@@ -14,9 +14,9 @@ Fuente: cuadro "Personal registrado" compartido por Fabiana (Escencial) — "col
 > La tabla original trae una columna "Contraseña" (valores numéricos, uno "Sin dato"). **No la transcribo acá** para no dejar credenciales en texto plano. Queda en el chat/captura original.
 
 ## Roles a modelar en el ERP
-- **Vendedor** (3): crea ventas, ve "Mis ventas" y su comisión.
-- **Encargada de tienda**: probablemente supervisa ventas/caja; su teléfono va en el pie de la nota A5. Puede anular ventas (pedido de Natali, 21/10/2026).
-- **Encargada de ventas**: probablemente ve ventas de todos y comisiones. Puede anular ventas (pedido de Natali, 21/10/2026).
+- **Vendedor** (3): crea ventas (sin descuentos), ve "Mis ventas" y su comisión.
+- **Encargada de tienda**: probablemente supervisa ventas/caja; su teléfono va en el pie de la nota A5. Puede anular ventas (pedido de Natali, 21/10/2026) y aplicar descuentos (06/11/2026).
+- **Encargada de ventas**: probablemente ve ventas de todos y comisiones. Puede anular ventas (pedido de Natali, 21/10/2026) y aplicar descuentos (06/11/2026).
 - **Encargada de depósito**: inventario / movimientos de stock.
 - El ERP demo hoy solo distingue admin vs vendedor → hay que ampliar a 4 roles (confirmar permisos con Natali).
 

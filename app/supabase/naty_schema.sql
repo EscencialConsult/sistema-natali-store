@@ -1130,6 +1130,9 @@ begin
   if v_vendedor <> auth.uid() and not naty_es_rol('admin') then
     raise exception 'La venta debe quedar a nombre de quien la registra' using errcode = '42501';
   end if;
+  if (v_descuento > 0 or v_descuento_modo is not null or v_descuento_porcentaje is not null) and not naty_es_rol('admin', 'enc_tienda', 'enc_ventas') then
+    raise exception 'Solo la administración o las encargadas de tienda y de ventas pueden aplicar descuentos' using errcode = '42501';
+  end if;
   if exists (select 1 from naty_ventas where id = v_id) then
     return v_id;
   end if;

@@ -57,6 +57,8 @@ export default function NuevaVentaPage() {
   const mapa = useMemo(() => new Map((todos.datos ?? []).map((p) => [p.id, p])), [todos.datos])
   const tc = cfg.datos?.tipo_cambio
   const puedeEditarPrecio = puede(usuario.rol, 'precio.editar')
+  const puedeDescontar = puede(usuario.rol, 'venta.descontar')
+  const descuento = puedeDescontar ? estado.descuento : null
 
   const lineas = estado.lineas.filter((l) => mapa.has(l.productoId))
   const precios = useMemo(() => {
@@ -64,7 +66,7 @@ export default function NuevaVentaPage() {
     return new Map(lineas.map((l) => [l.key, precioDocena({ precioUsdCent: mapa.get(l.productoId).precio_docena_usd_cent, moneda: estado.moneda, tc, manualCent: l.manualCent })]))
   }, [lineas, mapa, tc, estado.moneda])
   const subtotalVenta = totalDeLineas(lineas.map((l) => ({ cantidad: l.cantidad, precioCent: precios.get(l.key) ?? 0 })))
-  const descuentoCent = calcularDescuento(subtotalVenta, estado.descuento)
+  const descuentoCent = calcularDescuento(subtotalVenta, descuento)
   // Un monto fijo puede quedar más grande que el total si después se sacan productos: se avisa y no deja confirmar.
   const descuentoExcedido = descuentoCent > subtotalVenta
   const total = Math.max(0, subtotalVenta - descuentoCent)
@@ -96,7 +98,7 @@ export default function NuevaVentaPage() {
         cliente_direccion: estado.cliente_direccion,
         metodo_entrega: estado.metodo_entrega,
         retira_nombre: estado.retira_nombre,
-        descuento: estado.descuento,
+        descuento,
         // Sin color: la venta usa el color del producto (un borrador viejo pudo guardar un color que ya no existe).
         items: lineas.map((l) => ({ producto_id: l.productoId, color_id: null, cantidad: l.cantidad, unidad: 'docena', precio_cent: precios.get(l.key) })),
       })
@@ -169,7 +171,7 @@ export default function NuevaVentaPage() {
                   key={m}
                   activa={estado.moneda === m}
                   onClick={() => {
-                    if (m !== estado.moneda && estado.descuento?.modo === 'monto') avisar('Se quitó el descuento de monto fijo: estaba en otra moneda.')
+                    if (m !== estado.moneda && descuento?.modo === 'monto') avisar('Se quitó el descuento de monto fijo: estaba en otra moneda.')
                     despachar({ tipo: 'moneda', moneda: m })
                   }}
                 >
@@ -219,23 +221,23 @@ export default function NuevaVentaPage() {
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><CreditCard size={16} strokeWidth={1.75} aria-hidden /> Pago</dt><dd className="font-medium">{estado.metodo_pago === 'efectivo' ? 'Efectivo' : 'Transferencia'}</dd></div>
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><Truck size={16} strokeWidth={1.75} aria-hidden /> Entrega</dt><dd className="font-medium">{METODOS_ENTREGA[estado.metodo_entrega] ?? '—'}</dd></div>
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><User size={16} strokeWidth={1.75} aria-hidden /> Cliente</dt><dd className="truncate font-medium">{estado.cliente_nombre || '—'}</dd></div>
-            {estado.descuento && <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><ShoppingBag size={16} strokeWidth={1.75} aria-hidden /> Subtotal</dt><dd className="font-medium tabular-nums">{formatear(subtotalVenta, estado.moneda)}</dd></div>}
+            {descuento && <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><ShoppingBag size={16} strokeWidth={1.75} aria-hidden /> Subtotal</dt><dd className="font-medium tabular-nums">{formatear(subtotalVenta, estado.moneda)}</dd></div>}
           </dl>
-          {lineas.length > 0 && (
+          {puedeDescontar && lineas.length > 0 && (
             <button
               type="button"
               onClick={() => setEditandoDescuento(true)}
               className={cn(
                 'mb-2 flex min-h-11 w-full items-center justify-between gap-3 rounded-control border px-3 py-1.5 text-sm font-medium transition-colors lg:mb-4',
-                !estado.descuento && 'border-dashed border-borde-fuerte text-tinta hover:bg-tinte',
-                estado.descuento && (descuentoExcedido ? 'border-error bg-error-fondo text-error' : 'border-tinta/30 bg-tinte text-sobre-tinte'),
+                !descuento && 'border-dashed border-borde-fuerte text-tinta hover:bg-tinte',
+                descuento && (descuentoExcedido ? 'border-error bg-error-fondo text-error' : 'border-tinta/30 bg-tinte text-sobre-tinte'),
               )}
             >
               <span className="flex items-center gap-2">
                 <Percent size={16} strokeWidth={1.75} aria-hidden />
-                {estado.descuento ? etiquetaDescuento({ modo: estado.descuento.modo, porcentaje: estado.descuento.valor }) : 'Añadir descuento'}
+                {descuento ? etiquetaDescuento({ modo: descuento.modo, porcentaje: descuento.valor }) : 'Añadir descuento'}
               </span>
-              {estado.descuento && <span className="whitespace-nowrap tabular-nums">− {formatear(descuentoCent, estado.moneda)}</span>}
+              {descuento && <span className="whitespace-nowrap tabular-nums">− {formatear(descuentoCent, estado.moneda)}</span>}
             </button>
           )}
           <div className="flex items-center justify-between gap-3 lg:flex-col lg:items-stretch lg:border-t lg:border-borde lg:pt-4">
@@ -250,9 +252,9 @@ export default function NuevaVentaPage() {
 
       <AgregarSheet productoId={eligiendo} moneda={estado.moneda} onCerrar={() => setEligiendo(null)} onAgregar={agregar} />
 
-      {editandoDescuento && (
+      {puedeDescontar && editandoDescuento && (
         <DescuentoModal
-          descuento={estado.descuento}
+          descuento={descuento}
           subtotalCent={subtotalVenta}
           moneda={estado.moneda}
           onCerrar={() => setEditandoDescuento(false)}

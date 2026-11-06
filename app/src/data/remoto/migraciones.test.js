@@ -259,30 +259,35 @@ describe('registrar_venta', () => {
     expect((await q('select count(*)::int as c from naty_ventas where id = $1', [malo.id]))[0].c).toBe(0)
   })
 
-  it('descuento: guarda el importe, exige que el total cierre y rechaza lo incoherente', async () => {
+  it('descuento: solo administración y encargadas de tienda y de ventas; exige que el total cierre y rechaza lo incoherente', async () => {
     const subtotal = 2 * 10000 + 1 * 5000
     const numero = (n) => `NV-AM-07${n}`
     const fila = async (id) => (await q('select descuento_modo, descuento_porcentaje::float as pct, descuento_cent::int as cent, total_cent::int as total from naty_ventas where id = $1', [id]))[0]
 
-    const monto = venta({ numero: numero(1), descuento_modo: 'monto', descuento_cent: 1000, total_cent: subtotal - 1000 })
-    await registrar(U.ariel, monto)
-    expect(await fila(monto.id)).toEqual({ descuento_modo: 'monto', pct: null, cent: 1000, total: subtotal - 1000 })
-
-    const pct = venta({ numero: numero(2), descuento_modo: 'porcentaje', descuento_porcentaje: 12.5, descuento_cent: 3125, total_cent: subtotal - 3125 })
-    await registrar(U.ariel, pct)
-    expect(await fila(pct.id)).toEqual({ descuento_modo: 'porcentaje', pct: 12.5, cent: 3125, total: subtotal - 3125 })
-
-    // App vieja: sin las claves de descuento la venta entra igual.
+    // Un vendedor no puede aplicar descuentos, pero sí vender sin descuento (o desde una app vieja sin las claves).
+    await expect(registrar(U.ariel, venta({ numero: numero(0), descuento_modo: 'monto', descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/Solo la administración o las encargadas/)
     const vieja = venta({ numero: numero(3) })
     await registrar(U.ariel, vieja)
     expect(await fila(vieja.id)).toEqual({ descuento_modo: null, pct: null, cent: 0, total: subtotal })
 
-    await expect(registrar(U.ariel, venta({ numero: numero(4), descuento_modo: 'monto', descuento_cent: 1000 }))).rejects.toThrow(/no coincide/)
-    await expect(registrar(U.ariel, venta({ numero: numero(5), descuento_modo: 'monto', descuento_cent: subtotal + 1, total_cent: 0 }))).rejects.toThrow(/no puede ser mayor/)
-    await expect(registrar(U.ariel, venta({ numero: numero(6), descuento_modo: 'monto', descuento_cent: -1, total_cent: subtotal + 1 }))).rejects.toThrow(/no puede ser mayor/)
-    await expect(registrar(U.ariel, venta({ numero: numero(7), descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/por ciento/)
-    await expect(registrar(U.ariel, venta({ numero: numero(8), descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/check constraint/)
-    await expect(registrar(U.ariel, venta({ numero: numero(9), descuento_modo: 'monto' }))).rejects.toThrow(/check constraint/)
+    const monto = venta({ vendedor_id: U.pamela, numero: numero(1), descuento_modo: 'monto', descuento_cent: 1000, total_cent: subtotal - 1000 })
+    await registrar(U.pamela, monto)
+    expect(await fila(monto.id)).toEqual({ descuento_modo: 'monto', pct: null, cent: 1000, total: subtotal - 1000 })
+
+    const pct = venta({ vendedor_id: U.jehovana, numero: numero(2), descuento_modo: 'porcentaje', descuento_porcentaje: 12.5, descuento_cent: 3125, total_cent: subtotal - 3125 })
+    await registrar(U.jehovana, pct)
+    expect(await fila(pct.id)).toEqual({ descuento_modo: 'porcentaje', pct: 12.5, cent: 3125, total: subtotal - 3125 })
+
+    const adm = venta({ numero: numero(10), descuento_modo: 'monto', descuento_cent: 500, total_cent: subtotal - 500 })
+    await registrar(U.admin, adm)
+    expect(await fila(adm.id)).toEqual({ descuento_modo: 'monto', pct: null, cent: 500, total: subtotal - 500 })
+
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(4), descuento_modo: 'monto', descuento_cent: 1000 }))).rejects.toThrow(/no coincide/)
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(5), descuento_modo: 'monto', descuento_cent: subtotal + 1, total_cent: 0 }))).rejects.toThrow(/no puede ser mayor/)
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(6), descuento_modo: 'monto', descuento_cent: -1, total_cent: subtotal + 1 }))).rejects.toThrow(/no puede ser mayor/)
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(7), descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/por ciento/)
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(8), descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/check constraint/)
+    await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(9), descuento_modo: 'monto' }))).rejects.toThrow(/check constraint/)
   })
 
   it('la administradora puede registrar a nombre de otra persona', async () => {

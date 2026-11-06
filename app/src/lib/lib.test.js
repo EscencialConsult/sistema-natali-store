@@ -55,10 +55,16 @@ describe('codigo', () => {
 describe('permisos', () => {
   it('cada rol solo hace lo suyo', () => {
     expect(puede('vendedor', 'venta.crear')).toBe(true)
+    expect(puede('vendedor', 'venta.descontar')).toBe(false)
     expect(puede('vendedor', 'ventas.ver_todas')).toBe(false)
+    expect(puede('enc_tienda', 'venta.descontar')).toBe(true)
+    expect(puede('enc_ventas', 'venta.descontar')).toBe(true)
     expect(puede('enc_deposito', 'stock.mover')).toBe(true)
     expect(puede('enc_deposito', 'venta.crear')).toBe(false)
+    expect(puede('enc_deposito', 'venta.descontar')).toBe(false)
+    expect(puede('admin', 'venta.descontar')).toBe(true)
     expect(puede('admin', 'ajustes.editar')).toBe(true)
+    expect(puede('superadmin', 'venta.descontar')).toBe(true)
     expect(puede(null, 'catalogo.ver')).toBe(false)
   })
 })

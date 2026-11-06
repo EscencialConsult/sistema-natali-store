@@ -268,18 +268,26 @@ describe('contrato entre la app y la base', () => {
     expect(fila).toEqual({ numero: 'NV-BA-0001', moneda: 'ars', tc: 1500, total: 4_500_000 })
   })
 
-  it('una venta con descuento se acepta y baja igual en otro dispositivo', async () => {
+  it('una venta con descuento se acepta para encargada/admin, se rechaza para vendedor y baja igual en otro dispositivo', async () => {
     await dispositivoNuevo()
-    await bajar(U.brayan)
+    await bajar(U.pamela)
     // 12,35 % de 33.333: el caso en que un redondeo distinto entre la app y la base rechazaría la venta.
-    const v = await ventas.crear({ vendedor_id: U.brayan.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', descuento: { modo: 'porcentaje', valor: 12.35 }, items: [itemVenta(1, 33333)] })
-    expect(await enviar(U.brayan)).toEqual({ enviadas: 1, errores: 0 })
+    const v = await ventas.crear({ vendedor_id: U.pamela.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', descuento: { modo: 'porcentaje', valor: 12.35 }, items: [itemVenta(1, 33333)] })
+    expect(await enviar(U.pamela)).toEqual({ enviadas: 1, errores: 0 })
     const [fila] = await q('select descuento_modo, descuento_porcentaje::float as pct, descuento_cent::int as cent, total_cent::int as total from naty_ventas where id = $1', [v.id])
     expect(fila).toEqual({ descuento_modo: 'porcentaje', pct: 12.35, cent: 4117, total: 29216 })
 
     await dispositivoNuevo()
-    await bajar(U.brayan)
+    await bajar(U.admin)
     expect(await ventas.obtener(v.id)).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 12.35, descuento_cent: 4117, total_cent: 29216, sync_status: 'synced' })
+
+    // Si un vendedor intenta enviar una venta con descuento, el servidor la rechaza.
+    await dispositivoNuevo()
+    await bajar(U.brayan)
+    const rechazada = await ventas.crear({ vendedor_id: U.brayan.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', descuento: { modo: 'monto', valor: 500 }, items: [itemVenta(1, 10000)] })
+    expect(await enviar(U.brayan)).toEqual({ enviadas: 0, errores: 1 })
+    expect((await q('select count(*)::int as c from naty_ventas where id = $1', [rechazada.id]))[0].c).toBe(0)
+    expect((await pendientes())[0].ultimo_error).toMatch(/Solo la administración o las encargadas/)
   })
 })
 
