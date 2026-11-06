@@ -1,5 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { urlDeImagen } from '../../lib/blobUrl.js'
+import { etiquetaDescuento, hayDescuento, subtotalDe } from '../../lib/descuentos.js'
 import { textoCantidad } from '../../lib/docenas.js'
 import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { fechaLarga } from '../../lib/fechas.js'
@@ -92,6 +93,12 @@ export default function NotaVenta({ venta, cfg, equipo }) {
                 </tbody>
               </table>
 
+              {hayDescuento(venta) && (
+                <dl className="nota-descuento">
+                  <div><dt>Subtotal</dt><dd>{formatear(subtotalDe(venta), venta.moneda)}</dd></div>
+                  <div><dt>{etiquetaDescuento({ modo: venta.descuento_modo, porcentaje: venta.descuento_porcentaje })}</dt><dd>− {formatear(venta.descuento_cent, venta.moneda)}</dd></div>
+                </dl>
+              )}
               <div className="nota-total">
                 <div>
                   <span>TOTAL</span>

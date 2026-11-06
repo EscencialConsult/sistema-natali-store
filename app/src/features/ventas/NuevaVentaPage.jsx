@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Banknote, CreditCard, Hand, Home, Landmark, ShoppingBag, Store, Trash2, Truck, User } from 'lucide-react'
+import { Banknote, CreditCard, Hand, Home, Landmark, Percent, ShoppingBag, Store, Trash2, Truck, User } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, CampoBusqueda, Encabezado, EmptyState, ErrorState, Input, Modal, Skeleton, TARJETA, useToast } from '../../components/ui/index.js'
 import { useBusquedaCodigo, useConfig, useProductos, useStockResumen } from '../../data/hooks.js'
 import { ventas } from '../../data/repos/index.js'
 import { cn } from '../../lib/cn.js'
+import { calcularDescuento, etiquetaDescuento } from '../../lib/descuentos.js'
 import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { formatear, META_MONEDA, MONEDAS } from '../../lib/moneda.js'
 import { puede } from '../../lib/permisos.js'
@@ -12,7 +13,9 @@ import { useAuth } from '../auth/AuthContext.js'
 import FilaResultado from '../catalogo/FilaResultado.jsx'
 import AgregarSheet from './AgregarSheet.jsx'
 import { lineasSinStock, precioDocena, textoCantidad, tipoCambioDe, totalDeLineas } from './calculos.js'
+import DescuentoModal from './DescuentoModal.jsx'
 import LineaVenta from './LineaVenta.jsx'
+import Opcion from './Opcion.jsx'
 import { borrarBorrador, useCarrito } from './useCarrito.js'
 
 const PAGOS = [
@@ -21,23 +24,6 @@ const PAGOS = [
 ]
 
 const ICONO_ENTREGA = { personal: Hand, tienda: Store, domicilio: Home, envio: Truck }
-
-function Opcion({ activa, onClick, children, icono: Icono }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activa}
-      onClick={onClick}
-      className={cn(
-        'flex min-h-16 flex-1 flex-col items-center justify-center gap-0.5 rounded-control border px-2 text-base font-medium transition-[background-color,border-color,box-shadow] duration-150',
-        activa ? 'border-tinta bg-tinte text-sobre-tinte ring-2 ring-tinta/20' : 'border-borde-fuerte bg-superficie text-texto hover:border-texto-tenue',
-      )}
-    >
-      {Icono && <Icono size={20} strokeWidth={1.75} aria-hidden />}
-      {children}
-    </button>
-  )
-}
 
 function Paso({ n, titulo, id, extra }) {
   return (
@@ -61,6 +47,7 @@ export default function NuevaVentaPage() {
   const [errorVenta, setErrorVenta] = useState('')
   const [pidiendoConfirmacion, setPidiendoConfirmacion] = useState(false)
   const [pidiendoVaciar, setPidiendoVaciar] = useState(false)
+  const [editandoDescuento, setEditandoDescuento] = useState(false)
 
   const cfg = useConfig()
   const todos = useProductos({ soloActivos: false })
@@ -76,7 +63,11 @@ export default function NuevaVentaPage() {
     if (!tc) return new Map()
     return new Map(lineas.map((l) => [l.key, precioDocena({ precioUsdCent: mapa.get(l.productoId).precio_docena_usd_cent, moneda: estado.moneda, tc, manualCent: l.manualCent })]))
   }, [lineas, mapa, tc, estado.moneda])
-  const total = totalDeLineas(lineas.map((l) => ({ cantidad: l.cantidad, precioCent: precios.get(l.key) ?? 0 })))
+  const subtotalVenta = totalDeLineas(lineas.map((l) => ({ cantidad: l.cantidad, precioCent: precios.get(l.key) ?? 0 })))
+  const descuentoCent = calcularDescuento(subtotalVenta, estado.descuento)
+  // Un monto fijo puede quedar más grande que el total si después se sacan productos: se avisa y no deja confirmar.
+  const descuentoExcedido = descuentoCent > subtotalVenta
+  const total = Math.max(0, subtotalVenta - descuentoCent)
   const docenas = lineas.reduce((t, l) => t + l.cantidad, 0)
 
   if (cfg.cargando || todos.cargando || stock.cargando) return <Skeleton className="h-64" />
@@ -105,6 +96,7 @@ export default function NuevaVentaPage() {
         cliente_direccion: estado.cliente_direccion,
         metodo_entrega: estado.metodo_entrega,
         retira_nombre: estado.retira_nombre,
+        descuento: estado.descuento,
         // Sin color: la venta usa el color del producto (un borrador viejo pudo guardar un color que ya no existe).
         items: lineas.map((l) => ({ producto_id: l.productoId, color_id: null, cantidad: l.cantidad, unidad: 'docena', precio_cent: precios.get(l.key) })),
       })
@@ -117,6 +109,8 @@ export default function NuevaVentaPage() {
   }
 
   const alConfirmar = () => {
+    setErrorVenta('')
+    if (descuentoExcedido) return setErrorVenta(`El descuento es mayor que el total de la venta (${formatear(subtotalVenta, estado.moneda)}). Cambialo o quitalo.`)
     if (lineasSinStock(lineas, stock.datos).length > 0) setPidiendoConfirmacion(true)
     else confirmar()
   }
@@ -171,7 +165,14 @@ export default function NuevaVentaPage() {
             <Paso n={2} id="moneda" titulo="Moneda de la venta" />
             <div className="flex gap-2">
               {MONEDAS.map((m) => (
-                <Opcion key={m} activa={estado.moneda === m} onClick={() => despachar({ tipo: 'moneda', moneda: m })}>
+                <Opcion
+                  key={m}
+                  activa={estado.moneda === m}
+                  onClick={() => {
+                    if (m !== estado.moneda && estado.descuento?.modo === 'monto') avisar('Se quitó el descuento de monto fijo: estaba en otra moneda.')
+                    despachar({ tipo: 'moneda', moneda: m })
+                  }}
+                >
                   <span className="font-titulo text-lg">{META_MONEDA[m].simbolo}</span>
                   <span className="text-xs font-normal opacity-80">{META_MONEDA[m].nombre}</span>
                 </Opcion>
@@ -218,7 +219,25 @@ export default function NuevaVentaPage() {
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><CreditCard size={16} strokeWidth={1.75} aria-hidden /> Pago</dt><dd className="font-medium">{estado.metodo_pago === 'efectivo' ? 'Efectivo' : 'Transferencia'}</dd></div>
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><Truck size={16} strokeWidth={1.75} aria-hidden /> Entrega</dt><dd className="font-medium">{METODOS_ENTREGA[estado.metodo_entrega] ?? '—'}</dd></div>
             <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><User size={16} strokeWidth={1.75} aria-hidden /> Cliente</dt><dd className="truncate font-medium">{estado.cliente_nombre || '—'}</dd></div>
+            {estado.descuento && <div className="flex justify-between gap-3"><dt className="flex items-center gap-2 text-texto-suave"><ShoppingBag size={16} strokeWidth={1.75} aria-hidden /> Subtotal</dt><dd className="font-medium tabular-nums">{formatear(subtotalVenta, estado.moneda)}</dd></div>}
           </dl>
+          {lineas.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setEditandoDescuento(true)}
+              className={cn(
+                'mb-2 flex min-h-11 w-full items-center justify-between gap-3 rounded-control border px-3 py-1.5 text-sm font-medium transition-colors lg:mb-4',
+                !estado.descuento && 'border-dashed border-borde-fuerte text-tinta hover:bg-tinte',
+                estado.descuento && (descuentoExcedido ? 'border-error bg-error-fondo text-error' : 'border-tinta/30 bg-tinte text-sobre-tinte'),
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <Percent size={16} strokeWidth={1.75} aria-hidden />
+                {estado.descuento ? etiquetaDescuento({ modo: estado.descuento.modo, porcentaje: estado.descuento.valor }) : 'Añadir descuento'}
+              </span>
+              {estado.descuento && <span className="whitespace-nowrap tabular-nums">− {formatear(descuentoCent, estado.moneda)}</span>}
+            </button>
+          )}
           <div className="flex items-center justify-between gap-3 lg:flex-col lg:items-stretch lg:border-t lg:border-borde lg:pt-4">
             <div className="lg:flex lg:items-baseline lg:justify-between">
               <p className="text-xs text-texto-suave lg:text-sm"><span className="lg:hidden">{textoCantidad(docenas)} {docenas === 1 ? 'docena' : 'docenas'} · </span>Total</p>
@@ -230,6 +249,20 @@ export default function NuevaVentaPage() {
       </div>
 
       <AgregarSheet productoId={eligiendo} moneda={estado.moneda} onCerrar={() => setEligiendo(null)} onAgregar={agregar} />
+
+      {editandoDescuento && (
+        <DescuentoModal
+          descuento={estado.descuento}
+          subtotalCent={subtotalVenta}
+          moneda={estado.moneda}
+          onCerrar={() => setEditandoDescuento(false)}
+          onAplicar={(valor) => {
+            despachar({ tipo: 'campo', campo: 'descuento', valor })
+            setEditandoDescuento(false)
+            setErrorVenta('')
+          }}
+        />
+      )}
 
       <Modal abierto={pidiendoConfirmacion} onCerrar={() => setPidiendoConfirmacion(false)} titulo="Stock insuficiente">
         <p className="mb-5 text-sm text-texto-suave">Algún color tiene menos docenas que las pedidas. Si confirmás, el stock de ese color quedará en negativo hasta que se cargue mercadería. ¿Confirmar igual?</p>

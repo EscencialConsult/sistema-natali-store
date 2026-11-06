@@ -1089,3 +1089,96 @@ grant execute on function naty_guardar_ci(uuid, text), naty_ver_ci(uuid) to auth
 -- Registro del proyecto: suma la tabla nueva (el bloque 6 de arriba se vuelve a correr con la lista original en cada aplicación).
 update proyectos set tablas = tablas || '["naty_perfiles_ci"]'::jsonb
  where identificador = 'naty' and not (tablas ? 'naty_perfiles_ci');
+
+-- ── 2026-11-06 · Descuentos en la venta: porcentaje o monto fijo sobre el total de la nota ──
+-- `total_cent` ya es lo cobrado; lo que sumaban los productos es total_cent + descuento_cent.
+-- `descuento_porcentaje` solo en modo 'porcentaje'; en modo 'monto' el importe es `descuento_cent`.
+-- La comisión no cambia: es fija por docena, no depende del precio.
+alter table naty_ventas add column if not exists descuento_modo text check (descuento_modo in ('porcentaje', 'monto'));
+alter table naty_ventas add column if not exists descuento_porcentaje numeric(5, 2) check (descuento_porcentaje > 0 and descuento_porcentaje <= 100);
+alter table naty_ventas add column if not exists descuento_cent bigint not null default 0 check (descuento_cent >= 0);
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'naty_ventas_descuento_coherente') then
+    alter table naty_ventas add constraint naty_ventas_descuento_coherente check (
+      (descuento_modo is null) = (descuento_cent = 0)
+      and (descuento_modo is not distinct from 'porcentaje') = (descuento_porcentaje is not null)
+    );
+  end if;
+end $$;
+
+-- naty_registrar_venta con descuento (misma firma: no crea una sobrecarga). p suma descuento_modo, descuento_porcentaje y descuento_cent, todos opcionales:
+-- un equipo con la versión vieja sigue vendiendo como siempre. Exige: total_cent = suma de productos − descuento.
+create or replace function naty_registrar_venta(p jsonb) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+  v_vendedor uuid := (p ->> 'vendedor_id')::uuid;
+  v_descuento bigint := coalesce((p ->> 'descuento_cent')::bigint, 0);
+  v_descuento_modo text := nullif(p ->> 'descuento_modo', '');
+  v_descuento_porcentaje numeric := nullif(p ->> 'descuento_porcentaje', '')::numeric;
+  v_calculado bigint;
+  v_item jsonb;
+  v_mov jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado' using errcode = '28000';
+  end if;
+  if not naty_es_rol('admin', 'vendedor', 'enc_tienda', 'enc_ventas') then
+    raise exception 'Tu rol no puede registrar ventas' using errcode = '42501';
+  end if;
+  if v_vendedor <> auth.uid() and not naty_es_rol('admin') then
+    raise exception 'La venta debe quedar a nombre de quien la registra' using errcode = '42501';
+  end if;
+  if exists (select 1 from naty_ventas where id = v_id) then
+    return v_id;
+  end if;
+  if coalesce(jsonb_array_length(p -> 'items'), 0) = 0 then
+    raise exception 'La venta no tiene productos' using errcode = '22023';
+  end if;
+
+  select coalesce(sum(round((i ->> 'cantidad')::numeric * (i ->> 'precio_cent')::bigint)), 0)
+    into v_calculado from jsonb_array_elements(p -> 'items') i;
+  if v_descuento < 0 or v_descuento > v_calculado then
+    raise exception 'El descuento (%) no puede ser mayor que la suma de los productos (%)', v_descuento, v_calculado using errcode = '22023';
+  end if;
+  if v_descuento_modo = 'porcentaje' and v_descuento <> round(v_calculado * v_descuento_porcentaje / 100) then
+    raise exception 'El descuento (%) no coincide con el % por ciento de %', v_descuento, v_descuento_porcentaje, v_calculado using errcode = '22023';
+  end if;
+  if v_calculado - v_descuento <> (p ->> 'total_cent')::bigint then
+    raise exception 'El total (%) no coincide con la suma de los productos (%) menos el descuento (%)', p ->> 'total_cent', v_calculado, v_descuento using errcode = '22023';
+  end if;
+
+  insert into naty_ventas (id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio, metodo_pago, cliente_nombre, cliente_telefono,
+                           cliente_email, cliente_direccion, metodo_entrega, retira_nombre, total_cent, creada_en,
+                           descuento_modo, descuento_porcentaje, descuento_cent)
+  values (v_id, p ->> 'numero', v_vendedor, coalesce(p ->> 'vendedor_nombre', ''), (p ->> 'moneda')::naty_moneda, (p ->> 'tipo_cambio')::numeric,
+          (p ->> 'metodo_pago')::naty_metodo_pago, coalesce(p ->> 'cliente_nombre', ''), coalesce(p ->> 'cliente_telefono', ''),
+          coalesce(p ->> 'cliente_email', ''), coalesce(p ->> 'cliente_direccion', ''), nullif(p ->> 'metodo_entrega', ''), coalesce(p ->> 'retira_nombre', ''),
+          (p ->> 'total_cent')::bigint, (p ->> 'creada_en')::timestamptz,
+          v_descuento_modo, v_descuento_porcentaje, v_descuento);
+
+  -- Un dispositivo sin señal pudo vender un producto que mientras tanto se eliminó: el ítem queda con la copia
+  -- (código, nombre, color) y sin vínculo, y no se descuenta stock de algo que ya no existe.
+  for v_item in select * from jsonb_array_elements(p -> 'items') loop
+    insert into naty_venta_items (id, venta_id, producto_id, color_id, codigo, nombre, color_nombre, cantidad, unidad, unidades, precio_cent, subtotal_cent)
+    values ((v_item ->> 'id')::uuid, v_id,
+            (select id from naty_productos where id = (v_item ->> 'producto_id')::uuid),
+            (select id from naty_producto_colores where id = (v_item ->> 'color_id')::uuid), v_item ->> 'codigo', v_item ->> 'nombre',
+            v_item ->> 'color_nombre', (v_item ->> 'cantidad')::numeric, (v_item ->> 'unidad')::naty_unidad_venta, (v_item ->> 'unidades')::int,
+            (v_item ->> 'precio_cent')::bigint, (v_item ->> 'subtotal_cent')::bigint);
+  end loop;
+
+  -- Los movimientos conservan el id que les puso el dispositivo: así, al descargar, no se cuentan dos veces.
+  for v_mov in select * from jsonb_array_elements(coalesce(p -> 'movimientos', '[]'::jsonb)) loop
+    if (v_mov ->> 'delta')::int >= 0 then
+      raise exception 'Un movimiento de venta debe restar stock' using errcode = '22023';
+    end if;
+    continue when not exists (select 1 from naty_productos where id = (v_mov ->> 'producto_id')::uuid);
+    insert into naty_movimientos_stock (id, producto_id, color_id, tipo, delta, motivo, usuario_id, venta_id, creado_en)
+    values ((v_mov ->> 'id')::uuid, (v_mov ->> 'producto_id')::uuid, (select id from naty_producto_colores where id = (v_mov ->> 'color_id')::uuid), 'venta', (v_mov ->> 'delta')::int,
+            coalesce(v_mov ->> 'motivo', ''), v_vendedor, v_id, (v_mov ->> 'creado_en')::timestamptz);
+  end loop;
+
+  return v_id;
+end $$;

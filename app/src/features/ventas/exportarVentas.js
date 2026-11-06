@@ -1,5 +1,6 @@
 // Excel de ventas: notas, detalle de ítems y resumen por moneda (las monedas nunca se suman entre sí).
 import { comisionDeDocenas, docenasDe } from '../../lib/comisiones.js'
+import { descuentosPorMoneda, hayDescuento, subtotalDe } from '../../lib/descuentos.js'
 import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { crearLibro } from '../../lib/excel.js'
 import { META_MONEDA, totalesPorMoneda } from '../../lib/moneda.js'
@@ -7,6 +8,7 @@ import { META_MONEDA, totalesPorMoneda } from '../../lib/moneda.js'
 const PAGO = { efectivo: 'Efectivo', transferencia: 'Transferencia' }
 const SYNC = { pending: 'Pendiente', synced: 'Sincronizada', error: 'Con problema' }
 const anulada = (f) => (f.estado === 'Anulada' ? 'error' : null)
+const tipoDescuento = (v) => (!hayDescuento(v) ? '' : v.descuento_modo === 'porcentaje' ? `${String(v.descuento_porcentaje).replace('.', ',')}%` : 'Monto fijo')
 
 export function libroVentas(ventas, filtros = []) {
   const filasVentas = ventas.map((v) => ({
@@ -19,6 +21,9 @@ export function libroVentas(ventas, filtros = []) {
     direccion: v.cliente_direccion ?? '',
     moneda: META_MONEDA[v.moneda].corto,
     total: v.total_cent / 100,
+    descuento: (Number(v.descuento_cent) || 0) / 100,
+    descuento_tipo: tipoDescuento(v),
+    subtotal: subtotalDe(v) / 100,
     docenas: docenasDe(v.items),
     pago: PAGO[v.metodo_pago],
     entrega: METODOS_ENTREGA[v.metodo_entrega] ?? '',
@@ -42,10 +47,12 @@ export function libroVentas(ventas, filtros = []) {
     })),
   )
   const activas = ventas.filter((v) => v.estado !== 'anulada')
+  const descuentos = descuentosPorMoneda(activas)
   const filasResumen = totalesPorMoneda(activas).map((t) => {
     const deLaMoneda = activas.filter((v) => v.moneda === t.moneda)
     const docenas = deLaMoneda.reduce((s, v) => s + docenasDe(v.items), 0)
-    return { moneda: META_MONEDA[t.moneda].nombre, ventas: deLaMoneda.length, docenas, total: t.total_cent / 100, comision: comisionDeDocenas(docenas) / 100 }
+    const descuento = descuentos.find((d) => d.moneda === t.moneda)
+    return { moneda: META_MONEDA[t.moneda].nombre, ventas: deLaMoneda.length, docenas, total: t.total_cent / 100, descuentos: (descuento?.cent ?? 0) / 100, con_descuento: descuento?.ventas ?? 0, comision: comisionDeDocenas(docenas) / 100 }
   })
 
   return {
@@ -62,6 +69,9 @@ export function libroVentas(ventas, filtros = []) {
           { titulo: 'Teléfono', clave: 'telefono', ancho: 15 },
           { titulo: 'Moneda', clave: 'moneda', ancho: 9 },
           { titulo: 'Total', clave: 'total', tipo: 'dinero', ancho: 13 },
+          { titulo: 'Descuento', clave: 'descuento', tipo: 'dinero', ancho: 13 },
+          { titulo: 'Tipo de descuento', clave: 'descuento_tipo', ancho: 13 },
+          { titulo: 'Subtotal sin descuento', clave: 'subtotal', tipo: 'dinero', ancho: 13 },
           { titulo: 'Docenas', clave: 'docenas', tipo: 'docenas', ancho: 10 },
           { titulo: 'Pago', clave: 'pago', ancho: 14 },
           { titulo: 'Entrega', clave: 'entrega', ancho: 11 },
@@ -97,6 +107,8 @@ export function libroVentas(ventas, filtros = []) {
           { titulo: 'Ventas activas', clave: 'ventas', tipo: 'entero', ancho: 15 },
           { titulo: 'Docenas', clave: 'docenas', tipo: 'docenas', ancho: 12 },
           { titulo: 'Total vendido', clave: 'total', tipo: 'dinero', ancho: 16 },
+          { titulo: 'Descuentos', clave: 'descuentos', tipo: 'dinero', ancho: 14 },
+          { titulo: 'Ventas con descuento', clave: 'con_descuento', tipo: 'entero', ancho: 15 },
           { titulo: 'Comisión (USD)', clave: 'comision', tipo: 'dinero', ancho: 15 },
         ],
         filas: filasResumen,

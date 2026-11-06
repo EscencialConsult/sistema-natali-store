@@ -6,6 +6,7 @@
 import { z } from 'zod'
 import { db } from '../../db.js'
 import { nuevoId } from '../../../lib/id.js'
+import { calcularDescuento, hayDescuento } from '../../../lib/descuentos.js'
 import { esCantidadValida, subtotal } from '../../../lib/docenas.js'
 import { METODOS_ENTREGA } from '../../../lib/entrega.js'
 import { MONEDAS } from '../../../lib/moneda.js'
@@ -27,6 +28,14 @@ const esquemaVenta = z.object({
   cliente_direccion: z.string().trim().default(''),
   metodo_entrega: z.enum(Object.keys(METODOS_ENTREGA)).nullable().default(null),
   retira_nombre: z.string().trim().default(''),
+  // valor: % (hasta dos decimales) en modo porcentaje, centavos en modo monto.
+  descuento: z
+    .discriminatedUnion('modo', [
+      z.object({ modo: z.literal('porcentaje'), valor: z.number().positive('El descuento debe ser mayor a 0.').max(100, 'El descuento no puede pasar de 100%.').transform((n) => Math.round(n * 100) / 100) }),
+      z.object({ modo: z.literal('monto'), valor: z.number().int().positive('El descuento debe ser mayor a 0.') }),
+    ])
+    .nullable()
+    .default(null),
   items: z
     .array(
       z.object({
@@ -91,14 +100,22 @@ export const ventas = {
           subtotal_cent: subtotal(i.cantidad, i.precio_cent),
         })
       }
-      const { items: _omitidos, ...cabecera } = d
+      const subtotalVenta = items.reduce((t, i) => t + i.subtotal_cent, 0)
+      const descuento_cent = calcularDescuento(subtotalVenta, d.descuento)
+      if (descuento_cent > subtotalVenta) throw new Error('El descuento no puede ser mayor que el total de la venta.')
+      // Un porcentaje que no llega a un centavo no es un descuento.
+      const conDescuento = descuento_cent > 0
+      const { items: _omitidos, descuento: _descuento, ...cabecera } = d
       const vendedor = await db.perfiles.get(d.vendedor_id)
       const venta = {
         ...cabecera,
         vendedor_nombre: vendedor?.nombre ?? '',
         id: idVenta,
         numero: await siguienteNumero(d.vendedor_id),
-        total_cent: items.reduce((t, i) => t + i.subtotal_cent, 0),
+        total_cent: subtotalVenta - descuento_cent,
+        descuento_modo: conDescuento ? d.descuento.modo : null,
+        descuento_porcentaje: conDescuento && d.descuento.modo === 'porcentaje' ? d.descuento.valor : null,
+        descuento_cent,
         estado: 'activa',
         sync_status: 'pending',
         creada_en: new Date().toISOString(),
@@ -157,7 +174,7 @@ export const ventas = {
     return { ...venta, items: await db.venta_items.where('venta_id').equals(id).toArray() }
   },
 
-  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta, comision_pagada, comision_oculta } = {}) {
+  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta, comision_pagada, comision_oculta, con_descuento } = {}) {
     let lista = await db.ventas.toArray()
     if (vendedor_id) lista = lista.filter((v) => v.vendedor_id === vendedor_id)
     if (moneda) lista = lista.filter((v) => v.moneda === moneda)
@@ -168,6 +185,7 @@ export const ventas = {
     if (hasta) lista = lista.filter((v) => v.creada_en <= hasta)
     if (comision_pagada !== undefined) lista = lista.filter((v) => !!v.comision_pagada === comision_pagada)
     if (comision_oculta !== undefined) lista = lista.filter((v) => !!v.comision_oculta === comision_oculta)
+    if (con_descuento) lista = lista.filter(hayDescuento)
     return lista.sort((a, b) => b.creada_en.localeCompare(a.creada_en))
   },
   // Para exportar: cada venta con sus ítems.

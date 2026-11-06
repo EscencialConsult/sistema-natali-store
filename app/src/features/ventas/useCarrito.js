@@ -2,22 +2,30 @@ import { useEffect, useReducer, useState } from 'react'
 import { nuevoId } from '../../lib/id.js'
 import { agregarLinea, normalizarCantidad } from './calculos.js'
 
-const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null, retira_nombre: '' }
+// descuento: null o { modo: 'porcentaje' | 'monto', valor } (% o centavos en la moneda de la venta).
+const VACIO = { moneda: 'usd', lineas: [], cliente_nombre: '', cliente_telefono: '', cliente_email: '', cliente_direccion: '', metodo_pago: 'efectivo', metodo_entrega: null, retira_nombre: '', descuento: null }
 
 // Líneas: { key, productoId, colorId (informativo), cantidad (docenas), manualCent }. Una línea por producto. Solo ids: nombres y fotos se leen del catálogo.
 function reductor(estado, accion) {
   switch (accion.tipo) {
     case 'moneda':
-      // Al cambiar de moneda se vuelve a los precios de lista: un precio manual era de la otra moneda.
-      return { ...estado, moneda: accion.moneda, lineas: estado.lineas.map((l) => ({ ...l, manualCent: null })) }
+      // Al cambiar de moneda se vuelve a los precios de lista: un precio manual era de la otra moneda. Lo mismo un descuento de monto fijo.
+      return {
+        ...estado,
+        moneda: accion.moneda,
+        lineas: estado.lineas.map((l) => ({ ...l, manualCent: null })),
+        descuento: accion.moneda !== estado.moneda && estado.descuento?.modo === 'monto' ? null : estado.descuento,
+      }
     case 'agregar':
       return { ...estado, lineas: agregarLinea(estado.lineas, { key: nuevoId(), manualCent: null, ...accion.linea }) }
     case 'cantidad':
       return { ...estado, lineas: estado.lineas.map((l) => (l.key === accion.key ? { ...l, cantidad: normalizarCantidad(accion.cantidad) } : l)) }
     case 'precio_manual':
       return { ...estado, lineas: estado.lineas.map((l) => (l.key === accion.key ? { ...l, manualCent: accion.cent } : l)) }
-    case 'quitar':
-      return { ...estado, lineas: estado.lineas.filter((l) => l.key !== accion.key) }
+    case 'quitar': {
+      const lineas = estado.lineas.filter((l) => l.key !== accion.key)
+      return { ...estado, lineas, descuento: lineas.length ? estado.descuento : null }
+    }
     case 'campo':
       return { ...estado, [accion.campo]: accion.valor }
     case 'vaciar':

@@ -1,4 +1,5 @@
 // Compartir la nota por WhatsApp. Todo se genera en el dispositivo (funciona sin internet hasta el momento de enviar).
+import { etiquetaDescuento, hayDescuento } from '../../lib/descuentos.js'
 import { formatear } from '../../lib/moneda.js'
 
 export async function notaComoImagen(nodo) {
@@ -10,7 +11,8 @@ export async function notaComoImagen(nodo) {
 
 export function textoResumen(venta, negocio) {
   const lineas = venta.items.map((i) => `• ${i.codigo} ${i.nombre} (${i.color_nombre}) × ${i.cantidad} doc. — ${formatear(i.subtotal_cent, venta.moneda)}`)
-  return [`*${negocio}* — Nota ${venta.numero}`, ...lineas, `*Total: ${formatear(venta.total_cent, venta.moneda)}*`].join('\n')
+  const descuento = hayDescuento(venta) ? [`${etiquetaDescuento({ modo: venta.descuento_modo, porcentaje: venta.descuento_porcentaje })}: − ${formatear(venta.descuento_cent, venta.moneda)}`] : []
+  return [`*${negocio}* — Nota ${venta.numero}`, ...lineas, ...descuento, `*Total: ${formatear(venta.total_cent, venta.moneda)}*`].join('\n')
 }
 
 function descargar(blob, nombre) {

@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, PackageCheck, Plus, ReceiptText, ScrollText, Search, Users } from 'lucide-react'
+import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, PackageCheck, Percent, Plus, ReceiptText, ScrollText, Search, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, Badge, Button, Dato, EmptyState, ErrorState, Skeleton, Tarjeta } from '../../components/ui/index.js'
 import { useConfig, usePerfiles, useProductos, useStockResumen, useVentas } from '../../data/hooks.js'
+import { hayDescuento } from '../../lib/descuentos.js'
 import { fechaCorta } from '../../lib/fechas.js'
 import { formatear, META_MONEDA, totalesPorMoneda } from '../../lib/moneda.js'
 import { rangoDe } from '../../lib/periodos.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
+import DatosDescuento from '../../components/DatosDescuento.jsx'
 import FiltroMoneda from '../../components/FiltroMoneda.jsx'
 import DescargaOffline from './DescargaOffline.jsx'
 
@@ -100,6 +102,7 @@ export default function DashboardPage() {
             {totales.map((t) => (
               <Dato key={t.moneda} etiqueta={`En ${META_MONEDA[t.moneda].nombre}`} valor={formatear(t.total_cent, t.moneda)} icono={ICONO_MONEDA[t.moneda]} />
             ))}
+            <DatosDescuento ventas={hoy.datos} />
             {totales.length === 0 && (
               <div className="col-span-1 flex items-center rounded-tarjeta border border-dashed border-borde-fuerte p-4 text-sm text-texto-suave lg:col-span-3">
                 {puede(usuario.rol, 'venta.crear') ? 'Cuando hagas la primera venta del día, los totales aparecen acá.' : 'Todavía no hay ventas hoy.'}
@@ -129,6 +132,7 @@ export default function DashboardPage() {
                           <span className="flex shrink-0 flex-col items-end gap-0.5">
                             <span className={v.estado === 'anulada' ? 'whitespace-nowrap tabular-nums text-texto-tenue line-through' : 'whitespace-nowrap font-semibold tabular-nums'}>{formatear(v.total_cent, v.moneda)}</span>
                             {v.estado === 'anulada' && <Badge tono="error">Anulada</Badge>}
+                            {v.estado !== 'anulada' && hayDescuento(v) && <Badge tono="alerta" icono={Percent}>− {formatear(v.descuento_cent, v.moneda)}</Badge>}
                           </span>
                           <ChevronRight size={18} strokeWidth={1.75} aria-hidden className="hidden shrink-0 text-texto-tenue sm:block" />
                         </Link>

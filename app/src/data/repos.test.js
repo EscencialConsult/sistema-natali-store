@@ -118,6 +118,33 @@ describe('venta, stock y cola', () => {
     expect(await stock.stockDe(p.id)).toBe(antes - 18)
   })
 
+  it('el descuento queda registrado: el total es lo cobrado y viaja en la cola', async () => {
+    const { p } = await productoConStock()
+    const datos = { vendedor_id: 'p-ariel', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: p.id, cantidad: 1, precio_cent: 10000 }] }
+
+    const porcentaje = await ventas.crear({ ...datos, descuento: { modo: 'porcentaje', valor: 12.5 } })
+    expect(porcentaje).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 12.5, descuento_cent: 1250, total_cent: 8750 })
+    expect(porcentaje).not.toHaveProperty('descuento')
+    const enCola = await db.cola_sync.where('entidad_id').equals(porcentaje.id).first()
+    expect(enCola.payload.venta).toMatchObject({ descuento_modo: 'porcentaje', descuento_cent: 1250, total_cent: 8750 })
+
+    expect(await ventas.crear({ ...datos, descuento: { modo: 'monto', valor: 3000 } })).toMatchObject({ descuento_modo: 'monto', descuento_porcentaje: null, descuento_cent: 3000, total_cent: 7000 })
+    expect(await ventas.crear({ ...datos, descuento: { modo: 'porcentaje', valor: 100 } })).toMatchObject({ descuento_cent: 10000, total_cent: 0 })
+    expect(await ventas.crear(datos)).toMatchObject({ descuento_modo: null, descuento_porcentaje: null, descuento_cent: 0, total_cent: 10000 })
+    // Un porcentaje que no llega a un centavo no queda como descuento (el servidor lo rechazaría).
+    expect(await ventas.crear({ ...datos, items: [{ ...datos.items[0], precio_cent: 10 }], descuento: { modo: 'porcentaje', valor: 0.01 } })).toMatchObject({ descuento_modo: null, descuento_porcentaje: null, descuento_cent: 0, total_cent: 10 })
+
+    await expect(ventas.crear({ ...datos, descuento: { modo: 'monto', valor: 10001 } })).rejects.toThrow(/mayor que el total/)
+    await expect(ventas.crear({ ...datos, descuento: { modo: 'porcentaje', valor: 101 } })).rejects.toThrow(/100%/)
+    await expect(ventas.crear({ ...datos, descuento: { modo: 'monto', valor: 0 } })).rejects.toThrow(/mayor a 0/)
+
+    // Filtro «solo con descuento»: quedan las 3 con descuento de este test; sin el filtro aparecen también las demás.
+    const conDescuento = await ventas.listar({ con_descuento: true })
+    expect(conDescuento.length).toBeGreaterThanOrEqual(3)
+    expect(conDescuento.every((v) => v.descuento_cent > 0)).toBe(true)
+    expect((await ventas.listar({})).length).toBeGreaterThan(conDescuento.length)
+  })
+
   it('rechaza un color que no es del producto', async () => {
     const { p } = await productoConStock()
     const otro = (await productos.listar()).find((x) => x.id !== p.id && x.colores.length)

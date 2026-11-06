@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Banknote, ChevronRight, Coins, DollarSign, FileSearch, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react'
+import { Banknote, ChevronRight, Coins, DollarSign, FileSearch, Landmark, Percent, ReceiptText, SlidersHorizontal } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Dato, Encabezado, EmptyState, ErrorState, FILA, Input, Select, Skeleton, Tabs, TARJETA } from '../../components/ui/index.js'
 import { usePerfiles, useVentas } from '../../data/hooks.js'
 import { ventas as repoVentas } from '../../data/repos/index.js'
+import { hayDescuento } from '../../lib/descuentos.js'
 import { fechaCorta } from '../../lib/fechas.js'
 import { METODOS_ENTREGA } from '../../lib/entrega.js'
 import { contiene, etiquetaDe, nombreArchivo, textoMonedas } from '../../lib/excel.js'
@@ -11,6 +12,7 @@ import { formatear, META_MONEDA, MONEDAS, totalesPorMoneda } from '../../lib/mon
 import { desdeDeFecha, hastaDeFecha, PERIODOS, rangoDe } from '../../lib/periodos.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
+import DatosDescuento from '../../components/DatosDescuento.jsx'
 import ExportarExcel from '../../components/ExportarExcel.jsx'
 import FiltroMoneda from '../../components/FiltroMoneda.jsx'
 import { libroVentas } from './exportarVentas.js'
@@ -23,10 +25,11 @@ const OPC_PAGO = [TODOS, { valor: 'efectivo', etiqueta: 'Efectivo' }, { valor: '
 const OPC_ENVIO = [TODOS, { valor: 'pending', etiqueta: 'Por enviar' }, { valor: 'synced', etiqueta: 'Enviadas' }, { valor: 'error', etiqueta: 'Con problema' }]
 const OPC_ESTADO = [TODOS, { valor: 'activa', etiqueta: 'Activas' }, { valor: 'anulada', etiqueta: 'Anuladas' }]
 const OPC_COMISION = [TODOS, { valor: 'no_pagada', etiqueta: 'No pagada' }, { valor: 'pagada', etiqueta: 'Pagada' }]
+const OPC_DESCUENTO = [TODOS, { valor: 'con', etiqueta: 'Solo con descuento' }]
 const OPC_ENTREGA = [TODOS, ...Object.entries(METODOS_ENTREGA).map(([valor, etiqueta]) => ({ valor, etiqueta }))]
 const VENDEN = ['vendedor', 'enc_tienda', 'enc_ventas', 'admin', 'superadmin']
 
-const FILTROS_VACIOS = { moneda: '', metodo_pago: '', sync_status: '', estado: '', vendedor_id: '', desde: '', hasta: '', comision_pagada: '' }
+const FILTROS_VACIOS = { moneda: '', metodo_pago: '', sync_status: '', estado: '', vendedor_id: '', desde: '', hasta: '', comision_pagada: '', descuento: '' }
 
 export default function VentasPage() {
   const { usuario } = useAuth()
@@ -46,6 +49,7 @@ export default function VentasPage() {
       sync_status: f.sync_status || undefined,
       estado: f.estado || undefined,
       comision_pagada: f.comision_pagada === 'pagada' ? true : f.comision_pagada === 'no_pagada' ? false : undefined,
+      con_descuento: f.descuento === 'con' || undefined,
       vendedor_id: verTodas ? f.vendedor_id || undefined : usuario.id,
       desde: desdeDeFecha(f.desde) ?? r.desde ?? undefined,
       hasta: hastaDeFecha(f.hasta) ?? r.hasta ?? undefined,
@@ -121,6 +125,7 @@ export default function VentasPage() {
           <Select etiqueta="Envío" opciones={OPC_ENVIO} valor={f.sync_status} onChange={cambiar('sync_status')} />
           <Select etiqueta="Estado" opciones={OPC_ESTADO} valor={f.estado} onChange={cambiar('estado')} />
           <Select etiqueta="Comisión" opciones={OPC_COMISION} valor={f.comision_pagada} onChange={cambiar('comision_pagada')} />
+          <Select etiqueta="Descuento" opciones={OPC_DESCUENTO} valor={f.descuento} onChange={cambiar('descuento')} />
           <Input etiqueta="Desde" type="date" value={f.desde} onChange={(e) => cambiar('desde')(e.target.value)} />
           <Input etiqueta="Hasta" type="date" value={f.hasta} onChange={(e) => cambiar('hasta')(e.target.value)} />
           {hayFiltros && <Button variante="fantasma" className="self-end sm:col-span-2 sm:justify-self-start lg:col-span-1" onClick={() => setF(FILTROS_VACIOS)}>Limpiar filtros</Button>}
@@ -137,6 +142,7 @@ export default function VentasPage() {
             {totales.map((t) => (
               <Dato key={t.moneda} etiqueta={`Total en ${META_MONEDA[t.moneda].nombre}`} valor={formatear(t.total_cent, t.moneda)} icono={ICONO_MONEDA[t.moneda]} />
             ))}
+            <DatosDescuento ventas={activas} />
           </section>
           {totales.length > 1 && <p className="-mt-3 text-xs text-texto-suave">Cada moneda se suma por separado: no se mezclan.</p>}
 
@@ -175,6 +181,7 @@ export default function VentasPage() {
                             {v.metodo_pago === 'efectivo' ? 'Efectivo' : 'Transferencia'}
                           </span>
                           {v.estado === 'anulada' && <Badge tono="error">Anulada</Badge>}
+                          {v.estado !== 'anulada' && hayDescuento(v) && <Badge tono="alerta" icono={Percent}>− {formatear(v.descuento_cent, v.moneda)}</Badge>}
                           <Badge tono={tono}>{texto}</Badge>
                         </div>
                       </div>
