@@ -212,6 +212,40 @@ describe('venta, stock y cola', () => {
     expect(revertida.comision_pagada_en).toBeNull()
   })
 
+  it('transferencias: nacen pendientes, se completan con o sin comprobante y pueden volver a pendientes', async () => {
+    const { p, color } = await productoConStock()
+    const nueva = (metodo_pago) => ventas.crear({ vendedor_id: 'p-ariel', moneda: 'usd', tipo_cambio: 1, metodo_pago, items: [{ producto_id: p.id, color_id: color.id, cantidad: 1, precio_cent: 500 }] })
+    const [a, b, efectivo] = [await nueva('transferencia'), await nueva('transferencia'), await nueva('efectivo')]
+    const ids = async (t) => (await ventas.listar({ transferencia: t })).map((v) => v.id)
+    expect(await ids('pendiente')).toEqual(expect.arrayContaining([a.id, b.id]))
+    expect([...(await ids('pendiente')), ...(await ids('completada'))]).not.toContain(efectivo.id)
+
+    await ventas.completarTransferencia(a.id)
+    await ventas.completarTransferencia(b.id, { comprobante: new Blob(['x'], { type: 'image/jpeg' }) })
+    expect(await ids('pendiente')).not.toEqual(expect.arrayContaining([a.id]))
+    expect(await ids('completada')).toEqual(expect.arrayContaining([a.id, b.id]))
+    const conArchivo = await ventas.obtener(b.id)
+    expect(conArchivo).toMatchObject({ comprobante_completado: true, sync_status: 'pending' })
+    expect(conArchivo.comprobante_blob).toBeTruthy()
+    expect(conArchivo.comprobante_local_id).toBeTruthy()
+    expect(conArchivo.comprobante_completado_en).toBeTruthy()
+    expect((await ventas.obtener(a.id)).comprobante_blob).toBeUndefined()
+    // Una entrada de cola por venta: el envío lee el estado de la venta en ese momento.
+    const cola = await db.cola_sync.filter((i) => i.operacion === 'comprobante').toArray()
+    expect(cola.map((i) => i.entidad_id).sort()).toEqual([a.id, b.id].sort())
+
+    await ventas.reabrirTransferencia(b.id)
+    const reabierta = await ventas.obtener(b.id)
+    expect(reabierta).toMatchObject({ comprobante_completado: false, comprobante_completado_en: null, comprobante_ruta: null })
+    expect(reabierta.comprobante_blob).toBeUndefined()
+    expect(await ids('pendiente')).toContain(b.id)
+
+    await expect(ventas.completarTransferencia(efectivo.id)).rejects.toThrow(/no es por transferencia/)
+    // Las ventas de antes de esta función no tienen el dato: cuentan como completadas (sin comprobante).
+    await db.ventas.update(a.id, { comprobante_completado: undefined })
+    expect(await ids('completada')).toContain(a.id)
+  })
+
   it('la cola se vacía al sincronizar y reintenta con espera si falla', async () => {
     const falla = async () => {
       throw new Error('sin servidor')

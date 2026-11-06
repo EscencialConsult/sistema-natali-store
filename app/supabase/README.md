@@ -42,6 +42,7 @@ Todo está en **un solo archivo idempotente: [`naty_schema.sql`](naty_schema.sql
 - El número de nota (`NV-AM-0001`) lo arma cada dispositivo para vender sin internet. Si la misma persona vende desde dos dispositivos sin conexión a la vez, podrían repetirse números (la venta es válida y no se rechaza). Para revisarlo: `select numero, count(*) from naty_ventas group by numero having count(*) > 1;`
 - Las iniciales de cada persona son únicas (forman el número de nota).
 - Descuentos: `naty_ventas.total_cent` ya es lo cobrado (subtotal − `descuento_cent`). La comisión no cambia: es fija por docena. Subir el esquema **antes** de publicar la versión de la app con descuentos.
+- Transferencias: `naty_ventas.comprobante_completado` (las ventas anteriores quedan completadas sin comprobante). Los comprobantes van al bucket **privado** `naty_comprobantes` (`<venta_id>/<archivo>`), se ven con enlace firmado y solo los toca quien ve la venta. Subir el esquema **antes** de publicar la versión de la app con transferencias.
 - Al reemplazar fotos de un producto, las anteriores quedan en Storage sin usar (limpieza pendiente; no afecta el funcionamiento).
 - Quitar un color de un producto lo marca `eliminado` (no se borra): el stock y las ventas históricas lo siguen necesitando.
 

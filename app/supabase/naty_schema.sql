@@ -1182,3 +1182,112 @@ begin
 
   return v_id;
 end $$;
+
+-- ── 2026-11-06 · Transferencias: completar con comprobante (foto o PDF) o sin él (se lo mostraron en persona) ──
+-- Las ventas por transferencia nacen pendientes. Cada vendedora completa las suyas; administración y encargadas, todas.
+-- Las que ya existían quedan completadas sin comprobante: la columna entra con default true (rellena las viejas) y después
+-- el default pasa a false (las nuevas nacen pendientes). Correrlo de nuevo no cambia nada.
+-- `comprobante_ruta`: ruta dentro del bucket PRIVADO naty_comprobantes, siempre `<venta_id>/<archivo>`.
+alter table naty_ventas add column if not exists comprobante_completado boolean not null default true;
+alter table naty_ventas alter column comprobante_completado set default false;
+alter table naty_ventas add column if not exists comprobante_completado_en timestamptz;
+alter table naty_ventas add column if not exists comprobante_ruta text;
+
+-- Quién puede tocar los comprobantes de una venta: quien la ve (la vendedora la suya; administración y encargadas, todas).
+create or replace function naty_puede_comprobante(p_venta text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from naty_ventas v
+     where v.id::text = p_venta
+       and (naty_es_rol('admin', 'enc_tienda', 'enc_ventas') or (v.vendedor_id = auth.uid() and naty_es_miembro()))
+  )
+$$;
+
+-- Privado: los comprobantes tienen datos bancarios. Se ven con un enlace firmado que dura unos minutos.
+insert into storage.buckets (id, name, public) values ('naty_comprobantes', 'naty_comprobantes', false)
+on conflict (id) do nothing;
+
+-- El superadmin además ve y borra los que quedaron sin venta (después de borrar notas viejas).
+drop policy if exists "naty_comprobantes_ver" on storage.objects;
+create policy "naty_comprobantes_ver" on storage.objects for select to authenticated
+  using (bucket_id = 'naty_comprobantes' and (naty_puede_comprobante(split_part(name, '/', 1)) or naty_es_rol('superadmin')));
+drop policy if exists "naty_comprobantes_subir" on storage.objects;
+create policy "naty_comprobantes_subir" on storage.objects for insert to authenticated
+  with check (bucket_id = 'naty_comprobantes' and naty_puede_comprobante(split_part(name, '/', 1)));
+drop policy if exists "naty_comprobantes_reemplazar" on storage.objects;
+create policy "naty_comprobantes_reemplazar" on storage.objects for update to authenticated
+  using (bucket_id = 'naty_comprobantes' and naty_puede_comprobante(split_part(name, '/', 1)));
+drop policy if exists "naty_comprobantes_borrar" on storage.objects;
+create policy "naty_comprobantes_borrar" on storage.objects for delete to authenticated
+  using (bucket_id = 'naty_comprobantes' and (naty_puede_comprobante(split_part(name, '/', 1)) or naty_es_rol('superadmin')));
+
+-- Completar (con o sin comprobante), cambiar el comprobante o volver a pendientes.
+-- p = { id, completado, ruta? }. Volver a pendientes quita el comprobante.
+-- Devuelve { ruta_anterior }: el archivo que dejó de usarse, para que la app lo borre del bucket.
+create or replace function naty_completar_transferencia(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+  v_completado boolean := coalesce((p ->> 'completado')::boolean, true);
+  v_ruta text := nullif(p ->> 'ruta', '');
+  v_venta naty_ventas;
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado' using errcode = '28000';
+  end if;
+  select * into v_venta from naty_ventas where id = v_id;
+  if not found then
+    raise exception 'La venta no existe' using errcode = '02000';
+  end if;
+  if not naty_puede_comprobante(v_id::text) then
+    raise exception 'No podés completar esta venta' using errcode = '42501';
+  end if;
+  if v_venta.metodo_pago <> 'transferencia' then
+    raise exception 'La venta no es por transferencia' using errcode = '22023';
+  end if;
+  if not v_completado then
+    v_ruta := null;
+  end if;
+  if v_ruta is not null and split_part(v_ruta, '/', 1) <> v_id::text then
+    raise exception 'El comprobante no corresponde a la venta' using errcode = '22023';
+  end if;
+
+  update naty_ventas set
+    comprobante_completado = v_completado,
+    comprobante_completado_en = case when v_completado then coalesce(comprobante_completado_en, clock_timestamp()) end,
+    comprobante_ruta = v_ruta
+  where id = v_id;
+
+  return jsonb_build_object('ruta_anterior', case when v_venta.comprobante_ruta is distinct from v_ruta then v_venta.comprobante_ruta end);
+end $$;
+
+-- Comprobantes cuya venta ya no existe (borrado de notas viejas). Solo el superadmin; la app los borra del bucket.
+create or replace function naty_comprobantes_sin_venta() returns jsonb
+language plpgsql stable security definer set search_path = public, storage as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Solo el superadmin puede borrar datos' using errcode = '42501';
+  end if;
+  return (select coalesce(jsonb_agg(o.name), '[]'::jsonb) from storage.objects o
+           where o.bucket_id = 'naty_comprobantes'
+             and not exists (select 1 from naty_ventas v where v.id::text = split_part(o.name, '/', 1)));
+end $$;
+
+-- El aviso de almacenamiento suma también los comprobantes.
+create or replace function naty_uso_almacenamiento() returns jsonb
+language plpgsql stable security definer set search_path = public, storage as $$
+begin
+  if not naty_es_rol('superadmin') then
+    raise exception 'Sin permiso para ver el almacenamiento' using errcode = '42501';
+  end if;
+  return jsonb_build_object(
+    'datos_bytes', pg_database_size(current_database()),
+    'fotos_bytes', coalesce((select sum((metadata ->> 'size')::bigint) from storage.objects where bucket_id in ('naty_productos', 'naty_comprobantes')), 0)
+  );
+end $$;
+
+revoke all on function naty_puede_comprobante(text), naty_completar_transferencia(jsonb), naty_comprobantes_sin_venta() from public, anon, authenticated;
+grant execute on function naty_puede_comprobante(text), naty_completar_transferencia(jsonb), naty_comprobantes_sin_venta() to authenticated;
+
+update proyectos set tablas = tablas || '["bucket:naty_comprobantes"]'::jsonb
+ where identificador = 'naty' and not (tablas ? 'bucket:naty_comprobantes');

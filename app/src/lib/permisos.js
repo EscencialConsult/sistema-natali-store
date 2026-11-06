@@ -9,7 +9,8 @@ export const ROLES = {
   enc_deposito: 'Encargada de depósito',
 }
 
-const VENDEDOR = ['catalogo.ver', 'venta.crear', 'ventas.ver_propias', 'comisiones.ver_propia']
+// transferencias.completar: cada quien las suyas; con ventas.ver_todas, las de todos.
+const VENDEDOR = ['catalogo.ver', 'venta.crear', 'ventas.ver_propias', 'comisiones.ver_propia', 'transferencias.completar']
 const ADMIN = [
   ...VENDEDOR,
   'catalogo.editar',

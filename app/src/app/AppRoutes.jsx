@@ -23,6 +23,7 @@ const UsuariosPage = lazy(() => import('../features/usuarios/UsuariosPage.jsx'))
 const AdminListado = lazy(() => import('../features/catalogo/admin/AdminListado.jsx'))
 const ProductoFormPage = lazy(() => import('../features/catalogo/admin/ProductoFormPage.jsx'))
 const ImportarPage = lazy(() => import('../features/catalogo/admin/ImportarPage.jsx'))
+const TransferenciasPage = lazy(() => import('../features/transferencias/TransferenciasPage.jsx'))
 const CatalogoPublico = lazy(() => import('../features/catalogo/publico/CatalogoPublico.jsx'))
 
 
@@ -77,6 +78,9 @@ export default function AppRoutes() {
             })}
             <Route element={<RutaProtegida accion={['ventas.ver_propias', 'ventas.ver_todas']} />}>
               <Route path="/ventas/:id" element={<NotaPage />} />
+            </Route>
+            <Route element={<RutaProtegida accion="transferencias.completar" />}>
+              <Route path="/transferencias" element={<TransferenciasPage />} />
             </Route>
             <Route element={<RutaProtegida accion="stock.mover" />}>
               <Route path="/stock/importar" element={<ImportarStockPage />} />

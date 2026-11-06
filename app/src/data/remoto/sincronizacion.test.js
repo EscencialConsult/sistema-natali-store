@@ -282,3 +282,55 @@ describe('contrato entre la app y la base', () => {
     expect(await ventas.obtener(v.id)).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 12.35, descuento_cent: 4117, total_cent: 29216, sync_status: 'synced' })
   })
 })
+
+describe('transferencias', () => {
+  const fila = async (id) => (await q('select comprobante_completado as completado, comprobante_ruta as ruta from naty_ventas where id = $1', [id]))[0]
+
+  it('con comprobante: se sube al bucket privado, otro dispositivo lo ve, cambiarlo borra el anterior y volver a pendientes lo quita', async () => {
+    await dispositivoNuevo()
+    await bajar(U.ariel)
+    const v = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'transferencia', items: [itemVenta(1, 1000)] })
+    await ventas.completarTransferencia(v.id, { comprobante: new Blob(['foto'], { type: 'image/jpeg' }) })
+    // Venta y comprobante viajan en orden: primero la nota, después el archivo.
+    expect(await enviar(U.ariel)).toEqual({ enviadas: 2, errores: 0 })
+    const primera = await fila(v.id)
+    expect(primera.completado).toBe(true)
+    expect(primera.ruta).toMatch(new RegExp(`^${v.id}/.+\\.jpg$`))
+    expect(servidor.archivos.has(`naty_comprobantes/${primera.ruta}`)).toBe(true)
+    const local = await ventas.obtener(v.id)
+    expect(local).toMatchObject({ comprobante_ruta: primera.ruta, sync_status: 'synced' })
+    expect(local.comprobante_blob).toBeUndefined()
+
+    await dispositivoNuevo()
+    await bajar(U.pamela)
+    expect(await ventas.obtener(v.id)).toMatchObject({ comprobante_completado: true, comprobante_ruta: primera.ruta })
+    await ventas.completarTransferencia(v.id, { comprobante: new Blob(['pdf'], { type: 'application/pdf' }) })
+    expect(await enviar(U.pamela)).toEqual({ enviadas: 1, errores: 0 })
+    const segunda = await fila(v.id)
+    expect(segunda.ruta).toMatch(/\.pdf$/)
+    expect(servidor.archivos.has(`naty_comprobantes/${primera.ruta}`)).toBe(false)
+    expect(servidor.archivos.has(`naty_comprobantes/${segunda.ruta}`)).toBe(true)
+
+    await ventas.reabrirTransferencia(v.id)
+    expect(await enviar(U.pamela)).toEqual({ enviadas: 1, errores: 0 })
+    expect(await fila(v.id)).toEqual({ completado: false, ruta: null })
+    expect(servidor.archivos.has(`naty_comprobantes/${segunda.ruta}`)).toBe(false)
+  })
+
+  it('sin comprobante: queda completada; una vendedora no puede completar la venta de otra', async () => {
+    await dispositivoNuevo()
+    await bajar(U.brayan)
+    const v = await ventas.crear({ vendedor_id: U.brayan.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'transferencia', items: [itemVenta(1, 1000)] })
+    expect(await enviar(U.brayan)).toEqual({ enviadas: 1, errores: 0 })
+    expect(await fila(v.id)).toEqual({ completado: false, ruta: null })
+    await ventas.completarTransferencia(v.id)
+    expect(await enviar(U.brayan)).toEqual({ enviadas: 1, errores: 0 })
+    expect(await fila(v.id)).toEqual({ completado: true, ruta: null })
+
+    // Ariel no ve la venta de Brayan: el servidor rechaza el cambio y queda con problema en la cola.
+    await ventas.reabrirTransferencia(v.id)
+    expect(await enviar(U.ariel)).toEqual({ enviadas: 0, errores: 1 })
+    expect((await pendientes())[0].ultimo_error).toMatch(/No podés completar/)
+    expect(await fila(v.id)).toEqual({ completado: true, ruta: null })
+  })
+})

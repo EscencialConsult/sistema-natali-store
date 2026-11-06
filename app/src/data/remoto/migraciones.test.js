@@ -421,3 +421,77 @@ describe('stock por producto y un solo color (corrección de datos al aplicar el
     expect((await q('select count(*)::int as n from naty_movimientos_stock where producto_id = $1', [prod]))[0].n).toBe(3)
   })
 })
+
+describe('transferencias: completar con o sin comprobante', () => {
+  const SECCION = esquema.slice(esquema.indexOf('-- ── 2026-11-06 · Transferencias'))
+  const completar = async (u, p) => (await como(u, () => q('select naty_completar_transferencia($1::jsonb) as r', [JSON.stringify(p)])))[0].r
+  const estado = async (id) => (await q('select comprobante_completado as completado, comprobante_ruta as ruta, comprobante_completado_en is not null as con_fecha from naty_ventas where id = $1', [id]))[0]
+  let nro = 0
+  const transferencia = async (u, extra = {}) => {
+    const v = venta({ metodo_pago: 'transferencia', vendedor_id: u, numero: `NV-TR-${String(++nro).padStart(4, '0')}`, ...extra })
+    await registrar(u, v)
+    return v
+  }
+
+  it('las nuevas nacen pendientes; las que ya existían quedan completadas; correrlo de nuevo no cambia nada', async () => {
+    const nueva = await transferencia(U.ariel)
+    expect(await estado(nueva.id)).toEqual({ completado: false, ruta: null, con_fecha: false })
+    await db.exec(SECCION)
+    expect((await estado(nueva.id)).completado).toBe(false)
+    // Base de antes de esta función: al agregarse la columna, lo que ya había queda completado (sin comprobante).
+    await db.exec('alter table naty_ventas drop column comprobante_completado, drop column comprobante_completado_en, drop column comprobante_ruta')
+    await db.exec(SECCION)
+    expect(await estado(nueva.id)).toEqual({ completado: true, ruta: null, con_fecha: false })
+    expect((await estado((await transferencia(U.ariel)).id)).completado).toBe(false)
+  })
+
+  it('cada vendedora completa las suyas; administración y encargadas, todas; nadie más', async () => {
+    const v = await transferencia(U.ariel)
+    for (const u of [U.brayan, U.maria, U.intruso]) await expect(completar(u, { id: v.id, completado: true })).rejects.toThrow(/No podés completar/)
+    await expect(completar(null, { id: v.id, completado: true })).rejects.toThrow(/permission denied|No autenticado/)
+
+    await completar(U.ariel, { id: v.id, completado: true })
+    expect(await estado(v.id)).toEqual({ completado: true, ruta: null, con_fecha: true })
+    expect(await completar(U.pamela, { id: v.id, completado: true, ruta: `${v.id}/a.jpg` })).toEqual({ ruta_anterior: null })
+    // Cambiar el comprobante devuelve el anterior, para borrarlo del bucket.
+    expect(await completar(U.jehovana, { id: v.id, completado: true, ruta: `${v.id}/b.pdf` })).toEqual({ ruta_anterior: `${v.id}/a.jpg` })
+    expect(await estado(v.id)).toEqual({ completado: true, ruta: `${v.id}/b.pdf`, con_fecha: true })
+    await expect(completar(U.admin, { id: v.id, completado: true, ruta: `${uuid()}/c.jpg` })).rejects.toThrow(/no corresponde/)
+    // Volver a pendientes quita el comprobante.
+    expect(await completar(U.admin, { id: v.id, completado: false, ruta: `${v.id}/b.pdf` })).toEqual({ ruta_anterior: `${v.id}/b.pdf` })
+    expect(await estado(v.id)).toEqual({ completado: false, ruta: null, con_fecha: false })
+
+    const efectivo = await transferencia(U.ariel, { metodo_pago: 'efectivo' })
+    await expect(completar(U.ariel, { id: efectivo.id, completado: true })).rejects.toThrow(/no es por transferencia/)
+    await expect(completar(U.admin, { id: uuid(), completado: true })).rejects.toThrow(/no existe/)
+  })
+
+  it('el bucket es privado: los archivos de una venta solo los suben y los ven quienes ven la venta', async () => {
+    expect((await q("select public from storage.buckets where id = 'naty_comprobantes'"))[0].public).toBe(false)
+    const v = await transferencia(U.ariel)
+    const subir = (u, nombre) => como(u, () => q("insert into storage.objects (bucket_id, name) values ('naty_comprobantes', $1)", [nombre]))
+    const ver = async (u) => (await como(u, () => q("select count(*)::int as n from storage.objects where bucket_id = 'naty_comprobantes' and name like $1", [`${v.id}/%`])))[0].n
+    await subir(U.ariel, `${v.id}/a.jpg`)
+    await subir(U.pamela, `${v.id}/b.jpg`)
+    for (const u of [U.brayan, U.maria, U.intruso]) await expect(subir(u, `${v.id}/x.jpg`)).rejects.toThrow(/row-level security/)
+    await expect(subir(U.ariel, 'cualquier-cosa/x.jpg')).rejects.toThrow(/row-level security/)
+    expect(await ver(U.ariel)).toBe(2)
+    expect(await ver(U.jehovana)).toBe(2)
+    expect(await ver(U.brayan)).toBe(0)
+    expect(await ver(U.maria)).toBe(0)
+  })
+
+  it('los comprobantes que quedaron sin venta los lista y los borra solo el superadmin', async () => {
+    const SUPER = uuid()
+    await q("insert into auth.users (id, email) values ($1, 'super@test.local')", [SUPER])
+    await q("select naty_configurar_usuario('super@test.local', 'superadmin', 'Super', 'SU')")
+    const huerfano = `${uuid()}/viejo.jpg`
+    await q("insert into storage.objects (bucket_id, name) values ('naty_comprobantes', $1)", [huerfano])
+    await expect(como(U.admin, () => q('select naty_comprobantes_sin_venta()'))).rejects.toThrow(/Solo el superadmin/)
+    expect((await como(SUPER, () => q('select naty_comprobantes_sin_venta() as r')))[0].r).toEqual([huerfano])
+    await como(U.admin, () => q("delete from storage.objects where bucket_id = 'naty_comprobantes' and name = $1", [huerfano]))
+    expect((await q('select count(*)::int as n from storage.objects where name = $1', [huerfano]))[0].n).toBe(1)
+    await como(SUPER, () => q("delete from storage.objects where bucket_id = 'naty_comprobantes' and name = $1", [huerfano]))
+    expect((await q('select count(*)::int as n from storage.objects where name = $1', [huerfano]))[0].n).toBe(0)
+  })
+})

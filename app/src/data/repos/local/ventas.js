@@ -1,6 +1,6 @@
 // Repositorio de ventas.
 //   crear(datos) · anular(id, { motivo, usuario_id }) · obtener(id) · listar(filtros) · listarConItems(filtros)
-//   marcarComision(ids, { pagada, oculta })
+//   marcarComision(ids, { pagada, oculta }) · completarTransferencia(id, { comprobante }) · reabrirTransferencia(id)
 // Crear una venta es UNA transacción: nota + ítems + descuento de stock + cola de sincronización.
 // Si algo falla no queda nada a medias. Las ventas se anulan; solo el superadmin borra notas viejas (limpieza.js).
 import { z } from 'zod'
@@ -10,6 +10,7 @@ import { calcularDescuento, hayDescuento } from '../../../lib/descuentos.js'
 import { esCantidadValida, subtotal } from '../../../lib/docenas.js'
 import { METODOS_ENTREGA } from '../../../lib/entrega.js'
 import { MONEDAS } from '../../../lib/moneda.js'
+import { transferenciaPendiente } from '../../../lib/transferencias.js'
 import { encolar } from '../../sync/cola.js'
 import { insertarMovimiento } from './stock.js'
 
@@ -116,6 +117,10 @@ export const ventas = {
         descuento_modo: conDescuento ? d.descuento.modo : null,
         descuento_porcentaje: conDescuento && d.descuento.modo === 'porcentaje' ? d.descuento.valor : null,
         descuento_cent,
+        // Transferencia: queda pendiente hasta que se complete (con o sin comprobante). Ver completarTransferencia.
+        comprobante_completado: false,
+        comprobante_completado_en: null,
+        comprobante_ruta: null,
         estado: 'activa',
         sync_status: 'pending',
         creada_en: new Date().toISOString(),
@@ -174,7 +179,8 @@ export const ventas = {
     return { ...venta, items: await db.venta_items.where('venta_id').equals(id).toArray() }
   },
 
-  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta, comision_pagada, comision_oculta, con_descuento } = {}) {
+  // transferencia: 'pendiente' | 'completada' (solo ventas por transferencia).
+  async listar({ vendedor_id, moneda, metodo_pago, sync_status, estado, desde, hasta, comision_pagada, comision_oculta, con_descuento, transferencia } = {}) {
     let lista = await db.ventas.toArray()
     if (vendedor_id) lista = lista.filter((v) => v.vendedor_id === vendedor_id)
     if (moneda) lista = lista.filter((v) => v.moneda === moneda)
@@ -186,6 +192,7 @@ export const ventas = {
     if (comision_pagada !== undefined) lista = lista.filter((v) => !!v.comision_pagada === comision_pagada)
     if (comision_oculta !== undefined) lista = lista.filter((v) => !!v.comision_oculta === comision_oculta)
     if (con_descuento) lista = lista.filter(hayDescuento)
+    if (transferencia) lista = lista.filter((v) => v.metodo_pago === 'transferencia' && transferenciaPendiente(v) === (transferencia === 'pendiente'))
     return lista.sort((a, b) => b.creada_en.localeCompare(a.creada_en))
   },
   // Para exportar: cada venta con sus ítems.
@@ -217,4 +224,38 @@ export const ventas = {
       }
     })
   },
+
+  // Completa una transferencia. comprobante: Blob (foto ya comprimida o PDF) o nada (se lo mostraron en persona).
+  // Ya completada: con comprobante lo reemplaza; sin él deja el que tenía.
+  // El archivo queda en el dispositivo y se sube al sincronizar (sync/remoto.js); con el id se sabe si cambió mientras tanto.
+  async completarTransferencia(id, { comprobante } = {}) {
+    await cambiarTransferencia(id, (v) => ({
+      comprobante_completado: true,
+      comprobante_completado_en: v.comprobante_completado_en ?? new Date().toISOString(),
+      ...(comprobante && { comprobante_blob: comprobante, comprobante_local_id: nuevoId() }),
+    }))
+  },
+
+  // Vuelve a pendientes y quita el comprobante.
+  async reabrirTransferencia(id) {
+    await cambiarTransferencia(id, () => ({
+      comprobante_completado: false,
+      comprobante_completado_en: null,
+      comprobante_ruta: null,
+      comprobante_blob: undefined,
+      comprobante_local_id: undefined,
+    }))
+  },
+}
+
+async function cambiarTransferencia(id, cambios) {
+  await db.transaction('rw', db.ventas, db.cola_sync, async () => {
+    const v = await db.ventas.get(id)
+    if (!v) throw new Error('La venta no existe.')
+    if (v.metodo_pago !== 'transferencia') throw new Error('La venta no es por transferencia.')
+    if (v.estado === 'anulada') throw new Error('La venta está anulada.')
+    await db.ventas.update(id, { ...cambios(v), sync_status: 'pending' })
+    // El envío lee el estado actual de la venta: si se cambia dos veces sin conexión, va lo último.
+    await encolar({ operacion: 'comprobante', entidad: 'venta', entidad_id: id, payload: { id } })
+  })
 }

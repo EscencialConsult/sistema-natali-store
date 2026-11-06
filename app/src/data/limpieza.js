@@ -3,7 +3,7 @@
 // Los demás dispositivos se enteran al sincronizar (naty_limpiezas, ver sync/remoto.js).
 import { obtenerSupabase } from './supabase.js'
 import { hayConexion } from './sync/cola.js'
-import { BUCKET, borrarProductosDelDispositivo } from './sync/remoto.js'
+import { BUCKET, BUCKET_COMPROBANTES, borrarProductosDelDispositivo } from './sync/remoto.js'
 
 async function rpc(nombre, p = {}) {
   if (!hayConexion()) throw new Error('Necesitás conexión a internet para borrar.')
@@ -48,7 +48,11 @@ export const limpieza = {
   },
 
   async borrarVentas({ antesDe }) {
-    const { data } = await rpc('naty_borrar_ventas', { antes_de: antesDe })
+    const { sb, data } = await rpc('naty_borrar_ventas', { antes_de: antesDe })
+    // Los comprobantes de las notas borradas. Si falla, quedan sin uso en el bucket: no rompe nada.
+    await rpc('naty_comprobantes_sin_venta')
+      .then(({ data: rutas }) => rutas.length && sb.storage.from(BUCKET_COMPROBANTES).remove(rutas))
+      .catch(() => {})
     sincronizar()
     return data
   },

@@ -186,7 +186,7 @@ function verificar(token) {
 const refrescos = new Map() // refresh_token -> user id
 
 // ── Servidor ────────────────────────────────────────────────────────────────────────────────────────
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain' }
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain', '.pdf': 'application/pdf' }
 const IDENT = /^[a-z_][a-z0-9_]*$/i
 const RESERVADOS = new Set(['select', 'order', 'limit', 'offset', 'on_conflict', 'columns'])
 
@@ -278,6 +278,8 @@ export async function iniciarServidor({ puerto = PUERTO, configReal } = {}) {
 
   // PGlite es de una sola conexión: las operaciones se encolan.
   let cola = Promise.resolve()
+  // Enlaces firmados de archivos privados: token → { archivo, vence }.
+  const firmas = new Map()
   const serializar = (fn) => {
     const r = cola.then(fn, fn)
     cola = r.catch(() => {})
@@ -483,6 +485,23 @@ export async function iniciarServidor({ puerto = PUERTO, configReal } = {}) {
       const archivo = [propio, demo].find((p) => p && existsSync(p) && statSync(p).isFile())
       if (!archivo) return json(res, 404, { statusCode: '404', error: 'not_found', message: 'Object not found' })
       res.writeHead(200, { 'content-type': TIPOS[extname(archivo).toLowerCase()] ?? 'application/octet-stream', 'cache-control': 'no-cache' })
+      return res.end(readFileSync(archivo))
+    }
+    // Bucket privado (comprobantes): se pide un enlace firmado con sesión y se abre sin ella mientras no venza.
+    const firma = /^\/storage\/v1\/object\/sign\/([^/]+)\/(.+)$/.exec(url.pathname)
+    if (firma) {
+      const relativa = decodeURIComponent(firma[2])
+      const archivo = rutaSegura(join(ALMACEN, firma[1]), relativa)
+      if (req.method === 'POST') {
+        if (sesion(req).rol !== 'authenticated') throw new ErrorApi(401, 'Unauthorized', 'Hace falta iniciar sesión')
+        if (!archivo || !existsSync(archivo)) return json(res, 404, { statusCode: '404', error: 'not_found', message: 'Object not found' })
+        const token = randomUUID()
+        firmas.set(token, { archivo, vence: Date.now() + 10 * 60_000 })
+        return json(res, 200, { signedURL: `/object/sign/${firma[1]}/${firma[2]}?token=${token}` })
+      }
+      const f = firmas.get(url.searchParams.get('token'))
+      if (req.method !== 'GET' || !f || f.archivo !== archivo || f.vence < Date.now()) return json(res, 400, { statusCode: '400', error: 'InvalidJWT', message: 'Enlace vencido o inválido' })
+      res.writeHead(200, { 'content-type': TIPOS[extname(archivo).toLowerCase()] ?? 'application/octet-stream', 'cache-control': 'no-store' })
       return res.end(readFileSync(archivo))
     }
     const subida = /^\/storage\/v1\/object\/([^/]+)\/(.+)$/.exec(url.pathname)

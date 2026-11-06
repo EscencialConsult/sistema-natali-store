@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, PackageCheck, Percent, Plus, ReceiptText, ScrollText, Search, Users } from 'lucide-react'
+import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, Landmark, PackageCheck, Percent, Plus, ReceiptText, ScrollText, Search, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, Badge, Button, Dato, EmptyState, ErrorState, Skeleton, Tarjeta } from '../../components/ui/index.js'
 import { useConfig, usePerfiles, useProductos, useStockResumen, useVentas } from '../../data/hooks.js'
@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const prods = useProductos()
   const stock = useStockResumen()
   const cfg = useConfig()
+  const verTransferencias = puede(usuario.rol, 'transferencias.completar')
+  const transferencias = useVentas({ transferencia: 'pendiente', estado: 'activa', vendedor_id: propio })
+  const porCompletar = verTransferencias ? (transferencias.datos?.length ?? 0) : 0
 
   const verStock = puede(usuario.rol, 'stock.ver')
   const cargando = hoy.cargando || ultimas.cargando || equipo.cargando || cfg.cargando || (verStock && (prods.cargando || stock.cargando))
@@ -82,6 +85,14 @@ export default function DashboardPage() {
             )}
             {puede(usuario.rol, 'catalogo.ver') && (
               <Link to="/catalogo"><Button variante="contorno_claro" icono={Search}>Buscar modelo</Button></Link>
+            )}
+            {verTransferencias && (
+              <Link to="/transferencias" aria-label={porCompletar ? `Transferencias: ${porCompletar} por completar` : undefined}>
+                <Button variante="contorno_claro" icono={Landmark}>
+                  Transferencias
+                  {porCompletar > 0 && <span aria-hidden className="ml-0.5 inline-flex min-w-6 items-center justify-center rounded-pildora bg-superficie px-1.5 text-xs font-semibold tabular-nums text-sobre-tinte">{porCompletar}</span>}
+                </Button>
+              </Link>
             )}
           </div>
         </div>
