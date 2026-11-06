@@ -40,8 +40,10 @@ try {
 
   const bucket = await q("select public from storage.buckets where id = 'naty_productos'")
   ok(bucket.length === 1 && bucket[0].public === true, 'bucket naty_productos existe (lectura pública)')
+  const comprobantes = await q("select public from storage.buckets where id = 'naty_comprobantes'")
+  ok(comprobantes.length === 1 && comprobantes[0].public === false, 'bucket naty_comprobantes existe (privado)')
   const polStorage = await q("select count(*)::int as c from pg_policy p join pg_class c on c.oid = p.polrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'storage' and c.relname = 'objects' and p.polname like 'naty\\_%'")
-  ok(polStorage[0].c === 4, `4 políticas naty_* en storage.objects (hay ${polStorage[0].c})`)
+  ok(polStorage[0].c === 8, `8 políticas naty_* en storage.objects: 4 de fotos y 4 de comprobantes (hay ${polStorage[0].c})`)
 
   ok((await q("select count(*)::int as c from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'auth' and not t.tgisinternal"))[0].c === 0, 'sin triggers sobre auth.users')
 
