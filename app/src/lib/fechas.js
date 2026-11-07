@@ -1,10 +1,12 @@
 const corta = new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 const larga = new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const soloHora = new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit' })
 const soloDia = new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 export const fechaCorta = (iso) => corta.format(new Date(iso))
 export const fechaLarga = (iso) => larga.format(new Date(iso))
 export const fechaDia = (iso) => soloDia.format(new Date(iso))
+export const hora = (iso) => soloHora.format(new Date(iso))
 
 export const inicioDelDia = (d = new Date()) => {
   const x = new Date(d)

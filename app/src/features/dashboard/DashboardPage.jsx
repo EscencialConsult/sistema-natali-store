@@ -3,8 +3,8 @@ import { AlertTriangle, Banknote, ChevronRight, Coins, DollarSign, Landmark, Pac
 import { Link } from 'react-router-dom'
 import { Avatar, Badge, Button, Dato, EmptyState, ErrorState, Skeleton, Tarjeta } from '../../components/ui/index.js'
 import { useConfig, usePerfiles, useProductos, useStockResumen, useVentas } from '../../data/hooks.js'
-import { hayDescuento } from '../../lib/descuentos.js'
-import { fechaCorta } from '../../lib/fechas.js'
+import { descuentosAplicados, hayDescuento } from '../../lib/descuentos.js'
+import { fechaCorta, hora } from '../../lib/fechas.js'
 import { formatear, META_MONEDA, totalesPorMoneda } from '../../lib/moneda.js'
 import { rangoDe } from '../../lib/periodos.js'
 import { puede } from '../../lib/permisos.js'
@@ -33,10 +33,13 @@ export default function DashboardPage() {
   const verTransferencias = puede(usuario.rol, 'transferencias.completar')
   const transferencias = useVentas({ transferencia: 'pendiente', estado: 'activa', vendedor_id: propio })
   const porCompletar = verTransferencias ? (transferencias.datos?.length ?? 0) : 0
+  // Descuentos aplicados hoy (al vender o después, sobre una nota ya hecha): quién lo aplicó a la venta de quién.
+  const conDescuento = useVentas({ estado: 'activa', con_descuento: true, vendedor_id: propio })
+  const descuentosHoy = useMemo(() => (conDescuento.datos ? descuentosAplicados(conDescuento.datos, rango) : []), [conDescuento.datos, rango])
 
   const verStock = puede(usuario.rol, 'stock.ver')
-  const cargando = hoy.cargando || ultimas.cargando || equipo.cargando || cfg.cargando || (verStock && (prods.cargando || stock.cargando))
-  const fallo = hoy.error || ultimas.error || equipo.error || cfg.error || (verStock && (prods.error || stock.error))
+  const cargando = hoy.cargando || ultimas.cargando || conDescuento.cargando || equipo.cargando || cfg.cargando || (verStock && (prods.cargando || stock.cargando))
+  const fallo = hoy.error || ultimas.error || conDescuento.error || equipo.error || cfg.error || (verStock && (prods.error || stock.error))
 
   const porVendedor = useMemo(() => {
     if (!hoy.datos || !equipo.datos) return []
@@ -66,7 +69,7 @@ export default function DashboardPage() {
 
   const totales = hoy.datos ? totalesPorMoneda(hoy.datos) : []
   const maxVentas = Math.max(1, ...porVendedor.map((f) => f.ventas.length))
-  const reintentar = () => [hoy, ultimas, equipo, prods, stock, cfg].forEach((c) => c.reintentar())
+  const reintentar = () => [hoy, ultimas, conDescuento, equipo, prods, stock, cfg].forEach((c) => c.reintentar())
 
   return (
     <div className="flex flex-col gap-6">
@@ -171,6 +174,27 @@ export default function DashboardPage() {
                           </div>
                           <p className="mt-1 truncate text-xs tabular-nums text-texto-suave">{f.totales.map((t) => formatear(t.total_cent, t.moneda)).join(' · ')}</p>
                         </div>
+                      </li>
+                    ))}
+                  </ul>
+                </Tarjeta>
+              )}
+
+              {global && descuentosHoy.length > 0 && (
+                <Tarjeta titulo="Descuentos de hoy" icono={Percent} enlace={{ a: '/ventas', texto: 'Ventas' }} cuerpo="px-2 pb-2 sm:px-3 sm:pb-3">
+                  <ul className="flex flex-col">
+                    {descuentosHoy.map((v) => (
+                      <li key={v.id}>
+                        <Link to={`/ventas/${v.id}`} className="flex min-h-14 items-center gap-3 rounded-control px-2 py-2 transition-colors hover:bg-superficie-2">
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium tabular-nums">{v.numero} <span className="font-normal text-texto-suave">· vendió {v.vendedor_nombre || '—'}</span></span>
+                            <span className="block truncate text-xs text-texto-suave">Aplicó {v.descuento_por_nombre || v.vendedor_nombre || '—'} · {hora(v.descuento_en)}</span>
+                          </span>
+                          <span className="flex shrink-0 flex-col items-end gap-0.5">
+                            <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-alerta">− {formatear(v.descuento_cent, v.moneda)}</span>
+                            <span className="text-xs text-texto-suave">{v.descuento_modo === 'porcentaje' ? `${String(v.descuento_porcentaje).replace('.', ',')}%` : 'Monto fijo'}</span>
+                          </span>
+                        </Link>
                       </li>
                     ))}
                   </ul>

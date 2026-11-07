@@ -1,18 +1,41 @@
 // Repositorio de ventas.
 //   crear(datos) · anular(id, { motivo, usuario_id }) · obtener(id) · listar(filtros) · listarConItems(filtros)
 //   marcarComision(ids, { pagada, oculta }) · completarTransferencia(id, { comprobante }) · reabrirTransferencia(id)
+//   descontar(id, { descuento, usuario_id })
 // Crear una venta es UNA transacción: nota + ítems + descuento de stock + cola de sincronización.
 // Si algo falla no queda nada a medias. Las ventas se anulan; solo el superadmin borra notas viejas (limpieza.js).
 import { z } from 'zod'
 import { db } from '../../db.js'
 import { nuevoId } from '../../../lib/id.js'
-import { calcularDescuento, hayDescuento } from '../../../lib/descuentos.js'
+import { calcularDescuento, hayDescuento, subtotalDe } from '../../../lib/descuentos.js'
 import { esCantidadValida, subtotal } from '../../../lib/docenas.js'
 import { METODOS_ENTREGA } from '../../../lib/entrega.js'
 import { MONEDAS } from '../../../lib/moneda.js'
 import { transferenciaPendiente } from '../../../lib/transferencias.js'
 import { encolar } from '../../sync/cola.js'
 import { insertarMovimiento } from './stock.js'
+
+// valor: % (hasta dos decimales) en modo porcentaje, centavos en modo monto. null: sin descuento.
+const esquemaDescuento = z
+  .discriminatedUnion('modo', [
+    z.object({ modo: z.literal('porcentaje'), valor: z.number().positive('El descuento debe ser mayor a 0.').max(100, 'El descuento no puede pasar de 100%.').transform((n) => Math.round(n * 100) / 100) }),
+    z.object({ modo: z.literal('monto'), valor: z.number().int().positive('El descuento debe ser mayor a 0.') }),
+  ])
+  .nullable()
+  .default(null)
+
+// Los campos del descuento de una venta (cent ya calculado). por/en: quién lo aplicó y cuándo.
+const camposDescuento = (descuento, cent, por, en) => {
+  const con = cent > 0
+  return {
+    descuento_modo: con ? descuento.modo : null,
+    descuento_porcentaje: con && descuento.modo === 'porcentaje' ? descuento.valor : null,
+    descuento_cent: cent,
+    descuento_por: con ? por.id : null,
+    descuento_por_nombre: con ? (por.nombre ?? '') : '',
+    descuento_en: con ? en : null,
+  }
+}
 
 const esquemaVenta = z.object({
   vendedor_id: z.string().min(1, 'Falta el vendedor.'),
@@ -29,14 +52,8 @@ const esquemaVenta = z.object({
   cliente_direccion: z.string().trim().default(''),
   metodo_entrega: z.enum(Object.keys(METODOS_ENTREGA)).nullable().default(null),
   retira_nombre: z.string().trim().default(''),
-  // valor: % (hasta dos decimales) en modo porcentaje, centavos en modo monto.
-  descuento: z
-    .discriminatedUnion('modo', [
-      z.object({ modo: z.literal('porcentaje'), valor: z.number().positive('El descuento debe ser mayor a 0.').max(100, 'El descuento no puede pasar de 100%.').transform((n) => Math.round(n * 100) / 100) }),
-      z.object({ modo: z.literal('monto'), valor: z.number().int().positive('El descuento debe ser mayor a 0.') }),
-    ])
-    .nullable()
-    .default(null),
+  // Solo encargadas y administración (lo controla la pantalla y lo exige el servidor).
+  descuento: esquemaDescuento,
   items: z
     .array(
       z.object({
@@ -104,26 +121,24 @@ export const ventas = {
       const subtotalVenta = items.reduce((t, i) => t + i.subtotal_cent, 0)
       const descuento_cent = calcularDescuento(subtotalVenta, d.descuento)
       if (descuento_cent > subtotalVenta) throw new Error('El descuento no puede ser mayor que el total de la venta.')
-      // Un porcentaje que no llega a un centavo no es un descuento.
-      const conDescuento = descuento_cent > 0
       const { items: _omitidos, descuento: _descuento, ...cabecera } = d
       const vendedor = await db.perfiles.get(d.vendedor_id)
+      const creadaEn = new Date().toISOString()
       const venta = {
         ...cabecera,
         vendedor_nombre: vendedor?.nombre ?? '',
         id: idVenta,
         numero: await siguienteNumero(d.vendedor_id),
         total_cent: subtotalVenta - descuento_cent,
-        descuento_modo: conDescuento ? d.descuento.modo : null,
-        descuento_porcentaje: conDescuento && d.descuento.modo === 'porcentaje' ? d.descuento.valor : null,
-        descuento_cent,
+        // Un porcentaje que no llega a un centavo no es un descuento. Lo aplica quien registra la venta.
+        ...camposDescuento(d.descuento, descuento_cent, { id: d.vendedor_id, nombre: vendedor?.nombre }, creadaEn),
         // Transferencia: queda pendiente hasta que se complete (con o sin comprobante). Ver completarTransferencia.
         comprobante_completado: false,
         comprobante_completado_en: null,
         comprobante_ruta: null,
         estado: 'activa',
         sync_status: 'pending',
-        creada_en: new Date().toISOString(),
+        creada_en: creadaEn,
       }
       await db.ventas.add(venta)
       await db.venta_items.bulkAdd(items)
@@ -169,6 +184,26 @@ export const ventas = {
       }
       await db.ventas.update(id, { estado: 'anulada', anulada_en: anuladaEn, anulacion_motivo: motivo, sync_status: 'pending' })
       await encolar({ operacion: 'anular', entidad: 'venta', entidad_id: id, payload: { motivo, usuario_id, anulada_en: anuladaEn, movimientos } })
+    })
+    return ventas.obtener(id)
+  },
+
+  // Poner, cambiar o quitar (descuento null) el descuento de una nota activa, aunque sea de otra persona.
+  // Encargadas y administración: lo controla la pantalla y lo exige el servidor. La comisión no cambia (es por docena).
+  async descontar(id, { descuento, usuario_id }) {
+    const d = esquemaDescuento.parse(descuento)
+    await db.transaction('rw', db.ventas, db.cola_sync, db.perfiles, async () => {
+      const v = await db.ventas.get(id)
+      if (!v) throw new Error('La venta no existe.')
+      if (v.estado === 'anulada') throw new Error('La venta está anulada.')
+      const sub = subtotalDe(v)
+      const cent = calcularDescuento(sub, d)
+      if (cent > sub) throw new Error('El descuento no puede ser mayor que el total de la venta.')
+      const quien = await db.perfiles.get(usuario_id)
+      const campos = camposDescuento(d, cent, { id: usuario_id, nombre: quien?.nombre }, new Date().toISOString())
+      await db.ventas.update(id, { ...campos, total_cent: sub - cent, sync_status: 'pending' })
+      const { descuento_por: _por, descuento_por_nombre: _nombre, ...payload } = campos
+      await encolar({ operacion: 'descuento', entidad: 'venta', entidad_id: id, payload: { id, ...payload } })
     })
     return ventas.obtener(id)
   },

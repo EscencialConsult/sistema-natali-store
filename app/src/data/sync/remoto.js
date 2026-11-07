@@ -133,6 +133,8 @@ export async function enviarRemoto(sb, item) {
       return rpc(sb, 'naty_registrar_venta', armarVenta(item.payload))
     case 'venta/anular':
       return rpc(sb, 'naty_anular_venta', { id: item.entidad_id, motivo: item.payload.motivo, anulada_en: item.payload.anulada_en, movimientos: item.payload.movimientos.map(movimiento) })
+    case 'venta/descuento':
+      return rpc(sb, 'naty_descontar_venta', item.payload)
     case 'venta/comision':
       return rpc(sb, 'naty_actualizar_comision_venta', item.payload)
     case 'venta/comprobante':
@@ -280,7 +282,7 @@ export async function descargar(sb) {
     const items = await traer(sb, 'naty_venta_items', { orden: 'id', filtros: (q) => q.in('venta_id', ids) })
     await db.transaction('rw', db.ventas, db.venta_items, async () => {
       await db.venta_items.where('venta_id').anyOf(ids).delete()
-      await db.ventas.bulkPut(lote.map((v) => ({ ...pick(v, ['id', 'numero', 'vendedor_id', 'vendedor_nombre', 'moneda', 'metodo_pago', 'cliente_nombre', 'cliente_telefono', 'cliente_email', 'cliente_direccion', 'metodo_entrega', 'retira_nombre', 'estado', 'anulada_en', 'anulacion_motivo', 'creada_en']), tipo_cambio: Number(v.tipo_cambio), total_cent: Number(v.total_cent), descuento_modo: v.descuento_modo ?? null, descuento_porcentaje: v.descuento_porcentaje == null ? null : Number(v.descuento_porcentaje), descuento_cent: Number(v.descuento_cent) || 0, comision_pagada: !!v.comision_pagada, comision_pagada_en: v.comision_pagada_en ?? null, comision_oculta: !!v.comision_oculta, comision_oculta_en: v.comision_oculta_en ?? null, comprobante_completado: v.comprobante_completado !== false, comprobante_completado_en: v.comprobante_completado_en ?? null, comprobante_ruta: v.comprobante_ruta ?? null, sync_status: 'synced' })))
+      await db.ventas.bulkPut(lote.map((v) => ({ ...pick(v, ['id', 'numero', 'vendedor_id', 'vendedor_nombre', 'moneda', 'metodo_pago', 'cliente_nombre', 'cliente_telefono', 'cliente_email', 'cliente_direccion', 'metodo_entrega', 'retira_nombre', 'estado', 'anulada_en', 'anulacion_motivo', 'creada_en']), tipo_cambio: Number(v.tipo_cambio), total_cent: Number(v.total_cent), descuento_modo: v.descuento_modo ?? null, descuento_porcentaje: v.descuento_porcentaje == null ? null : Number(v.descuento_porcentaje), descuento_cent: Number(v.descuento_cent) || 0, descuento_por: v.descuento_por ?? null, descuento_por_nombre: v.descuento_por_nombre ?? '', descuento_en: v.descuento_en ?? null, comision_pagada: !!v.comision_pagada, comision_pagada_en: v.comision_pagada_en ?? null, comision_oculta: !!v.comision_oculta, comision_oculta_en: v.comision_oculta_en ?? null, comprobante_completado: v.comprobante_completado !== false, comprobante_completado_en: v.comprobante_completado_en ?? null, comprobante_ruta: v.comprobante_ruta ?? null, sync_status: 'synced' })))
       await db.venta_items.bulkPut(items.map((i) => ({ ...pick(i, ['id', 'venta_id', 'producto_id', 'color_id', 'codigo', 'nombre', 'color_nombre', 'unidad', 'unidades']), cantidad: Number(i.cantidad), precio_cent: Number(i.precio_cent), subtotal_cent: Number(i.subtotal_cent) })))
     })
   }

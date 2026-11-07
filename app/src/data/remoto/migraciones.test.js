@@ -267,7 +267,7 @@ describe('registrar_venta', () => {
     // Un vendedor no puede aplicar descuentos, pero sí vender sin descuento (o desde una app vieja sin las claves).
     await expect(registrar(U.ariel, venta({ numero: numero(0), descuento_modo: 'monto', descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/Solo la administración o las encargadas/)
     const vieja = venta({ numero: numero(3) })
-    await registrar(U.ariel, vieja)
+    await registrar(U.admin, vieja)
     expect(await fila(vieja.id)).toEqual({ descuento_modo: null, pct: null, cent: 0, total: subtotal })
 
     const monto = venta({ vendedor_id: U.pamela, numero: numero(1), descuento_modo: 'monto', descuento_cent: 1000, total_cent: subtotal - 1000 })
@@ -288,6 +288,11 @@ describe('registrar_venta', () => {
     await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(7), descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/por ciento/)
     await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(8), descuento_cent: 1000, total_cent: subtotal - 1000 }))).rejects.toThrow(/check constraint/)
     await expect(registrar(U.pamela, venta({ vendedor_id: U.pamela, numero: numero(9), descuento_modo: 'monto' }))).rejects.toThrow(/check constraint/)
+
+    // Queda quién aplicó el descuento (quien registró la venta) y cuándo.
+    expect((await q('select descuento_por, descuento_en from naty_ventas where id = $1', [pct.id]))[0]).toEqual({ descuento_por: U.jehovana, descuento_en: new Date(pct.creada_en) })
+    expect((await q('select descuento_por_nombre from naty_ventas where id = $1', [adm.id]))[0].descuento_por_nombre).toBe('Natali')
+    expect((await q('select descuento_por, descuento_por_nombre, descuento_en from naty_ventas where id = $1', [vieja.id]))[0]).toEqual({ descuento_por: null, descuento_por_nombre: '', descuento_en: null })
   })
 
   it('la administradora puede registrar a nombre de otra persona', async () => {
@@ -324,6 +329,75 @@ describe('anular_venta', () => {
     const stockVendida3 = await stockDe(ROJO)
     await anular(U.jehovana, { ...anulacion, id: v3.id, movimientos: [{ ...anulacion.movimientos[0], id: uuid() }] })
     expect(await stockDe(ROJO)).toBe(stockVendida3 + 24)
+  })
+})
+
+describe('descontar_venta', () => {
+  const descontar = (u, p) => como(u, () => q('select naty_descontar_venta($1::jsonb)', [JSON.stringify(p)]))
+  const fila = async (id) => (await q('select descuento_modo as modo, descuento_porcentaje::float as pct, descuento_cent::int as cent, total_cent::int as total, descuento_por as por, descuento_por_nombre as nombre, descuento_en as en from naty_ventas where id = $1', [id]))[0]
+  const subtotal = 2 * 10000 + 1 * 5000
+
+  it('la encargada descuenta la nota de un vendedor; queda quién y cuándo; cambiar y quitar recalculan el total', async () => {
+    const v = venta({ numero: 'NV-AM-0081' })
+    await registrar(U.ariel, v)
+    await descontar(U.pamela, { id: v.id, descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 2500, descuento_en: '2026-10-08T17:00:00Z' })
+    expect(await fila(v.id)).toEqual({ modo: 'porcentaje', pct: 10, cent: 2500, total: subtotal - 2500, por: U.pamela, nombre: 'Pamela Aramayo', en: new Date('2026-10-08T17:00:00Z') })
+    // Cambiarlo: el subtotal sale de lo que suman los productos, no del total ya descontado. Idempotente.
+    const monto = { id: v.id, descuento_modo: 'monto', descuento_cent: 1000, descuento_en: '2026-10-08T18:00:00Z' }
+    await descontar(U.jehovana, monto)
+    await descontar(U.jehovana, monto)
+    expect(await fila(v.id)).toMatchObject({ modo: 'monto', pct: null, cent: 1000, total: subtotal - 1000, por: U.jehovana })
+    await descontar(U.admin, { id: v.id, descuento_modo: null, descuento_cent: 0 })
+    expect(await fila(v.id)).toEqual({ modo: null, pct: null, cent: 0, total: subtotal, por: null, nombre: '', en: null })
+  })
+
+  it('aplicada sobre la base de producción: no toca ninguna venta, ítem ni movimiento y solo completa quién/cuándo; correrla de nuevo no cambia nada', async () => {
+    // En producción se corre solo esta sección (el resto del archivo ya está aplicado).
+    const SECCION = esquema.slice(esquema.indexOf('-- ── 2026-11-07 · Descuentos'))
+    // Base de producción antes de esta migración: sin las columnas ni el trigger, con ventas de vendedores con y sin descuento y una anulada.
+    await db.exec('drop trigger naty_ventas_autor_descuento on naty_ventas; alter table naty_ventas drop column descuento_por, drop column descuento_por_nombre, drop column descuento_en')
+    const conDesc = venta({ numero: 'NV-AM-0091', descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 2500, total_cent: subtotal - 2500 })
+    const sinDesc = venta({ numero: 'NV-AM-0092' })
+    const anulada = venta({ numero: 'NV-AM-0093', descuento_modo: 'monto', descuento_cent: 700, total_cent: subtotal - 700 })
+    // Como en producción: las notas con descuento las registró la administración (a nombre de quien vendió).
+    for (const v of [conDesc, sinDesc, anulada]) await registrar(U.admin, v)
+    await como(U.admin, () => q('select naty_anular_venta($1::jsonb)', [JSON.stringify({ id: anulada.id, motivo: 'x', movimientos: [] })]))
+
+    const foto = async () => ({
+      ventas: await q(`select id, numero, vendedor_id, vendedor_nombre, moneda, tipo_cambio::text, metodo_pago, cliente_nombre, total_cent::text, descuento_modo, descuento_porcentaje::text,
+                         descuento_cent::text, estado, anulada_en, anulacion_motivo, comision_pagada, comprobante_completado, creada_en from naty_ventas order by id`),
+      items: await q('select * from naty_venta_items order by id'),
+      movimientos: await q('select * from naty_movimientos_stock order by id'),
+    })
+    const antes = await foto()
+    await db.exec(SECCION)
+    expect(await foto()).toEqual(antes)
+    const autor = async (id) => (await q('select descuento_por as por, descuento_por_nombre as nombre, descuento_en as en from naty_ventas where id = $1', [id]))[0]
+    expect(await autor(conDesc.id)).toEqual({ por: U.ariel, nombre: 'Ariel Maydana', en: new Date(conDesc.creada_en) })
+    expect(await autor(anulada.id)).toEqual({ por: U.ariel, nombre: 'Ariel Maydana', en: new Date(anulada.creada_en) })
+    expect(await autor(sinDesc.id)).toEqual({ por: null, nombre: '', en: null })
+
+    // Segunda corrida: ni datos ni updated_at cambian (los dispositivos no vuelven a bajar nada).
+    const tocadas = async () => q('select id, updated_at from naty_ventas order by id')
+    const actualizadas = await tocadas()
+    await db.exec(SECCION)
+    expect(await foto()).toEqual(antes)
+    expect(await tocadas()).toEqual(actualizadas)
+  })
+
+  it('rechaza vendedores y depósito, notas anuladas e importes incoherentes', async () => {
+    const v = venta({ numero: 'NV-AM-0082' })
+    await registrar(U.ariel, v)
+    const ok = { id: v.id, descuento_modo: 'monto', descuento_cent: 1000 }
+    await expect(descontar(U.ariel, ok)).rejects.toThrow(/pueden aplicar descuentos/)
+    await expect(descontar(U.maria, ok)).rejects.toThrow(/pueden aplicar descuentos/)
+    await expect(descontar(U.pamela, { ...ok, descuento_cent: subtotal + 1 })).rejects.toThrow(/no puede ser mayor/)
+    await expect(descontar(U.pamela, { id: v.id, descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 1 })).rejects.toThrow(/por ciento/)
+    await expect(descontar(U.pamela, { ...ok, descuento_modo: null })).rejects.toThrow(/check constraint/)
+    await expect(descontar(U.pamela, { ...ok, id: uuid() })).rejects.toThrow(/no existe/)
+    expect(await fila(v.id)).toMatchObject({ cent: 0, total: subtotal })
+    await como(U.admin, () => q('select naty_anular_venta($1::jsonb)', [JSON.stringify({ id: v.id, motivo: 'x', movimientos: [] })]))
+    await expect(descontar(U.pamela, ok)).rejects.toThrow(/anulada/)
   })
 })
 

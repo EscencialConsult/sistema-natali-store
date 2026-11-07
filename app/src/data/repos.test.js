@@ -145,6 +145,23 @@ describe('venta, stock y cola', () => {
     expect((await ventas.listar({})).length).toBeGreaterThan(conDescuento.length)
   })
 
+  it('descontar una nota ya hecha: recalcula el total, guarda quién y cuándo, y viaja en la cola', async () => {
+    const { p } = await productoConStock()
+    const v = await ventas.crear({ vendedor_id: 'p-ariel', moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [{ producto_id: p.id, cantidad: 2, precio_cent: 10000 }] })
+    const con = await ventas.descontar(v.id, { descuento: { modo: 'porcentaje', valor: 10 }, usuario_id: 'p-pamela' })
+    expect(con).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 10, descuento_cent: 2000, total_cent: 18000, descuento_por: 'p-pamela', sync_status: 'pending' })
+    expect(con.descuento_en).toBeTruthy()
+    const enCola = (await db.cola_sync.where('entidad_id').equals(v.id).toArray()).find((i) => i.operacion === 'descuento')
+    expect(enCola.payload).toMatchObject({ id: v.id, descuento_modo: 'porcentaje', descuento_cent: 2000 })
+    expect(enCola.payload).not.toHaveProperty('descuento_por')
+    // Cambiarlo parte de lo que suman los productos; quitarlo vuelve al total original.
+    expect(await ventas.descontar(v.id, { descuento: { modo: 'monto', valor: 500 }, usuario_id: 'p-pamela' })).toMatchObject({ descuento_porcentaje: null, descuento_cent: 500, total_cent: 19500 })
+    expect(await ventas.descontar(v.id, { descuento: null, usuario_id: 'p-pamela' })).toMatchObject({ descuento_modo: null, descuento_cent: 0, total_cent: 20000, descuento_por: null, descuento_en: null })
+    await expect(ventas.descontar(v.id, { descuento: { modo: 'monto', valor: 20001 }, usuario_id: 'p-pamela' })).rejects.toThrow(/mayor que el total/)
+    await ventas.anular(v.id, { motivo: 'x', usuario_id: 'p-pamela' })
+    await expect(ventas.descontar(v.id, { descuento: { modo: 'monto', valor: 1 }, usuario_id: 'p-pamela' })).rejects.toThrow(/anulada/)
+  })
+
   it('rechaza un color que no es del producto', async () => {
     const { p } = await productoConStock()
     const otro = (await productos.listar()).find((x) => x.id !== p.id && x.colores.length)

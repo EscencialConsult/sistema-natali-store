@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ban, CheckCircle2, MessageCircle, Plus, Printer } from 'lucide-react'
+import { Ban, CheckCircle2, MessageCircle, Percent, Plus, Printer } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Badge, Button, EmptyState, ErrorState, Input, Modal, Skeleton, useToast } from '../../components/ui/index.js'
 import { useConfig, useConsulta, usePerfiles, useVenta } from '../../data/hooks.js'
 import { ultimoError } from '../../data/sync/cola.js'
 import { ventas } from '../../data/repos/index.js'
+import { descuentoDe, etiquetaDescuento, hayDescuento, subtotalDe } from '../../lib/descuentos.js'
+import { fechaCorta } from '../../lib/fechas.js'
+import { formatear } from '../../lib/moneda.js'
 import { puede } from '../../lib/permisos.js'
 import { useAuth } from '../auth/AuthContext.js'
+import DescuentoModal from '../ventas/DescuentoModal.jsx'
 import { compartirPorWhatsApp } from './compartir.js'
 import NotaVenta from './NotaVenta.jsx'
 
@@ -54,6 +58,7 @@ export default function NotaPage() {
   const [motivo, setMotivo] = useState('')
   const [errorAnular, setErrorAnular] = useState('')
   const [enCurso, setEnCurso] = useState(false)
+  const [descontando, setDescontando] = useState(false)
 
   if (venta.cargando || cfg.cargando || equipo.cargando) return <Skeleton className="h-96" />
   if (venta.error || cfg.error || equipo.error) return <ErrorState mensaje="No pudimos cargar la nota." onReintentar={() => { venta.reintentar(); cfg.reintentar(); equipo.reintentar() }} />
@@ -90,6 +95,17 @@ export default function NotaPage() {
     }
   }
 
+  // Encargadas y administración: también sobre la nota de otra persona. Queda quién y cuándo (se ve en Inicio).
+  const descontar = async (descuento) => {
+    setDescontando(false)
+    try {
+      await ventas.descontar(v.id, { descuento, usuario_id: usuario.id })
+      avisar(descuento ? 'Descuento aplicado. El total de la nota se actualizó.' : 'Se quitó el descuento.', 'exito')
+    } catch (err) {
+      avisar(err.message, 'error')
+    }
+  }
+
   const [tono, textoSync] = SYNC[v.sync_status] ?? SYNC.pending
   const faltaQr = !cfg.datos.url_catalogo
   const esAdmin = puede(usuario.rol, 'ajustes.editar')
@@ -115,6 +131,7 @@ export default function NotaPage() {
         <Button icono={Printer} onClick={() => window.print()}>Imprimir / Guardar PDF</Button>
         <Button variante="whatsapp" icono={MessageCircle} cargando={compartiendo} onClick={compartir}>Compartir por WhatsApp</Button>
         <Link to="/venta"><Button variante="secundario" icono={Plus}>Nueva venta</Button></Link>
+        {puede(usuario.rol, 'venta.descontar') && v.estado === 'activa' && <Button variante="secundario" icono={Percent} onClick={() => setDescontando(true)}>{hayDescuento(v) ? 'Cambiar descuento' : 'Aplicar descuento'}</Button>}
         {puede(usuario.rol, 'ventas.anular') && v.estado === 'activa' && <Button variante="peligro" icono={Ban} onClick={() => setAnulando(true)}>Anular venta</Button>}
       </div>
 
@@ -130,6 +147,12 @@ export default function NotaPage() {
         </p>
       )}
 
+      {v.estado === 'activa' && hayDescuento(v) && v.descuento_por_nombre && (
+        <p role="status" className="rounded-control bg-alerta-fondo p-3 text-sm text-alerta">
+          <strong>{etiquetaDescuento({ modo: v.descuento_modo, porcentaje: v.descuento_porcentaje })}: − {formatear(v.descuento_cent, v.moneda)}.</strong> Lo aplicó {v.descuento_por_nombre}{v.descuento_en && ` el ${fechaCorta(v.descuento_en)}`}.
+        </p>
+      )}
+
       {faltaQr && (
         <p role="status" className="rounded-control bg-alerta-fondo p-3 text-sm text-alerta">
           Falta la dirección del catálogo: esta nota sale sin código QR. {esAdmin ? <Link to="/ajustes" className="underline">Cargarla en Ajustes</Link> : 'Pedile a la administración que la cargue en Ajustes.'}
@@ -139,6 +162,8 @@ export default function NotaPage() {
       <VistaPrevia>
         <NotaVenta venta={v} cfg={cfg.datos} equipo={equipo.datos} />
       </VistaPrevia>
+
+      {descontando && <DescuentoModal descuento={descuentoDe(v)} subtotalCent={subtotalDe(v)} moneda={v.moneda} onCerrar={() => setDescontando(false)} onAplicar={descontar} />}
 
       <Modal abierto={anulando} onCerrar={() => setAnulando(false)} titulo="¿Anular esta venta?">
         <form onSubmit={anular} noValidate className="flex flex-col gap-3">

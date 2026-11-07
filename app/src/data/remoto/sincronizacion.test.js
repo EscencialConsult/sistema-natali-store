@@ -279,7 +279,7 @@ describe('contrato entre la app y la base', () => {
 
     await dispositivoNuevo()
     await bajar(U.admin)
-    expect(await ventas.obtener(v.id)).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 12.35, descuento_cent: 4117, total_cent: 29216, sync_status: 'synced' })
+    expect(await ventas.obtener(v.id)).toMatchObject({ descuento_modo: 'porcentaje', descuento_porcentaje: 12.35, descuento_cent: 4117, total_cent: 29216, descuento_por: U.pamela.id, descuento_por_nombre: U.pamela.nombre, sync_status: 'synced' })
 
     // Si un vendedor intenta enviar una venta con descuento, el servidor la rechaza.
     await dispositivoNuevo()
@@ -288,6 +288,27 @@ describe('contrato entre la app y la base', () => {
     expect(await enviar(U.brayan)).toEqual({ enviadas: 0, errores: 1 })
     expect((await q('select count(*)::int as c from naty_ventas where id = $1', [rechazada.id]))[0].c).toBe(0)
     expect((await pendientes())[0].ultimo_error).toMatch(/Solo la administración o las encargadas/)
+  })
+
+  it('la encargada descuenta la nota de un vendedor: llega al servidor y la administración ve quién lo aplicó', async () => {
+    await dispositivoNuevo()
+    await bajar(U.ariel)
+    const v = await ventas.crear({ vendedor_id: U.ariel.id, moneda: 'usd', tipo_cambio: 1, metodo_pago: 'efectivo', items: [itemVenta(2, 10000)] })
+    await enviar(U.ariel)
+    // El vendedor no puede: el servidor lo rechaza.
+    await ventas.descontar(v.id, { descuento: { modo: 'monto', valor: 500 }, usuario_id: U.ariel.id })
+    expect((await enviar(U.ariel)).errores).toBe(1)
+
+    await dispositivoNuevo()
+    await bajar(U.pamela)
+    await ventas.descontar(v.id, { descuento: { modo: 'porcentaje', valor: 15 }, usuario_id: U.pamela.id })
+    expect(await enviar(U.pamela)).toEqual({ enviadas: 1, errores: 0 })
+    const [fila] = await q('select descuento_cent::int as cent, total_cent::int as total, descuento_por as por from naty_ventas where id = $1', [v.id])
+    expect(fila).toEqual({ cent: 3000, total: 17000, por: U.pamela.id })
+
+    await dispositivoNuevo()
+    await bajar(U.admin)
+    expect(await ventas.obtener(v.id)).toMatchObject({ descuento_cent: 3000, total_cent: 17000, descuento_por_nombre: U.pamela.nombre, sync_status: 'synced' })
   })
 })
 

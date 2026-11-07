@@ -1294,3 +1294,83 @@ grant execute on function naty_puede_comprobante(text), naty_completar_transfere
 
 update proyectos set tablas = tablas || '["bucket:naty_comprobantes"]'::jsonb
  where identificador = 'naty' and not (tablas ? 'bucket:naty_comprobantes');
+
+-- ── 2026-11-07 · Descuentos: solo encargadas y administración, también sobre una nota ya hecha, y queda quién lo aplicó ──
+-- El vendedor ya no descuenta al vender. Encargada de tienda, de ventas y administración pueden poner, cambiar o quitar
+-- el descuento de cualquier nota activa (también la de otra persona). Inicio muestra quién y cuándo.
+-- `descuento_por`/`descuento_por_nombre`/`descuento_en`: quién aplicó el descuento vigente y cuándo (vacíos si no hay).
+alter table naty_ventas add column if not exists descuento_por uuid references naty_perfiles (id) on delete set null;
+alter table naty_ventas add column if not exists descuento_por_nombre text not null default '';
+alter table naty_ventas add column if not exists descuento_en timestamptz;
+
+-- Los descuentos que ya existían los puso quien vendió, al vender. Correrlo de nuevo no cambia nada.
+update naty_ventas set descuento_por = vendedor_id, descuento_por_nombre = vendedor_nombre, descuento_en = creada_en
+ where descuento_cent > 0 and descuento_en is null;
+
+-- Al registrar una venta con descuento: solo los roles que pueden descontar, y queda a nombre de quien la registra.
+-- Va como trigger para no duplicar naty_registrar_venta; corre dentro de esa función (security definer) con el auth.uid() de quien llama.
+create or replace function naty_ventas_autor_descuento() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.descuento_cent > 0 then
+    if not naty_es_rol('admin', 'enc_tienda', 'enc_ventas') then
+      raise exception 'Solo la administración o las encargadas de tienda y de ventas pueden aplicar descuentos' using errcode = '42501';
+    end if;
+    new.descuento_por := auth.uid();
+    new.descuento_por_nombre := coalesce((select nombre from naty_perfiles where id = auth.uid()), '');
+    new.descuento_en := new.creada_en;
+  else
+    new.descuento_por := null;
+    new.descuento_por_nombre := '';
+    new.descuento_en := null;
+  end if;
+  return new;
+end $$;
+drop trigger if exists naty_ventas_autor_descuento on naty_ventas;
+create trigger naty_ventas_autor_descuento before insert on naty_ventas for each row execute function naty_ventas_autor_descuento();
+
+-- Poner, cambiar o quitar el descuento de una nota activa. p = { id, descuento_modo, descuento_porcentaje, descuento_cent, descuento_en }
+-- (sin modo y con 0: quita el descuento). Recalcula total_cent sobre lo que suman los productos. Idempotente: reenviar deja lo mismo.
+create or replace function naty_descontar_venta(p jsonb) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+  v_modo text := nullif(p ->> 'descuento_modo', '');
+  v_porcentaje numeric := nullif(p ->> 'descuento_porcentaje', '')::numeric;
+  v_descuento bigint := coalesce((p ->> 'descuento_cent')::bigint, 0);
+  v_venta naty_ventas;
+  v_subtotal bigint;
+begin
+  if not naty_es_rol('admin', 'enc_tienda', 'enc_ventas') then
+    raise exception 'Solo la administración o las encargadas de tienda y de ventas pueden aplicar descuentos' using errcode = '42501';
+  end if;
+  select * into v_venta from naty_ventas where id = v_id for update;
+  if not found then
+    raise exception 'La venta no existe' using errcode = '02000';
+  end if;
+  if v_venta.estado = 'anulada' then
+    raise exception 'La venta está anulada' using errcode = '22023';
+  end if;
+
+  v_subtotal := v_venta.total_cent + v_venta.descuento_cent;
+  if v_descuento < 0 or v_descuento > v_subtotal then
+    raise exception 'El descuento (%) no puede ser mayor que la suma de los productos (%)', v_descuento, v_subtotal using errcode = '22023';
+  end if;
+  if v_modo = 'porcentaje' and v_descuento <> round(v_subtotal * v_porcentaje / 100) then
+    raise exception 'El descuento (%) no coincide con el % por ciento de %', v_descuento, v_porcentaje, v_subtotal using errcode = '22023';
+  end if;
+
+  update naty_ventas set
+    descuento_modo = v_modo,
+    descuento_porcentaje = v_porcentaje,
+    descuento_cent = v_descuento,
+    total_cent = v_subtotal - v_descuento,
+    descuento_por = case when v_descuento > 0 then auth.uid() end,
+    descuento_por_nombre = case when v_descuento > 0 then coalesce((select nombre from naty_perfiles where id = auth.uid()), '') else '' end,
+    descuento_en = case when v_descuento > 0 then coalesce((p ->> 'descuento_en')::timestamptz, now()) end
+  where id = v_id;
+  return v_id;
+end $$;
+
+revoke all on function naty_ventas_autor_descuento(), naty_descontar_venta(jsonb) from public, anon, authenticated;
+grant execute on function naty_descontar_venta(jsonb) to authenticated;

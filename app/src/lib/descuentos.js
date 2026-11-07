@@ -52,3 +52,14 @@ export function descuentosPorMoneda(ventas) {
   }
   return MONEDAS.filter((m) => porMoneda[m]).map((m) => porMoneda[m])
 }
+
+// El descuento de una venta guardada como lo edita DescuentoModal ({ modo, valor }), o null.
+export const descuentoDe = (v) => (!hayDescuento(v) ? null : { modo: v.descuento_modo, valor: v.descuento_modo === 'porcentaje' ? Number(v.descuento_porcentaje) : Number(v.descuento_cent) })
+
+// Descuentos aplicados en [desde, hasta] (por cuándo se aplicaron, no por cuándo se vendió), sin anuladas, el más reciente primero.
+export const descuentosAplicados = (ventas, { desde, hasta }) =>
+  ventas
+    .filter((v) => v.estado !== 'anulada' && hayDescuento(v))
+    .map((v) => ({ ...v, descuento_en: v.descuento_en ?? v.creada_en }))
+    .filter((v) => v.descuento_en >= desde && v.descuento_en <= hasta)
+    .sort((a, b) => b.descuento_en.localeCompare(a.descuento_en))
